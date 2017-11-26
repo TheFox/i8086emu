@@ -1,0 +1,31 @@
+{
+    "name": "thefox/i8086emu",
+    "description": "8086 Emulator",
+    "license": "GPL-3.0",
+    "type": "project",
+    "keywords": [
+        "Intel",
+        "8086"
+    ],
+    "homepage": "https://fox21.at",
+    "authors": [
+        {
+            "name": "Christian Mayer",
+            "email": "christian@fox21.at",
+            "homepage": "https://fox21.at"
+        }
+    ],
+    "require": {
+        "php": "^7.0",
+        "symfony/console": "^3.3"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^0.8",
+        "squizlabs/php_codesniffer": "^3.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "TheFox\\": "src"
+        }
+    }
+}

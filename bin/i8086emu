@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+$tries = [
+    __DIR__ . '/../../../autoload.php', // $HOME/.composer/vendor/autoload.php
+    __DIR__ . '/../vendor/autoload.php', // ./vendor/autoload.php
+];
+foreach ($tries as $file) {
+    if (file_exists($file)) {
+        $autoloader = $file;
+        break;
+    }
+}
+
+if (isset($autoloader)) {
+    require_once $autoloader;
+} else {
+    throw new \RuntimeException('Autoloader not found. Run "composer install" to fix this.');
+}
+
+use Symfony\Component\Console\Application;
+
+use TheFox\i8086emu\i8086emu;
+
+$application = new Application(i8086emu::NAME, i8086emu::VERSION);
+$application->add(new \TheFox\i8086emu\Command\RunCommand());
+$application->run();
