@@ -1,6 +1,6 @@
 <?php
 
-namespace TheFox\i8086emu\Exception;
+namespace TheFox\I8086emu\Exception;
 
 class NoCpuException extends \RuntimeException
 {

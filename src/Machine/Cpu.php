@@ -4,9 +4,9 @@
  * @link https://en.wikipedia.org/wiki/Processor_(computing)
  */
 
-namespace TheFox\i8086emu\Machine;
+namespace TheFox\I8086emu\Machine;
 
-use TheFox\i8086emu\Blueprint\CpuInterface;
+use TheFox\I8086emu\Blueprint\CpuInterface;
 
 class Cpu implements CpuInterface
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace TheFox\i8086emu\Machine;
+namespace TheFox\I8086emu\Machine;
 
-use TheFox\i8086emu\Blueprint\RamInterface;
+use TheFox\I8086emu\Blueprint\RamInterface;
 
 class Ram implements RamInterface
 {

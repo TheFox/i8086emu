@@ -4,11 +4,11 @@
  * Machine create RAM, CPU, etc. and connects the components.
  */
 
-namespace TheFox\i8086emu\Machine;
+namespace TheFox\I8086emu\Machine;
 
-use TheFox\i8086emu\Blueprint\CpuInterface;
-use TheFox\i8086emu\Exception\NoBiosException;
-use TheFox\i8086emu\Exception\NoCpuException;
+use TheFox\I8086emu\Blueprint\CpuInterface;
+use TheFox\I8086emu\Exception\NoBiosException;
+use TheFox\I8086emu\Exception\NoCpuException;
 
 class Machine
 {

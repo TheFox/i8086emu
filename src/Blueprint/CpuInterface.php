@@ -1,6 +1,6 @@
 <?php
 
-namespace TheFox\i8086emu\Blueprint;
+namespace TheFox\I8086emu\Blueprint;
 
 interface CpuInterface
 {

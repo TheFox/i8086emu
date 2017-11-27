@@ -26,7 +26,7 @@
     },
     "autoload": {
         "psr-4": {
-            "TheFox\\": "src",
+            "TheFox\\I8086emu\\": "src",
             "App\\": "app"
         }
     },
