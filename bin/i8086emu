@@ -21,8 +21,8 @@ if (isset($autoloader)) {
 use App\Command\RunCommand;
 use Symfony\Component\Console\Application;
 
-use TheFox\i8086emu\i8086emu;
+use TheFox\I8086emu\I8086emu;
 
-$application = new Application(i8086emu::NAME, i8086emu::VERSION);
+$application = new Application(I8086emu::NAME, I8086emu::VERSION);
 $application->add(new RunCommand());
 $application->run();

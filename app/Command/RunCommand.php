@@ -6,7 +6,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use TheFox\i8086emu\Machine\Machine;
+use TheFox\I8086emu\Machine\Machine;
 
 class RunCommand extends Command
 {

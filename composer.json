@@ -29,5 +29,8 @@
             "TheFox\\": "src",
             "App\\": "app"
         }
-    }
+    },
+    "bin": [
+        "bin/i8086emu"
+    ]
 }
