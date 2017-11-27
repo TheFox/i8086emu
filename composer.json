@@ -5,7 +5,8 @@
     "type": "project",
     "keywords": [
         "Intel",
-        "8086"
+        "8086",
+        "Emulator"
     ],
     "homepage": "https://fox21.at",
     "authors": [
@@ -16,7 +17,7 @@
         }
     ],
     "require": {
-        "php": "^7.0",
+        "php": "^7.1",
         "symfony/console": "^3.3"
     },
     "require-dev": {
@@ -25,7 +26,8 @@
     },
     "autoload": {
         "psr-4": {
-            "TheFox\\": "src"
+            "TheFox\\": "src",
+            "App\\": "app"
         }
     }
 }

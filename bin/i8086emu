@@ -18,10 +18,11 @@ if (isset($autoloader)) {
     throw new \RuntimeException('Autoloader not found. Run "composer install" to fix this.');
 }
 
+use App\Command\RunCommand;
 use Symfony\Component\Console\Application;
 
 use TheFox\i8086emu\i8086emu;
 
 $application = new Application(i8086emu::NAME, i8086emu::VERSION);
-$application->add(new \TheFox\i8086emu\Command\RunCommand());
+$application->add(new RunCommand());
 $application->run();
