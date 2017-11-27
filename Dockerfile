@@ -4,7 +4,7 @@ ARG COMPOSER_AUTH
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
-	apt-get install -y apt-transport-https zlib1g-dev && \
+	apt-get install -y apt-transport-https rsync zlib1g-dev && \
 	docker-php-ext-install zip && \
 	apt-get clean
 
