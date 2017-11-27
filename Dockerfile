@@ -11,6 +11,11 @@ RUN apt-get update && \
 # Install Composer.
 COPY --from=composer:1.5 /usr/bin/composer /usr/bin/composer
 
+# Opt Software
+ADD opt /opt/app
+RUN ls -la /opt
+RUN /opt/app/install.sh
+
 # Root App folder
 RUN mkdir /app
 WORKDIR /app
