@@ -47,6 +47,9 @@ class Machine
             throw new NoBiosException();
         }
 
+        // Load BIOS into RAM.
+        // @todo
+
         // Run the CPU.
         $this->cpu->run();
     }
