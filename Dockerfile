@@ -13,14 +13,14 @@ RUN apt-get update && \
 COPY --from=composer:1.5 /usr/bin/composer /usr/bin/composer
 
 # Install Xdebug.
-RUN git clone git://github.com/xdebug/xdebug.git && \
-	cd xdebug && \
+RUN cd /tmp && \
+    git clone git://github.com/xdebug/xdebug.git && \
 	git reset --hard 331c3ec9071ba739951530ec6686d67859291f6a && \
 	phpize && \
 	docker-php-ext-configure /tmp/xdebug --enable-xdebug && \
 	docker-php-ext-install /tmp/xdebug && \
-	cd /tmp && \
-	rm -rf /tmp/xdebug
+	cd .. && \
+	rm -rf xdebug
 
 ADD docker/php/ext/xdebug.ini /usr/local/etc/php/conf.d/20-xdebug.ini
 
