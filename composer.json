@@ -6,6 +6,7 @@
     "keywords": [
         "Intel",
         "8086",
+        "x86",
         "Emulator"
     ],
     "homepage": "https://fox21.at",
@@ -22,12 +23,18 @@
     },
     "require-dev": {
         "phpstan/phpstan": "^0.8",
-        "squizlabs/php_codesniffer": "^3.1"
+        "squizlabs/php_codesniffer": "^3.1",
+        "phpunit/phpunit": "^6.4"
     },
     "autoload": {
         "psr-4": {
             "TheFox\\I8086emu\\": "src",
             "App\\": "app"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TheFox\\I8086emu\\Test\\": "tests"
         }
     },
     "bin": [

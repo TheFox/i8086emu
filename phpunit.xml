@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/3.7/phpunit.xsd"
+	backupGlobals="true"
+	backupStaticAttributes="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	processIsolation="false"
+	stopOnError="true"
+	stopOnFailure="true"
+	stopOnIncomplete="false"
+	stopOnSkipped="false"
+	timeoutForSmallTests="1"
+	timeoutForMediumTests="10"
+	timeoutForLargeTests="60"
+	verbose="true">
+	
+	<testsuites>
+		<testsuite name="default">
+			<directory>tests</directory>
+		</testsuite>
+	</testsuites>
+	<filter>
+		<whitelist addUncoveredFilesFromWhitelist="false">
+			<directory suffix=".php">src</directory>
+		</whitelist>
+	</filter>
+</phpunit>
