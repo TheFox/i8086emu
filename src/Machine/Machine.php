@@ -7,8 +7,10 @@
 namespace TheFox\I8086emu\Machine;
 
 use TheFox\I8086emu\Blueprint\CpuInterface;
+use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Exception\NoBiosException;
 use TheFox\I8086emu\Exception\NoCpuException;
+use TheFox\I8086emu\Exception\NoRamException;
 
 class Machine
 {
@@ -28,17 +30,27 @@ class Machine
     private $hardDiskFilePath;
 
     /**
+     * @var Ram
+     */
+    private $ram;
+
+    /**
      * @var Cpu
      */
     private $cpu;
 
     public function __construct()
     {
+        $this->ram = new Ram();
         $this->cpu = new Cpu();
     }
 
     public function run()
     {
+        if (!$this->ram || !$this->ram instanceof RamInterface) {
+            throw new NoRamException();
+        }
+
         if (!$this->cpu || !$this->cpu instanceof CpuInterface) {
             throw new NoCpuException();
         }
@@ -48,7 +60,8 @@ class Machine
         }
 
         // Load BIOS into RAM.
-        // @todo
+        $biosPos = 0;// @todo
+        $this->ram->loadFile($this->biosFilePath, $biosPos);
 
         // Run the CPU.
         $this->cpu->run();

@@ -7,5 +7,20 @@ use TheFox\I8086emu\Machine\Ram;
 
 class RamTest extends TestCase
 {
-    
+    public function testWrite()
+    {
+        $ram=new Ram();
+        $ram->write('A');
+        $ram->write('B');
+        $ram->write('C');
+        $ram->write('D');
+        $ram->write('X',2);
+
+        $this->assertEquals('ABXD',$ram->read(0,4));
+        $this->assertEquals('ABXD',$ram->read(0,5));
+        $this->assertEquals('BXD',$ram->read(1,5));
+        $this->assertEquals('BX',$ram->read(1,2));
+        $this->assertEquals('B',$ram->read(1,1));
+        $this->assertEquals('',$ram->read(1,0));
+    }
 }
