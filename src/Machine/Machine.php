@@ -63,6 +63,9 @@ class Machine
         $biosPos = 0;// @todo
         $this->ram->loadFile($this->biosFilePath, $biosPos);
 
+        // Setup CPU.
+        $this->cpu->setRam($this->ram);
+
         // Run the CPU.
         $this->cpu->run();
     }
