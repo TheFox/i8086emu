@@ -68,17 +68,17 @@ class Machine
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getBiosFilePath()
+    public function getBiosFilePath(): ?string
     {
         return $this->biosFilePath;
     }
 
     /**
-     * @param mixed $biosFilePath
+     * @param string $biosFilePath
      */
-    public function setBiosFilePath($biosFilePath)
+    public function setBiosFilePath(string $biosFilePath)
     {
         $this->biosFilePath = $biosFilePath;
     }
