@@ -9,7 +9,7 @@ which docker &> /dev/null || { echo 'ERROR: docker not found in PATH'; exit 1; }
 cd "${SCRIPT_BASEDIR}/.."
 source ./.env
 
-set -x
+#set -x
 #docker run \
 #	--interactive \
 #	--tty \
@@ -19,7 +19,8 @@ set -x
 #	--volume "$PWD":/app \
 #	${IMAGE_NAME}:latest
 
-if ! docker container ls -a | grep  thefox21/i8086emu | sed 's/fox/i8086emu/g;s///g;' | grep  ${IMAGE_NAME_SHORT} ; then
+#if ! docker container ls -a | grep -q thefox21/i8086emu | sed 's/fox/i8086emu/g;s///g;' | grep -q ${IMAGE_NAME_SHORT} ; then
+if ! docker container ls -a | grep -q ${IMAGE_NAME_SHORT} ; then
     echo "create new container"
     docker container create \
         --interactive \
@@ -31,4 +32,5 @@ if ! docker container ls -a | grep  thefox21/i8086emu | sed 's/fox/i8086emu/g;s/
         ${IMAGE_NAME}:latest
 fi
 
+echo "start container"
 docker start --attach --interactive ${IMAGE_NAME_SHORT}
