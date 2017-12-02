@@ -19,17 +19,30 @@ class Ram implements RamInterface
     public function __construct()
     {
         $this->writePointer = 0;
+        $this->data = [];
     }
 
-    public function write(string $byte, int $offset = null)
+    public function write(string $byte, int $offset = null, int $length = null)
     {
         if (null === $offset) {
             $offset = $this->writePointer;
         }
 
-        $byteLen = strlen($byte);
-        for ($i = 0; $i < $byteLen; $i++, $offset++) {
-            $this->data[$offset] = $byte[$i];
+        if (null === $length) {
+            $writeLen = strlen($byte);
+        } else {
+            $writeLen = $length;
+        }
+
+        // Write to RAM.
+        for ($i = 0; $i < $writeLen; $i++, $offset++) {
+            if (isset($byte[$i])) {
+                $char = $byte[$i];
+            } else {
+                $char = "\x00";
+            }
+
+            $this->data[$offset] = $char;
         }
 
         $this->writePointer = $offset;
@@ -42,9 +55,9 @@ class Ram implements RamInterface
         return $contentStr;
     }
 
-    public function loadFile(string $path, int $offset = null)
+    public function loadFile(string $path, int $offset = null, int $length = null)
     {
-        $content = file_get_contents($path);
-        $this->write($content, $offset);
+        $content = file_get_contents($path, false, null, 0, $length);
+        $this->write($content, $offset, $length);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace TheFox\I8086emu\Test;
+namespace TheFox\I8086emu\Test\Machine;
 
 use PHPUnit\Framework\TestCase;
 use TheFox\I8086emu\Machine\Ram;
@@ -22,5 +22,13 @@ class RamTest extends TestCase
         $this->assertEquals('BX', $ram->read(1, 2));
         $this->assertEquals('B', $ram->read(1, 1));
         $this->assertEquals('', $ram->read(1, 0));
+    }
+
+    public function testWrite2()
+    {
+        $ram = new Ram();
+        $ram->write('ABC',0,4);
+
+        $this->assertEquals("ABC\x00", $ram->read(0, 5));
     }
 }

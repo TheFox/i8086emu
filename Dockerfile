@@ -33,21 +33,7 @@ RUN /opt/app/install.sh
 # Root App folder
 RUN mkdir /app
 WORKDIR /app
-#ADD . /app
-
-# Install dependencies.
-#RUN composer install --no-dev --optimize-autoloader --no-progress --no-suggest --no-interaction
-#RUN ls -la
 
 VOLUME /root/.composer
-#RUN rm -r /root/.composer/* /root/.composer
-#RUN ls -la /root
-
-# Use to store app data, like config files.
-#RUN mkdir /data && chmod 777 /data
-#VOLUME /data
-
-#VOLUME /mnt
-#WORKDIR /mnt
 
 ENTRYPOINT ["bash"]

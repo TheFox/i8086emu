@@ -4,9 +4,6 @@ namespace TheFox\I8086emu\Blueprint;
 
 interface RegisterInterface
 {
-    public function getSize(): ?int;
-    public function getName(): ?string;
-
     public function setData(string $data);
     public function getData(): ?string;
 

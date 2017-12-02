@@ -16,7 +16,7 @@ class RunCommand extends Command
 
         $this->addOption('bios', 'b', InputOption::VALUE_REQUIRED, 'Path to bios.');
         $this->addOption('floppy', 'f', InputOption::VALUE_REQUIRED, 'Path to floppydisk-file.');
-        $this->addOption('harddisk', 'd', InputOption::VALUE_REQUIRED, 'Path to harddisk-file.');
+        //$this->addOption('harddisk', 'd', InputOption::VALUE_REQUIRED, 'Path to harddisk-file.');
     }
 
     /**
@@ -32,11 +32,12 @@ class RunCommand extends Command
         if ($input->hasOption('floppy')) {
             $floppyFilePath = $input->getOption('floppy');
         }
-        if ($input->hasOption('harddisk')) {
-            $harddiskFilePath = $input->getOption('harddisk');
-        }
+        //if ($input->hasOption('harddisk')) {
+        //    $harddiskFilePath = $input->getOption('harddisk');
+        //}
 
         $machine = new Machine();
+        $machine->setOutput($output);
 
         if (isset($biosFilePath)) {
             $machine->setBiosFilePath($biosFilePath);
@@ -44,9 +45,9 @@ class RunCommand extends Command
         if (isset($floppyFilePath)) {
             $machine->setFloppyDiskFilePath($floppyFilePath);
         }
-        if (isset($harddiskFilePath)) {
-            $machine->setHardDiskFilePath($harddiskFilePath);
-        }
+        //if (isset($harddiskFilePath)) {
+        //    $machine->setHardDiskFilePath($harddiskFilePath);
+        //}
 
         $machine->run();
 

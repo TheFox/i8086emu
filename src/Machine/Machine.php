@@ -6,13 +6,17 @@
 
 namespace TheFox\I8086emu\Machine;
 
+use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
+use TheFox\I8086emu\Blueprint\MachineInterface;
+use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Exception\NoBiosException;
 use TheFox\I8086emu\Exception\NoCpuException;
 use TheFox\I8086emu\Exception\NoRamException;
 
-class Machine
+class Machine implements MachineInterface,OutputAwareInterface
 {
     /**
      * @var string
@@ -39,10 +43,16 @@ class Machine
      */
     private $cpu;
 
+    /**
+     * @var OutputInterface
+     */
+    private $output;
+
     public function __construct()
     {
         $this->ram = new Ram();
         $this->cpu = new Cpu();
+        $this->output=new NullOutput();
     }
 
     public function run()
@@ -58,24 +68,20 @@ class Machine
         if (!$this->biosFilePath) {
             throw new NoBiosException();
         }
+        if ($this->hardDiskFilePath) {
+            throw  new \RuntimeException('HDD file not implemented');
+        }
 
         // Load BIOS into RAM.
         $biosPos = 0;// @todo
-        $this->ram->loadFile($this->biosFilePath, $biosPos);
+        $biosLen = 0xFF00;
+        $this->ram->loadFile($this->biosFilePath, $biosPos, $biosLen);
 
         // Setup CPU.
         $this->cpu->setRam($this->ram);
 
         // Run the CPU.
         $this->cpu->run();
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getBiosFilePath(): ?string
-    {
-        return $this->biosFilePath;
     }
 
     /**
@@ -87,14 +93,6 @@ class Machine
     }
 
     /**
-     * @return string
-     */
-    public function getFloppyDiskFilePath(): string
-    {
-        return $this->floppyDiskFilePath;
-    }
-
-    /**
      * @param string $floppyDiskFilePath
      */
     public function setFloppyDiskFilePath(string $floppyDiskFilePath)
@@ -103,18 +101,11 @@ class Machine
     }
 
     /**
-     * @return string
+     * @param OutputInterface $output
      */
-    public function getHardDiskFilePath(): string
+    public function setOutput(OutputInterface $output)
     {
-        return $this->hardDiskFilePath;
-    }
-
-    /**
-     * @param string $hardDiskFilePath
-     */
-    public function setHardDiskFilePath(string $hardDiskFilePath)
-    {
-        $this->hardDiskFilePath = $hardDiskFilePath;
+        $this->output = $output;
+        $this->cpu->setOutput($this->output);
     }
 }

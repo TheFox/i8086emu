@@ -7,52 +7,43 @@ use TheFox\I8086emu\Blueprint\RegisterInterface;
 class Register implements RegisterInterface
 {
     /**
+     * @var string
+     */
+    private $name;
+
+    /**
+     * @var array
+     */
+    private $data;
+
+    /**
      * Size in Byte.
      *
      * @var int
      */
     private $size;
 
-    /**
-     * @var string
-     */
-    private $name;
-
-    /**
-     * @var string
-     */
-    private $data;
-
-    public function __construct(int $size = 2, string $name = null, string $data = null)
+    public function __construct(string $name = null, array $data = ["\x00", "\x00"], int $size = 2)
     {
-        $this->size = $size;
         $this->name = $name;
         $this->data = $data;
-    }
-
-    public function getSize(): ?int
-    {
-        return $this->size;
-    }
-
-    public function getName(): ?string
-    {
-        return $this->name;
+        $this->size = $size;
     }
 
     public function setData(string $data)
     {
-        $this->data = $data;
+        $this->data = [$data[0], $data[1]];
     }
 
     public function getData(): ?string
     {
-        return $this->data;
+        $data = join('', $this->data);
+        return $data;
     }
 
     public function setLow(string $low)
     {
-        $this->data[0];
+        $this->data[0] = $low;
     }
 
     public function getLow(): ?string
