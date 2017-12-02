@@ -23,11 +23,4 @@ class RamTest extends TestCase
         $this->assertEquals('B', $ram->read(1, 1));
         $this->assertEquals('', $ram->read(1, 0));
     }
-
-    //public function testWrite2()
-    //{
-    //    $ram = new Ram();
-    //    $ram->write(0x0102);
-    //    $this->assertEquals("\x02\x01", $ram->read(0, 2));
-    //}
 }

@@ -18,10 +18,16 @@ class Register implements RegisterInterface
      */
     private $name;
 
-    public function __construct(int $size = 2, string $name = null)
+    /**
+     * @var string
+     */
+    private $data;
+
+    public function __construct(int $size = 2, string $name = null, string $data = null)
     {
         $this->size = $size;
         $this->name = $name;
+        $this->data = $data;
     }
 
     public function getSize(): ?int
@@ -32,5 +38,35 @@ class Register implements RegisterInterface
     public function getName(): ?string
     {
         return $this->name;
+    }
+
+    public function setData(string $data)
+    {
+        $this->data = $data;
+    }
+
+    public function getData(): ?string
+    {
+        return $this->data;
+    }
+
+    public function setLow(string $low)
+    {
+        $this->data[0];
+    }
+
+    public function getLow(): ?string
+    {
+        return $this->data[0];
+    }
+
+    public function setHigh(string $low)
+    {
+        $this->data[1] = $low;
+    }
+
+    public function getHigh(): ?string
+    {
+        return $this->data[1];
     }
 }
