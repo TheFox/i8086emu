@@ -81,4 +81,12 @@ class RegisterTest extends TestCase
         $data = $register->getData();
         $this->assertEquals('AB', $data);
     }
+
+    public function testToInt()
+    {
+        $register = new Register();
+
+        $register->setData("\x01\x02");
+        $this->assertEquals(2 * 256 + 1, $register->toInt());
+    }
 }

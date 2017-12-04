@@ -12,4 +12,8 @@ interface RegisterInterface
 
     public function setHigh(string $low);
     public function getHigh(): ?string;
+
+    public function getSize(): int;
+
+    public function toInt(): int;
 }

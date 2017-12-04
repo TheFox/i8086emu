@@ -1,6 +1,9 @@
 <?php
 
 /**
+ * This class holds all stuff that a CPU needs.
+ * It's connected to the RAM.
+ *
  * @link https://en.wikipedia.org/wiki/Processor_(computing)
  */
 
@@ -9,66 +12,102 @@ namespace TheFox\I8086emu\Machine;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
+use TheFox\I8086emu\Blueprint\FlagInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
+use TheFox\I8086emu\Blueprint\RegisterInterface;
 
 class Cpu implements CpuInterface, OutputAwareInterface
 {
-    //public const REGISTER_BASE = 0xF0000;
-    /**
-     * @var Ram
-     */
-    private $ram;
+    public const SIZE_BYTE = 2;
+    public const SIZE_BIT = 16;
 
     /**
-     * @var Register
-     */
-    private $ax;
-
-    /**
-     * @var Register
-     */
-    private $cx;
-
-    /**
-     * @var Register
-     */
-    private $dx;
-
-    /**
-     * @var Register
-     */
-    private $bx;
-
-    private $sp;
-
-    private $bp;
-
-    private $ip;
-
-    private $si;
-
-    private $di;
-
-    private $es;
-
-    private $cs;
-
-    private $ss;
-
-    private $ds;
-
-    private $flags;
-
-    /**
+     * Debug
      * @var OutputInterface
      */
     private $output;
 
+    /**
+     * @var RamInterface
+     */
+    private $ram;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $ax;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $cx;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $dx;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $bx;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $sp;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $bp;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $ip;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $si;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $di;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $es;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $cs;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $ss;
+
+    /**
+     * @var RegisterInterface
+     */
+    private $ds;
+
+    /**
+     * @var FlagInterface
+     */
+    private $flag;
+
     public function __construct()
     {
+        $this->output = new NullOutput();
+
         $this->setupRegisters();
-        $this->output = new  NullOutput();
     }
 
     private function setupRegisters()
@@ -98,6 +137,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         // Flags
         //$this->flags = new Register('flags');
+        $this->flag = new Flag();
     }
 
     public function setRam(RamInterface $ram)
@@ -113,12 +153,35 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output = $output;
     }
 
+    /**
+     * Using Code Segment (CS) and Instruction Pointer (IP) to get the current OpCode.
+     *
+     * @return string
+     */
+    private function getOpcode(): string
+    {
+        $offset = $this->cs->toInt() * self::SIZE_BIT;
+        $offset += $this->ip->toInt();
+
+        $this->output->writeln(sprintf('Offset: %08x', $offset));
+
+        $opcode = $this->ram->read($offset, self::SIZE_BYTE);
+        $this->output->writeln(sprintf('OpCode Len: %d', strlen($opcode)));
+
+        return $opcode;
+    }
+
     public function run()
     {
-        $cycle=0;
-        while ($cycle++<100) {
-            $this->output->writeln(sprintf('[%s] run %d', 'CPU',$cycle));
+        // Debug
+        $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
+        $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
+        $opcode = $this->getOpcode();
+
+        throw new \RuntimeException('Not implemented');
+        for ($cycle = 0; $cycle < 100 && "\x00\x00" !== ($opcode = $this->getOpcode()); ++$cycle) {
+            $this->output->writeln(sprintf('[%s] run %d', 'CPU', $cycle));
         }
     }
 }

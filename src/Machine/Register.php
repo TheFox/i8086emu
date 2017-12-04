@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * This class holds one single CPU register.
+ */
+
 namespace TheFox\I8086emu\Machine;
 
 use TheFox\I8086emu\Blueprint\RegisterInterface;
@@ -59,5 +63,24 @@ class Register implements RegisterInterface
     public function getHigh(): ?string
     {
         return $this->data[1];
+    }
+
+    /**
+     * @return int
+     */
+    public function getSize(): int
+    {
+        return $this->size;
+    }
+
+    /**
+     * Convert Char data to Integer.
+     */
+    public function toInt(): int
+    {
+        $highInt = ord($this->getHigh()) * 256;
+        $lowInt = ord($this->getLow());
+        $i = $highInt + $lowInt;
+        return $i;
     }
 }

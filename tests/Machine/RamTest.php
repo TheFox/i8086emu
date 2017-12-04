@@ -31,4 +31,23 @@ class RamTest extends TestCase
 
         $this->assertEquals("ABC\x00", $ram->read(0, 5));
     }
+
+    public function testRead1()
+    {
+        $ram = new Ram();
+        $ram->write("\x00\x00",0);
+
+        $data=$ram->read(0, 2);
+        $this->assertEquals("\x00\x00",$data);
+    }
+
+    public function testWriteRead1()
+    {
+        $ram = new Ram();
+
+        $ram->write('ABCD', 0xf);
+        $data=$ram->read(0xf,4);
+
+        $this->assertEquals('ABCD',$data);
+    }
 }

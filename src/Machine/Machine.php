@@ -16,7 +16,7 @@ use TheFox\I8086emu\Exception\NoBiosException;
 use TheFox\I8086emu\Exception\NoCpuException;
 use TheFox\I8086emu\Exception\NoRamException;
 
-class Machine implements MachineInterface,OutputAwareInterface
+class Machine implements MachineInterface, OutputAwareInterface
 {
     /**
      * @var string
@@ -52,7 +52,7 @@ class Machine implements MachineInterface,OutputAwareInterface
     {
         $this->ram = new Ram();
         $this->cpu = new Cpu();
-        $this->output=new NullOutput();
+        $this->output = new NullOutput();
     }
 
     public function run()
@@ -73,9 +73,12 @@ class Machine implements MachineInterface,OutputAwareInterface
         }
 
         // Load BIOS into RAM.
-        $biosPos = 0;// @todo
+        $biosPos = 0xF000 * 16 + 0x0100;// @todo
         $biosLen = 0xFF00;
-        $this->ram->loadFile($this->biosFilePath, $biosPos, $biosLen);
+        $this->ram->loadFromFile($this->biosFilePath, $biosPos, $biosLen);
+
+        printf("bios start %08x\n", $biosPos);
+        printf("bios end   %08x\n", $biosPos + $biosLen);
 
         // Setup CPU.
         $this->cpu->setRam($this->ram);
