@@ -179,9 +179,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         $opcode = $this->getOpcode();
 
-        throw new \RuntimeException('Not implemented');
-        for ($cycle = 0; $cycle < 100 && "\x00\x00" !== ($opcode = $this->getOpcode()); ++$cycle) {
-            $this->output->writeln(sprintf('[%s] run %d', 'CPU', $cycle));
+        //throw new \RuntimeException('Not implemented');
+
+        for ($cycle = 0; $cycle < 5 && "\x00\x00" !== ($opcode = $this->getOpcode()); ++$cycle) {
+            $this->output->writeln(sprintf('[%s] run %d: %02x %02x', 'CPU', $cycle,ord($opcode[0]),ord($opcode[1])));
+            $this->output->writeln('---');
         }
     }
 }

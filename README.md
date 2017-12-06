@@ -13,3 +13,5 @@ To access `10.254.254.254` run the following to add an alias to localhost:
 - <http://www.mlsite.net/8086/>
 - <https://fms.komkon.org/EMUL8/HOWTO.html>
 - <https://codegolf.stackexchange.com/questions/4732/emulate-an-intel-8086-cpu>
+- <http://www.eecg.toronto.edu/~amza/www.mindsec.com/files/x86regs.html>
+- <https://www-user.tu-chemnitz.de/~heha/viewchm.php/hs/x86.chm/x86.htm>
