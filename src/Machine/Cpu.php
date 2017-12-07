@@ -29,7 +29,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $output;
 
     /**
-     * @var RamInterface
+     * @var Ram
      */
     private $ram;
 
@@ -103,9 +103,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
      */
     private $flag;
 
+    /**
+     * @var array
+     */
+    private $biosDataTables;// @todo move this to class
+
     public function __construct()
     {
         $this->output = new NullOutput();
+        $this->biosDataTables = [];
 
         $this->setupRegisters();
     }
@@ -140,6 +146,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->flag = new Flag();
     }
 
+    /**
+     * @param RamInterface $ram
+     */
     public function setRam(RamInterface $ram)
     {
         $this->ram = $ram;
@@ -163,27 +172,62 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $offset = $this->cs->toInt() * self::SIZE_BIT;
         $offset += $this->ip->toInt();
 
-        $this->output->writeln(sprintf('Offset: %08x', $offset));
+        //$this->output->writeln(sprintf(' -> Offset: %08x', $offset));
 
         $opcode = $this->ram->read($offset, self::SIZE_BYTE);
-        $this->output->writeln(sprintf('OpCode Len: %d', strlen($opcode)));
+        //$this->output->writeln(sprintf(' -> OpCode Len: %d', strlen($opcode)));
 
         return $opcode;
     }
 
+    private function setupBiosDataTables()
+    {
+        $this->output->writeln('setup bios data tables');
+        $tables = [];
+
+        for ($i = 0; $i < 20; $i++) {
+            $offset = 0xF0000 + (0x81 + $i) * self::SIZE_BYTE;
+
+            for ($j = 0; $j < 256; $j++) {
+                $tableAddr = $this->ram->readAddress($offset, self::SIZE_BYTE);
+                $valueAddr = 0xF0000 + $tableAddr->toInt() + $j;
+                $v = $this->ram->read($valueAddr, 1);
+
+                $tables[$i][$j] = ord($v);
+                //$this->output->writeln(sprintf('%02x %02x  %02x %02x', $i, $j, 0x81 + $i, ord($v)));
+            }
+        }
+
+        $this->biosDataTables = $tables;
+        $this->output->writeln('bios data tables done');
+    }
+
     public function run()
     {
+        $this->setupBiosDataTables();
+
         // Debug
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
-        $opcode = $this->getOpcode();
-
         //throw new \RuntimeException('Not implemented');
 
-        for ($cycle = 0; $cycle < 5 && "\x00\x00" !== ($opcode = $this->getOpcode()); ++$cycle) {
-            $this->output->writeln(sprintf('[%s] run %d: %02x %02x', 'CPU', $cycle,ord($opcode[0]),ord($opcode[1])));
-            $this->output->writeln('---');
+        $cycle = 0;
+        while ("\x00\x00" !== ($opcode = $this->getOpcode())) {
+            $this->output->writeln(sprintf('[%s] run %d @%04x:%04x -> %02x %02x',
+                'CPU',
+                $cycle,
+                $this->cs->toInt(), $this->ip->toInt(),
+                ord($opcode[0]), ord($opcode[1])));
+
+            $l = $this->ip->getLow();
+            $o = ord($l);
+            $this->ip->setLow(chr($o + self::SIZE_BYTE));
+
+            $cycle++;
+            if ($cycle > 5000) {
+                break;
+            }
         }
     }
 }

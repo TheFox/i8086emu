@@ -6,6 +6,7 @@
 
 namespace TheFox\I8086emu\Machine;
 
+use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Blueprint\RegisterInterface;
 
@@ -72,9 +73,16 @@ class Ram implements RamInterface
 
     public function read(int $offset, int $length): string
     {
-        $mm = max(array_keys($this->data));
-        if ($offset > $mm) {
-            throw new \RangeException(sprintf('Out of range. Want to access %04x but max address is at %04x', $offset, $mm));
+        $keys = array_keys($this->data);
+
+        $minMemoryAddr = min($keys);
+        if ($offset < $minMemoryAddr) {
+            throw new \RangeException(sprintf('Out of range. Want to access %04x but minimum address is at %04x', $offset, $minMemoryAddr));
+        }
+
+        $maxMemoryAddr = max($keys);
+        if ($offset > $maxMemoryAddr) {
+            throw new \RangeException(sprintf('Out of range. Want to access %04x but maximum address is at %04x', $offset, $maxMemoryAddr));
         }
 
         //printf("rram: %08x %08x\n", $offset, $mm);
@@ -88,6 +96,17 @@ class Ram implements RamInterface
         //$contentAr = array_slice($this->data, $offset, $length);
         //$contentStr = join('', $contentAr);
         return $contentStr;
+    }
+
+    public function readAddress(int $offset, int $length): AddressInterface
+    {
+        //if ($offset instanceof AddressInterface) {
+        //    $offset = $offset->toInt();
+        //}
+
+        $data = $this->read($offset, $length);
+        $address = new Address($data);
+        return $address;
     }
 
     public function readFromRegister(RegisterInterface $register): string

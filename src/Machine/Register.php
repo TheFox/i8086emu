@@ -6,9 +6,10 @@
 
 namespace TheFox\I8086emu\Machine;
 
+use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\RegisterInterface;
 
-class Register implements RegisterInterface
+class Register implements RegisterInterface, AddressInterface
 {
     /**
      * @var string

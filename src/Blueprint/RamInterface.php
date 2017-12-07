@@ -8,5 +8,5 @@ interface RamInterface
     //public function loadFromFile(string $path, int $offset = null);
 
     public function read(int $offset, int $length): string;
-    public function readFromRegister(RegisterInterface $register): string;
+    //public function readFromRegister(RegisterInterface $register): string;
 }
