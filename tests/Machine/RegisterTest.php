@@ -3,90 +3,47 @@
 namespace TheFox\I8086emu\Test\Machine;
 
 use PHPUnit\Framework\TestCase;
+use TheFox\I8086emu\Machine\Address;
 use TheFox\I8086emu\Machine\Register;
 
 class RegisterTest extends TestCase
 {
-    public function testSetDataLowFirst()
+    public function testSize()
     {
         $register = new Register();
+        $this->assertEquals(2,$register->getSize());
 
-        // Set low first.
-        $register->setLow('A');
-
-        $low = $register->getLow();
-        $high = $register->getHigh();
-        $data = $register->getData();
-        $this->assertEquals('A', $low);
-        $this->assertEquals("\x00", $high);
-        $this->assertEquals("A\x00", $data);
-
-        // Then set high.
-        $register->setHigh('B');
-
-        $low = $register->getLow();
-        $high = $register->getHigh();
-        $data = $register->getData();
-        $this->assertEquals('A', $low);
-        $this->assertEquals('B', $high);
-        $this->assertEquals('AB', $data);
+        $register = new Register(null,3);
+        $this->assertEquals(3,$register->getSize());
+    }
+    /**
+     * @return array
+     */
+    public function toIntDataProvider(): array
+    {
+        $rv = [
+            [null, 0],
+            ["\x01\x02", 2 * 256 + 1],
+            [new Address([1, 2, 3]), 3 * 256 * 256 + 2 * 256 + 1],
+        ];
+        return $rv;
     }
 
-    public function testSetDataHighFirst()
+    /**
+     * @dataProvider toIntDataProvider
+     * @param string|Address $data
+     * @param int $expected
+     */
+    public function testToInt($data, int $expected)
     {
-        $register = new Register();
-
-        // Set high first.
-        $register->setHigh('A');
-
-        $low = $register->getLow();
-        $high = $register->getHigh();
-        $data = $register->getData();
-        $this->assertEquals("\x00", $low);
-        $this->assertEquals('A', $high);
-        $this->assertEquals("\x00A", $data);
-
-        // Then set low.
-        $register->setLow('B');
-
-        $low = $register->getLow();
-        $high = $register->getHigh();
-        $data = $register->getData();
-        $this->assertEquals('B', $low);
-        $this->assertEquals('A', $high);
-        $this->assertEquals('BA', $data);
+        $register = new Register($data);
+        $this->assertEquals($expected, $register->toInt());
     }
 
-    public function testGetData()
+    public function testAdd()
     {
-        $register = new Register();
-
-        // Initial value.
-        $low = $register->getLow();
-        $high = $register->getHigh();
-        $data = $register->getData();
-        $this->assertEquals("\x00", $low);
-        $this->assertEquals("\x00", $high);
-        $this->assertEquals("\x00\x00", $data);
-
-        // Set Data
-        $register->setData('AB');
-
-        $low = $register->getLow();
-        $this->assertEquals('A', $low);
-
-        $high = $register->getHigh();
-        $this->assertEquals('B', $high);
-
-        $data = $register->getData();
-        $this->assertEquals('AB', $data);
-    }
-
-    public function testToInt()
-    {
-        $register = new Register();
-
-        $register->setData("\x01\x02");
-        $this->assertEquals(2 * 256 + 1, $register->toInt());
+        $register = new Register([1, 2, 3]);
+        $register->add(2);
+        $this->assertEquals(3 * 256 * 256 + 2 * 256 + 3, $register->toInt());
     }
 }

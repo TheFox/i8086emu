@@ -7,47 +7,71 @@ use TheFox\I8086emu\Machine\Ram;
 
 class RamTest extends TestCase
 {
-    public function testWrite1()
+    private function getNewRam()
     {
-        $ram = new Ram();
-        $ram->write('A');
-        $ram->write('B');
-        $ram->write('C');
-        $ram->write('D');
-        $ram->write('X', 2);
-
-        $this->assertEquals('ABXD', $ram->read(0, 4));
-        $this->assertEquals('ABXD', $ram->read(0, 5));
-        $this->assertEquals('BXD', $ram->read(1, 5));
-        $this->assertEquals('BX', $ram->read(1, 2));
-        $this->assertEquals('B', $ram->read(1, 1));
-        $this->assertEquals('', $ram->read(1, 0));
+        return new Ram(0x10000);
     }
 
-    public function testWrite2()
+    public function testWriteRead()
     {
-        $ram = new Ram();
-        $ram->write('ABC',0,4);
+        $ram = $this->getNewRam();
 
-        $this->assertEquals("ABC\x00", $ram->read(0, 5));
+        // Write
+        $ram->write([1, 2, 3]);
+
+        $data = $ram->read(0, 1);
+        $this->assertEquals([1], $data);
+
+        $data = $ram->read(0, 2);
+        $this->assertEquals([1, 2], $data);
+
+        $data = $ram->read(0, 3);
+        $this->assertEquals([1, 2, 3], $data);
+
+        // Read Offset > 0
+        $data = $ram->read(1, 1);
+        $this->assertEquals([2], $data);
+
+        $data = $ram->read(1, 2);
+        $this->assertEquals([2, 3], $data);
+
+        // Read untouched RAM Addr.
+        $data = $ram->read(0, 4);
+        $this->assertEquals([1, 2, 3, 0], $data);
+
+        $data = $ram->read(2, 2);
+        $this->assertEquals([3, 0], $data);
+
+        // Write Offset > 0
+        $ram->write([4, 5, 6, 7], 5);
+
+        $data = $ram->read(2, 5);
+        $this->assertEquals([3, 0, 0, 4, 5], $data);
+
+        // Continue writing
+        $ram->write([8, 9, 10]);
+
+        $data = $ram->read(0, 12);
+        $this->assertEquals([1, 2, 3, 0, 0, 4, 5, 6, 7, 8, 9, 10], $data);
     }
 
-    public function testRead1()
+    public function testWriteStr()
     {
-        $ram = new Ram();
-        $ram->write("\x00\x00",0);
+        $ram = $this->getNewRam();
 
-        $data=$ram->read(0, 2);
-        $this->assertEquals("\x00\x00",$data);
+        $ram->writeStr("\x00\x01\x02\x03");
+
+        $data = $ram->read(0, 4);
+        $this->assertEquals([0,1, 2, 3], $data);
     }
 
-    public function testWriteRead1()
+    public function testWriteBigStr()
     {
-        $ram = new Ram();
+        $ram = $this->getNewRam();
 
-        $ram->write('ABCD', 0xf);
-        $data=$ram->read(0xf,4);
+        $ram->writeStr(str_repeat('ABCD',1024*1024));
 
-        $this->assertEquals('ABCD',$data);
+        $data = $ram->read(0, 4);
+        $this->assertEquals([65,66,67,68], $data);
     }
 }

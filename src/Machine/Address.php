@@ -13,43 +13,52 @@ class Address implements AddressInterface
 
     /**
      * Address constructor.
-     * @param null|string|array $data
+     * @param null|string|string[]|int[] $data
      */
     public function __construct($data = null)
     {
+        $this->data=[];
+
         if (is_array($data)) {
             foreach ($data as $c) {
-                if (is_numeric($c)) {
-                    $this->data[] = chr($c);
+                if (is_string($c)) {
+                    $this->data[] = ord($c);
                 } else {
                     $this->data[] = $c;
                 }
             }
         } elseif (is_string($data)) {
-            $dataLen = strlen($data);
-            for ($i = 0; $i < $dataLen; $i++) {
-                $c = $data[$i];
-                $this->data[] = $c;
+            $data = str_split($data);
+            $data = array_map('ord', $data);
+            $this->data = $data;
+        } elseif (is_numeric($data)) {
+            $pos = 0;
+            while ($data && $pos < 16) {
+                $this->data[] = $data & 0xFF;
+                $data = $data >> 8;
+
+                $pos++;
             }
-        } else {
-            $this->data = [];
         }
     }
 
+    /**
+     * @return int
+     */
     public function toInt(): int
     {
         $i = 0;
         $pos = 0;
-        foreach ($this->data as $c) {
-            $n = ord($c);
-            #$e = pow(256, $pos);
-            //$i += $n * $e;
-            //$pos++;
-
+        foreach ($this->data as $n) {
             $i += $n << $pos;
             $pos += 8;
         }
 
         return $i;
+    }
+
+    public function getLow():int
+    {
+        return $this->data[0];
     }
 }

@@ -7,16 +7,27 @@ use TheFox\I8086emu\Machine\Address;
 
 class AddressTest extends TestCase
 {
-    public function testToInt()
+    public function toIntDataProvider()
     {
-        $address = new Address(["\x0a", "\x0b"]);
-        $this->assertEquals(2826, $address->toInt());
+        $data = [
+            [null, 0],
+            ["\x0a\x0b", 2826],
+            ["\x0b\x0c", 3083],
+            [["\x0a", "\x0b"], 2826],
+            [[255, 255, 255], 16777215],
+            [0xFF0A, 65290],
+        ];
+        return $data;
+    }
 
-        $address = new Address([255, 255, 255]);
-        $this->assertEquals(16777215, $address->toInt());
-
-        $address = new Address("\x0b\x0c");
-        $this->assertEquals(3083, $address->toInt());
-
+    /**
+     * @dataProvider toIntDataProvider
+     * @param null|string|string[]|int[] $data
+     * @param int $expected
+     */
+    public function testToInt($data, int $expected)
+    {
+        $address = new Address($data);
+        $this->assertEquals($expected, $address->toInt());
     }
 }

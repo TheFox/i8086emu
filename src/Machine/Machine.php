@@ -50,7 +50,7 @@ class Machine implements MachineInterface, OutputAwareInterface
 
     public function __construct()
     {
-        $this->ram = new Ram();
+        $this->ram = new Ram(0x00100000); // 1 MB
         $this->cpu = new Cpu();
         $this->output = new NullOutput();
     }

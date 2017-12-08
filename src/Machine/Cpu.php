@@ -15,7 +15,6 @@ use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\FlagInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
-use TheFox\I8086emu\Blueprint\RegisterInterface;
 
 class Cpu implements CpuInterface, OutputAwareInterface
 {
@@ -34,67 +33,67 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $ram;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $ax;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $cx;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $dx;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $bx;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $sp;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $bp;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $ip;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $si;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $di;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $es;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $cs;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $ss;
 
     /**
-     * @var RegisterInterface
+     * @var Register
      */
     private $ds;
 
@@ -119,27 +118,27 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private function setupRegisters()
     {
         // Common register
-        $this->ax = new Register('ax'); // AX: Accumulator
-        $this->cx = new Register('cx'); // CX: Count
-        $this->dx = new Register('dx'); // DX: Data
-        $this->bx = new Register('bx'); // BX: Base
+        $this->ax = new Register(); // AX: Accumulator
+        $this->cx = new Register(); // CX: Count
+        $this->dx = new Register(); // DX: Data
+        $this->bx = new Register(); // BX: Base
 
         // Pointer
-        $this->sp = new Register('sp'); // Stack Pointer
-        $this->bp = new Register('bp'); // Base Pointer
+        $this->sp = new Register(); // Stack Pointer
+        $this->bp = new Register(); // Base Pointer
 
         // Index
-        $this->si = new Register('si'); // Source Index
-        $this->di = new Register('di'); // Destination Index
+        $this->si = new Register(); // Source Index
+        $this->di = new Register(); // Destination Index
 
         // Segment
-        $this->ds = new Register('ds'); // Data Segment
-        $this->ss = new Register('ss'); // Stack Segment
-        $this->es = new Register('es'); // Extra Segment
+        $this->ds = new Register(); // Data Segment
+        $this->ss = new Register(); // Stack Segment
+        $this->es = new Register(); // Extra Segment
 
         // Set CS:IP to F000:0100
-        $this->ip = new Register('ip', ["\x00", "\x01"]); // Instruction Pointer
-        $this->cs = new Register('cs', ["\x00", "\xF0"]); // Code Segment
+        $this->cs = new Register(new Address(0xF000)); // Code Segment
+        $this->ip = new Register(new Address(0x0100)); // Instruction Pointer
 
         // Flags
         //$this->flags = new Register('flags');
@@ -162,7 +161,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output = $output;
     }
 
-    private function getInstructionOffset():int
+    private function getInstructionOffset(): int
     {
         $offset = $this->cs->toInt() * self::SIZE_BIT;
         $offset += $this->ip->toInt();
@@ -173,16 +172,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
     /**
      * Using Code Segment (CS) and Instruction Pointer (IP) to get the current OpCode.
      *
-     * @return string
+     * @return int
      */
-    private function getOpcode(): string
+    private function getOpcode(): int
     {
         $offset = $this->getInstructionOffset();
 
-        //$this->output->writeln(sprintf(' -> Offset: %08x', $offset));
-
-        $opcode = $this->ram->read($offset, 1);
-        //$this->output->writeln(sprintf(' -> OpCode Len: %d', strlen($opcode)));
+        /** @var int[] $opcodes */
+        $opcodes = $this->ram->read($offset, 1);
+        $opcode = $opcodes[0];
 
         return $opcode;
     }
@@ -190,7 +188,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private function setupBiosDataTables()
     {
         $this->output->writeln('setup bios data tables');
-        $tables = [];
+
+        $tables = array_fill(0, 20, 0);
+        $tables = array_map(function ($c) {
+            return array_fill(0, 256, $c);
+        }, $tables);
 
         for ($i = 0; $i < 20; $i++) {
             $offset = 0xF0000 + (0x81 + $i) * self::SIZE_BYTE;
@@ -200,8 +202,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $valueAddr = 0xF0000 + $tableAddr->toInt() + $j;
                 $v = $this->ram->read($valueAddr, 1);
 
-                $tables[$i][$j] = ord($v);
-                //$this->output->writeln(sprintf('%02x %02x  %02x %02x', $i, $j, 0x81 + $i, ord($v)));
+                $tables[$i][$j] = $v[0];
+                //$this->output->writeln(sprintf('%02x %02x  %02x %02x', $i, $j, 0x81 + $i, $tables[$i][$j]));
             }
         }
 
@@ -220,33 +222,40 @@ class Cpu implements CpuInterface, OutputAwareInterface
         //throw new \RuntimeException('Not implemented');
 
         $cycle = 0;
-        while ("\x00" !== ($opcodeRaw = $this->getOpcode())) {
+        while ($opcodeRaw = $this->getOpcode()) {
+            //$opcodeInt = $opcodeRaw[0];
+
             $this->output->writeln(sprintf('[%s] run %d @%04x:%04x -> %02x',
                 'CPU',
                 $cycle,
                 $this->cs->toInt(), $this->ip->toInt(),
-                ord($opcodeRaw[0])));
-
-            $opcodeInt = ord($opcodeRaw);
+                $opcodeRaw));
 
             // Decode
-            $xlatId = $this->biosDataTables[8][$opcodeInt];
-            $extra = $this->biosDataTables[9][$opcodeInt];
-            $iModeSize = $this->biosDataTables[14][$opcodeInt];
-            $setFlagsType = $this->biosDataTables[10][$opcodeInt];
+            $xlatId = $this->biosDataTables[8][$opcodeRaw];
+            $extra = $this->biosDataTables[9][$opcodeRaw];
+            $iModeSize = $this->biosDataTables[14][$opcodeRaw];
+            $setFlagsType = $this->biosDataTables[10][$opcodeRaw];
 
-            $iReg4bit = $opcodeInt & 7;
+            $iReg4bit = $opcodeRaw & 7;
             $iw = $iReg4bit & 1;
             $id = $iReg4bit / 2 & 1;
 
             $offset = $this->getInstructionOffset();
-            $iData1=$this->ram->read($offset+1, self::SIZE_BYTE);
-            $iData2=$this->ram->read($offset+1+2, self::SIZE_BYTE);
-            $iData3=$this->ram->read($offset+1+2+2, self::SIZE_BYTE);
+            $iData1 = $this->ram->read($offset + 1, self::SIZE_BYTE);
+            $iData2 = $this->ram->read($offset + 1 + 2, self::SIZE_BYTE);
+            $iData3 = $this->ram->read($offset + 1 + 2 + 2, self::SIZE_BYTE);
 
-            $l = $this->ip->getLow();
-            $o = ord($l);
-            $this->ip->setLow(chr($o + self::SIZE_BYTE));
+            switch ($xlatId) {
+                case 14: // JMP | CALL short/near
+                    $this->ip->add(3 - $id);
+                    break;
+            }
+
+            // Debug
+            //$l = $this->ip->getLow();
+            //$o = ord($l);
+            //$this->ip->setLow(chr($o + self::SIZE_BYTE));
 
             $cycle++;
             if ($cycle > 5000) {

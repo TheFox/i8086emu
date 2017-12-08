@@ -12,12 +12,7 @@ use TheFox\I8086emu\Blueprint\RegisterInterface;
 class Register implements RegisterInterface, AddressInterface
 {
     /**
-     * @var string
-     */
-    private $name;
-
-    /**
-     * @var array
+     * @var null|int[]|Address
      */
     private $data;
 
@@ -28,42 +23,29 @@ class Register implements RegisterInterface, AddressInterface
      */
     private $size;
 
-    public function __construct(string $name = null, array $data = ["\x00", "\x00"], int $size = 2)
+    public function __construct($data = null, int $size = 2)
     {
-        $this->name = $name;
-        $this->data = $data;
+        $this->setData($data);
         $this->size = $size;
     }
 
-    public function setData(string $data)
+    public function setData($data)
     {
-        $this->data = [$data[0], $data[1]];
-    }
-
-    public function getData(): ?string
-    {
-        $data = join('', $this->data);
-        return $data;
-    }
-
-    public function setLow(string $low)
-    {
-        $this->data[0] = $low;
-    }
-
-    public function getLow(): ?string
-    {
-        return $this->data[0];
-    }
-
-    public function setHigh(string $low)
-    {
-        $this->data[1] = $low;
-    }
-
-    public function getHigh(): ?string
-    {
-        return $this->data[1];
+        if (is_array($data)) {
+            foreach ($data as $c) {
+                if (is_string($c)) {
+                    $this->data[] = ord($c);
+                } else {
+                    $this->data[] = $c;
+                }
+            }
+        } elseif (is_string($data)) {
+            $data = str_split($data);
+            $data = array_map('ord', $data);
+            $this->data = $data;
+        } else {
+            $this->data = $data;
+        }
     }
 
     /**
@@ -79,9 +61,46 @@ class Register implements RegisterInterface, AddressInterface
      */
     public function toInt(): int
     {
-        $highInt = ord($this->getHigh()) * 256;
-        $lowInt = ord($this->getLow());
-        $i = $highInt + $lowInt;
-        return $i;
+        if ($this->data instanceof AddressInterface) {
+            return $this->data->toInt();
+        } elseif (is_array($this->data)) {
+            $i = 0;
+            $pos = 0;
+            foreach ($this->data as $n) {
+                $i += $n << $pos;
+                $pos += 8;
+            }
+
+            return $i;
+        }
+
+        return 0;
+    }
+
+    public function toAddress(): Address
+    {
+        if ($this->data instanceof AddressInterface) {
+            return $this->data;
+        }
+
+        $address=new Address($this->toInt());
+        return $address;
+    }
+
+    public function add(int $i)
+    {
+        $i += $this->toInt();
+
+        $data = [];
+
+        $pos = 0;
+        while ($i > 0 && $pos < 16) {
+            $data[$pos] = $i & 0xFF;
+            $i = $i >> 8;
+
+            $pos += 1;
+        }
+
+        $this->data = $data;
     }
 }

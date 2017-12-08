@@ -15,6 +15,11 @@ class Ram implements RamInterface
     /**
      * @var int
      */
+    private $size;
+
+    /**
+     * @var int
+     */
     private $writePointer;
 
     /**
@@ -22,97 +27,79 @@ class Ram implements RamInterface
      */
     private $data;
 
-    public function __construct()
+    public function __construct(int $size = 0x10000)
     {
+        $this->size = $size;
         $this->writePointer = 0;
-        $this->data = [];
+        $this->data = array_fill(0, $this->size, 0);
     }
 
-    public function write(string $byte, int $offset = null, int $length = null)
+    public function write(array $data, int $offset = null)
     {
         if (null === $offset) {
             $offset = $this->writePointer;
         }
 
-        if (null === $length) {
-            $writeLen = strlen($byte);
-        } else {
-            $writeLen = $length;
+        $pos = $offset;
+        foreach ($data as $c) {
+            $this->data[$pos] = $c;
+            $pos++;
         }
 
-        $pos = 0;
+        $this->writePointer = $pos;
+    }
 
-        // Write to RAM.
-        for ($i = 0; $i < $writeLen; $i++) {
-            $pos = $offset + $i;
+    public function writeStr(string $str, int $offset = null)
+    {
+        $data = str_split($str);
+        $data = array_map('ord', $data);
 
-            if (isset($byte[$i])) {
-                $char = $byte[$i];
-            } else {
-                $char = "\x00";
-            }
-
-            if ('' === $char) {
-                throw new \RuntimeException(sprintf('Cannot write empty character at %04x.', $pos));
-            }
-
-            $this->data[$pos] = $char;
-
-            //printf("wram: %08x %02x\n", $pos, ord($char));
-            //printf(" %02x", ord($char));
-        }
-
-        $this->writePointer = $pos + 1;
+        $this->write($data, $offset);
     }
 
     public function loadFromFile(string $path, int $offset = null, int $length = null)
     {
         $content = file_get_contents($path, false, null, 0, $length);
-        $this->write($content, $offset, $length);
+        $this->writeStr($content, $offset);
     }
 
-    public function read(int $offset, int $length): string
+    /**
+     * @param int $offset
+     * @param int $length
+     * @return int[]
+     */
+    public function read(int $offset, int $length): array
     {
-        $keys = array_keys($this->data);
-
-        $minMemoryAddr = min($keys);
-        if ($offset < $minMemoryAddr) {
-            throw new \RangeException(sprintf('Out of range. Want to access %04x but minimum address is at %04x', $offset, $minMemoryAddr));
+        if ($offset < 0) {
+            throw new \RangeException(sprintf('Want to access %04x but minimum address is at 0', $offset));
         }
 
-        $maxMemoryAddr = max($keys);
-        if ($offset > $maxMemoryAddr) {
-            throw new \RangeException(sprintf('Out of range. Want to access %04x but maximum address is at %04x', $offset, $maxMemoryAddr));
-        }
+        $data = array_slice($this->data, $offset, $length);
 
-        //printf("rram: %08x %08x\n", $offset, $mm);
-
-        $contentStr = '';
-        for ($i = 0; $i < $length; $i++) {
-            $pos = $offset + $i;
-            $contentStr .= $this->data[$pos];
-        }
-
-        //$contentAr = array_slice($this->data, $offset, $length);
-        //$contentStr = join('', $contentAr);
-        return $contentStr;
+        return $data;
     }
 
+    /**
+     * @param int $offset
+     * @param int $length
+     * @return AddressInterface
+     */
     public function readAddress(int $offset, int $length): AddressInterface
     {
-        //if ($offset instanceof AddressInterface) {
-        //    $offset = $offset->toInt();
-        //}
-
         $data = $this->read($offset, $length);
         $address = new Address($data);
         return $address;
     }
 
-    public function readFromRegister(RegisterInterface $register): string
+    /**
+     * @param RegisterInterface $register
+     * @return array|int[]
+     */
+    public function readFromRegister(RegisterInterface $register): array
     {
         $offset = $register->toInt();
         $length = $register->getSize();
-        return $this->read($offset, $length);
+        $data = $this->read($offset, $length);
+        return $data;
     }
 }
