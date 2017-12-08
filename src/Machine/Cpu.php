@@ -242,15 +242,79 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $id = $iReg4bit / 2 & 1;
 
             $offset = $this->getInstructionOffset();
-            $iData1 = $this->ram->read($offset + 1, self::SIZE_BYTE);
-            $iData2 = $this->ram->read($offset + 1 + 2, self::SIZE_BYTE);
-            $iData3 = $this->ram->read($offset + 1 + 2 + 2, self::SIZE_BYTE);
+
+            $data = $this->ram->read($offset + 1, self::SIZE_BYTE);
+            $iData0 = new Address($data);
+
+            $data = $this->ram->read($offset + 1 + 2, self::SIZE_BYTE);
+            $iData1 = new Address($data);
+
+            $data = $this->ram->read($offset + 1 + 2 + 2, self::SIZE_BYTE);
+            $iData2 = new Address($data);
+
+            // @todo seg overwrite here
+
+            // i_mod_size > 0 indicates that opcode uses i_mod/i_rm/i_reg, so decode them
+            if ($iModeSize) {
+                $iMod = $iData0->getLow() >> 6;
+                $iRm = $iData0->getLow() & 7;
+                $iReg = $iData0->toInt() / 8;
+                $iReg = $iReg & 7;
+
+                if (!$iMod && 6 === $iRm || 2 === $iMod) {
+                    $data = $this->ram->read($offset + 1 + 2 + 2+2, self::SIZE_BYTE);
+                    $iData2 = new Address($data);
+                }
+                elseif (1!==$iMod){
+                    $iData2=$iData1;
+                }
+                else{
+                    $data=$iData1->getLow();
+                    $iData1 = new Address($data);
+                }
+            } else {
+                $iMod = 0;
+                $iRm = 0;
+                $iReg = 0;
+            }
 
             switch ($xlatId) {
                 case 14: // JMP | CALL short/near
                     $this->ip->add(3 - $id);
+                    if (!$iw) {
+                        if ($id) {
+                            // JMP far
+                            $this->cs->setData($iData2);
+                            $this->ip->setData(0);
+                        } else {
+                            // CALL
+                            //@todo
+                        }
+                    }
+
+                    if ($id && $iw) {
+                        $add = $iData0->getLow();
+                    } else {
+                        $add = $iData0->toInt();
+                    }
+
+                    $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
+                    $this->ip->add($add);
+                    $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
+
                     break;
             }
+
+            $instSize = $this->biosDataTables[12][$opcodeRaw];
+            $iwSize = $this->biosDataTables[13] * ($iw + 1);
+
+            // Increment instruction pointer by computed instruction length.
+            // Tables in the BIOS binary help us here.
+            $add =
+                $iMod
+                + $instSize + $iwSize;
+            $this->output->writeln(sprintf('IP+ %04x', $add));
+            $this->ip->add($add);
 
             // Debug
             //$l = $this->ip->getLow();
