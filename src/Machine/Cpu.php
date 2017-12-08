@@ -162,6 +162,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output = $output;
     }
 
+    private function getInstructionOffset():int
+    {
+        $offset = $this->cs->toInt() * self::SIZE_BIT;
+        $offset += $this->ip->toInt();
+
+        return $offset;
+    }
+
     /**
      * Using Code Segment (CS) and Instruction Pointer (IP) to get the current OpCode.
      *
@@ -169,12 +177,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
      */
     private function getOpcode(): string
     {
-        $offset = $this->cs->toInt() * self::SIZE_BIT;
-        $offset += $this->ip->toInt();
+        $offset = $this->getInstructionOffset();
 
         //$this->output->writeln(sprintf(' -> Offset: %08x', $offset));
 
-        $opcode = $this->ram->read($offset, self::SIZE_BYTE);
+        $opcode = $this->ram->read($offset, 1);
         //$this->output->writeln(sprintf(' -> OpCode Len: %d', strlen($opcode)));
 
         return $opcode;
@@ -213,12 +220,29 @@ class Cpu implements CpuInterface, OutputAwareInterface
         //throw new \RuntimeException('Not implemented');
 
         $cycle = 0;
-        while ("\x00\x00" !== ($opcode = $this->getOpcode())) {
-            $this->output->writeln(sprintf('[%s] run %d @%04x:%04x -> %02x %02x',
+        while ("\x00" !== ($opcodeRaw = $this->getOpcode())) {
+            $this->output->writeln(sprintf('[%s] run %d @%04x:%04x -> %02x',
                 'CPU',
                 $cycle,
                 $this->cs->toInt(), $this->ip->toInt(),
-                ord($opcode[0]), ord($opcode[1])));
+                ord($opcodeRaw[0])));
+
+            $opcodeInt = ord($opcodeRaw);
+
+            // Decode
+            $xlatId = $this->biosDataTables[8][$opcodeInt];
+            $extra = $this->biosDataTables[9][$opcodeInt];
+            $iModeSize = $this->biosDataTables[14][$opcodeInt];
+            $setFlagsType = $this->biosDataTables[10][$opcodeInt];
+
+            $iReg4bit = $opcodeInt & 7;
+            $iw = $iReg4bit & 1;
+            $id = $iReg4bit / 2 & 1;
+
+            $offset = $this->getInstructionOffset();
+            $iData1=$this->ram->read($offset+1, self::SIZE_BYTE);
+            $iData2=$this->ram->read($offset+1+2, self::SIZE_BYTE);
+            $iData3=$this->ram->read($offset+1+2+2, self::SIZE_BYTE);
 
             $l = $this->ip->getLow();
             $o = ord($l);
