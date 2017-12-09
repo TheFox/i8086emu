@@ -17,7 +17,7 @@ class Address implements AddressInterface
      */
     public function __construct($data = null)
     {
-        $this->data=[];
+        $this->data = [];
 
         if (is_array($data)) {
             foreach ($data as $c) {
@@ -57,7 +57,7 @@ class Address implements AddressInterface
         return $i;
     }
 
-    public function getLow():int
+    public function getLow(): int
     {
         return $this->data[0];
     }

@@ -73,6 +73,9 @@ class Ram implements RamInterface
         if ($offset < 0) {
             throw new \RangeException(sprintf('Want to access %04x but minimum address is at 0', $offset));
         }
+        if ($length <= 0) {
+            throw new \RangeException('Length cannot be negative.');
+        }
 
         $data = array_slice($this->data, $offset, $length);
 

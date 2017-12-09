@@ -2,7 +2,7 @@
 
 namespace TheFox\I8086emu\Blueprint;
 
-interface FlagInterface
+interface FlagsInterface
 {
     public function get(string $flag);
     public function set(string $flag, bool $val);

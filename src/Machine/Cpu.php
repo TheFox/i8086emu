@@ -12,9 +12,10 @@ namespace TheFox\I8086emu\Machine;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
-use TheFox\I8086emu\Blueprint\FlagInterface;
+use TheFox\I8086emu\Blueprint\FlagsInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
+use TheFox\I8086emu\Exception\NotImplementedException;
 
 class Cpu implements CpuInterface, OutputAwareInterface
 {
@@ -98,9 +99,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $ds;
 
     /**
-     * @var FlagInterface
+     * @var FlagsInterface
      */
-    private $flag;
+    private $flags;
 
     /**
      * @var array
@@ -141,8 +142,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->ip = new Register(new Address(0x0100)); // Instruction Pointer
 
         // Flags
-        //$this->flags = new Register('flags');
-        $this->flag = new Flag();
+        $this->flags = new Flags();
     }
 
     /**
@@ -262,16 +262,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $iReg = $iReg & 7;
 
                 if (!$iMod && 6 === $iRm || 2 === $iMod) {
-                    $data = $this->ram->read($offset + 1 + 2 + 2+2, self::SIZE_BYTE);
+                    $data = $this->ram->read($offset + 1 + 2 + 2 + 2, self::SIZE_BYTE);
                     $iData2 = new Address($data);
-                }
-                elseif (1!==$iMod){
-                    $iData2=$iData1;
-                }
-                else{
-                    $data=$iData1->getLow();
+                } elseif (1 !== $iMod) {
+                    $iData2 = $iData1;
+                } else {
+                    $data = $iData1->getLow();
                     $iData1 = new Address($data);
                 }
+
+                throw new NotImplementedException('DECODE_RM_REG');
             } else {
                 $iMod = 0;
                 $iRm = 0;
@@ -289,6 +289,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         } else {
                             // CALL
                             //@todo
+                            throw new NotImplementedException('CALL');
                         }
                     }
 
@@ -298,23 +299,33 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $add = $iData0->toInt();
                     }
 
-                    $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
+                    $this->output->writeln(sprintf('IP old: %04x', $this->ip->toInt()));
                     $this->ip->add($add);
-                    $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
+                    $this->output->writeln(sprintf('IP new: %04x', $this->ip->toInt()));
 
                     break;
-            }
+
+                default:
+                    throw new NotImplementedException(sprintf('xLatID %02x (=%d dec)', $xlatId, $xlatId));
+            } // switch $xlatId
 
             $instSize = $this->biosDataTables[12][$opcodeRaw];
-            $iwSize = $this->biosDataTables[13] * ($iw + 1);
+            $iwSize = $this->biosDataTables[13][$opcodeRaw] * ($iw + 1);
 
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
             $add =
-                $iMod
-                + $instSize + $iwSize;
+                (
+                    $iMod * (3 !== $iMod)
+                    + 2 * (!$iMod && 6 === $iRm)
+                ) * $iModeSize
+                + $instSize
+                + $iwSize;
             $this->output->writeln(sprintf('IP+ %04x', $add));
             $this->ip->add($add);
+
+            // If instruction needs to update SF, ZF and PF, set them as appropriate.
+            // @todo
 
             // Debug
             //$l = $this->ip->getLow();
@@ -325,6 +336,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
             if ($cycle > 5000) {
                 break;
             }
-        }
-    }
+        } // while $opcodeRaw
+    } // run()
 }

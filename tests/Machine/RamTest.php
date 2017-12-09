@@ -74,4 +74,22 @@ class RamTest extends TestCase
         $data = $ram->read(0, 4);
         $this->assertEquals([65,66,67,68], $data);
     }
+
+    /**
+     * @expectedException \RangeException
+     */
+    public function testReadException1()
+    {
+        $ram = new Ram(1);
+        $ram->read(-1,1);
+    }
+
+    /**
+     * @expectedException \RangeException
+     */
+    public function testReadException2()
+    {
+        $ram = new Ram(1);
+        $ram->read(0,0);
+    }
 }
