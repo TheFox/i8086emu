@@ -11,22 +11,24 @@ class RegisterTest extends TestCase
     public function testSize()
     {
         $register = new Register();
-        $this->assertEquals(2,$register->getSize());
+        $this->assertEquals(2, $register->getSize());
 
-        $register = new Register(null,3);
-        $this->assertEquals(3,$register->getSize());
+        $register = new Register(null, 3);
+        $this->assertEquals(3, $register->getSize());
     }
+
     /**
      * @return array
      */
     public function toIntDataProvider(): array
     {
-        $rv = [
+        $data = [
             [null, 0],
-            ["\x01\x02", 2 * 256 + 1],
-            [new Address([1, 2, 3]), 3 * 256 * 256 + 2 * 256 + 1],
+            ["\x01\x02", 0x0201],
+            [["\x02", "\x03"], 0x0302],
+            [new Address([1, 2, 3]), 0x030201],
         ];
-        return $rv;
+        return $data;
     }
 
     /**
@@ -44,6 +46,17 @@ class RegisterTest extends TestCase
     {
         $register = new Register([1, 2, 3]);
         $register->add(2);
-        $this->assertEquals(3 * 256 * 256 + 2 * 256 + 3, $register->toInt());
+        $this->assertEquals(0x030203, $register->toInt());
+    }
+
+    public function testToAddress()
+    {
+        $register = new Register(new Address(0));
+        $address = $register->toAddress();
+        $this->assertEquals(0, $address->toInt());
+
+        $register = new Register('A');
+        $address = $register->toAddress();
+        $this->assertEquals(65, $address->toInt());
     }
 }

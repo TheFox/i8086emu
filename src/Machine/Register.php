@@ -83,7 +83,7 @@ class Register implements RegisterInterface, AddressInterface
             return $this->data;
         }
 
-        $address=new Address($this->toInt());
+        $address = new Address($this->toInt());
         return $address;
     }
 

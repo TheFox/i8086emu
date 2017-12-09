@@ -22,4 +22,13 @@ class FlagsTest extends TestCase
         $flags->set('CF', 42);
         $this->assertTrue($flags->get('CF'));
     }
+
+    /**
+     * @expectedException \RangeException
+     */
+    public function testException()
+    {
+        $flags = new Flags();
+        $flags->get('INVALID');
+    }
 }

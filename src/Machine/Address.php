@@ -17,15 +17,18 @@ class Address implements AddressInterface
      */
     public function __construct($data = null)
     {
-        $this->data = [];
+        $this->data = [0, 0];
 
         if (is_array($data)) {
+            $pos = 0;
             foreach ($data as $c) {
                 if (is_string($c)) {
-                    $this->data[] = ord($c);
+                    $this->data[$pos] = ord($c);
                 } else {
-                    $this->data[] = $c;
+                    $this->data[$pos] = $c;
                 }
+
+                $pos++;
             }
         } elseif (is_string($data)) {
             $data = str_split($data);
@@ -34,7 +37,7 @@ class Address implements AddressInterface
         } elseif (is_numeric($data)) {
             $pos = 0;
             while ($data && $pos < 16) {
-                $this->data[] = $data & 0xFF;
+                $this->data[$pos] = $data & 0xFF;
                 $data = $data >> 8;
 
                 $pos++;

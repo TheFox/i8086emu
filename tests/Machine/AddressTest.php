@@ -11,6 +11,9 @@ class AddressTest extends TestCase
     {
         $data = [
             [null, 0],
+            [1, 1],
+            [255, 255],
+            [257, 257],
             ["\x0a\x0b", 2826],
             ["\x0b\x0c", 3083],
             [["\x0a", "\x0b"], 2826],
