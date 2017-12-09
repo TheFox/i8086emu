@@ -23,11 +23,12 @@ class AddressTest extends TestCase
     /**
      * @dataProvider toIntDataProvider
      * @param null|string|string[]|int[] $data
-     * @param int $expected
+     * @param int $expectedInt
      */
-    public function testToInt($data, int $expected)
+    public function testToInt($data, int $expectedInt)
     {
         $address = new Address($data);
-        $this->assertEquals($expected, $address->toInt());
+        $this->assertEquals($expectedInt, $address->toInt());
+        $this->assertEquals($expectedInt & 0xFF, $address->getLow());
     }
 }

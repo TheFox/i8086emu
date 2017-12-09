@@ -21,6 +21,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 {
     public const SIZE_BYTE = 2;
     public const SIZE_BIT = 16;
+    public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
+    public const GRAPHICS_UPDATE_DELAY = 360000;
 
     /**
      * Debug
@@ -221,6 +223,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         //throw new \RuntimeException('Not implemented');
 
+        $trapFlag = false;
+
         $cycle = 0;
         while ($opcodeRaw = $this->getOpcode()) {
             //$opcodeInt = $opcodeRaw[0];
@@ -321,21 +325,55 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 ) * $iModeSize
                 + $instSize
                 + $iwSize;
-            $this->output->writeln(sprintf('IP+ %04x', $add));
+            $this->output->writeln(sprintf('IP old: %04x', $this->ip->toInt()));
             $this->ip->add($add);
+            $this->output->writeln(sprintf('IP new: %04x (+%04x)', $this->ip->toInt(), $add));
+
+            // Update Instruction counter.
+            $cycle++;
+
+            $int8 = false;
+            if (0 === $cycle % self::KEYBOARD_TIMER_UPDATE_DELAY) {
+                $int8 = true;
+            }
+
+            if (0 === $cycle % self::GRAPHICS_UPDATE_DELAY) {
+                $this->updateGraphics();
+            }
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
             // @todo
+
+            if ($trapFlag) {
+                $this->interrupt(1);
+            }
+            $trapFlag = $this->flags->get('TF');
+
+            // @todo interrupt 8
 
             // Debug
             //$l = $this->ip->getLow();
             //$o = ord($l);
             //$this->ip->setLow(chr($o + self::SIZE_BYTE));
 
-            $cycle++;
             if ($cycle > 5000) {
+                // @todo remove this. just dev
                 break;
             }
         } // while $opcodeRaw
     } // run()
+
+    private function interrupt(int $code)
+    {
+        // @todo
+        $this->output->writeln(sprintf('Interrupt %02x', $code));
+        throw new NotImplementedException('Interrupt');
+    }
+
+    private function updateGraphics()
+    {
+        // @todo use separate framebuffer, or tty, or whatever.
+        $this->output->writeln('Update Graphics');
+        throw new NotImplementedException('Update Graphics');
+    }
 }
