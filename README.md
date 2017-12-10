@@ -1,10 +1,8 @@
-# i8086emu
+# Intel 8086 CPU Emulator
 
-## Xdebug using Docker under Mac OS X
+## Glossary
 
-To access `10.254.254.254` run the following to add an alias to localhost:
-
-    sudo ifconfig lo0 alias 10.254.254.254 255.0.0.0
+## Resources
 
 - <https://en.wikipedia.org/wiki/Intel_8086>
 - <https://en.wikipedia.org/wiki/Processor_register>
@@ -16,3 +14,4 @@ To access `10.254.254.254` run the following to add an alias to localhost:
 - <http://www.eecg.toronto.edu/~amza/www.mindsec.com/files/x86regs.html>
 - <https://www-user.tu-chemnitz.de/~heha/viewchm.php/hs/x86.chm/x86.htm>
 - <http://www.c-jump.com/CIS77/CPU/x86/X77_0060_mod_reg_r_m_byte.htm>
+- <https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture>

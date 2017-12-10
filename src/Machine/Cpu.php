@@ -15,6 +15,7 @@ use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\FlagsInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
+use TheFox\I8086emu\Blueprint\RegisterInterface;
 use TheFox\I8086emu\Exception\NotImplementedException;
 
 class Cpu implements CpuInterface, OutputAwareInterface
@@ -23,6 +24,19 @@ class Cpu implements CpuInterface, OutputAwareInterface
     public const SIZE_BIT = 16;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
     public const GRAPHICS_UPDATE_DELAY = 360000;
+    // Lookup tables in the BIOS binary.
+    public const TABLE_XLAT_OPCODE = 8;
+    public const TABLE_XLAT_SUBFUNCTION = 9;
+    public const TABLE_STD_FLAGS = 10;
+    public const TABLE_PARITY_FLAG = 11;
+    public const TABLE_BASE_INST_SIZE = 12;
+    public const TABLE_I_W_SIZE = 13;
+    public const TABLE_I_MOD_SIZE = 14;
+    public const TABLE_COND_JUMP_DECODE_A = 15;
+    public const TABLE_COND_JUMP_DECODE_B = 16;
+    public const TABLE_COND_JUMP_DECODE_C = 17;
+    public const TABLE_COND_JUMP_DECODE_D = 18;
+    public const TABLE_FLAGS_BITFIELDS = 19;
 
     /**
      * Debug
@@ -101,7 +115,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $ds;
 
     /**
-     * @var FlagsInterface
+     * @var array
+     */
+    private $registers;
+
+    /**
+     * @var Flags
      */
     private $flags;
 
@@ -116,33 +135,52 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->biosDataTables = [];
 
         $this->setupRegisters();
+        $this->setupFlags();
     }
 
+    /**
+     * General-Purpose Registers (GPR) - 16-bit naming conventions
+     */
     private function setupRegisters()
     {
         // Common register
-        $this->ax = new Register(); // AX: Accumulator
-        $this->cx = new Register(); // CX: Count
-        $this->dx = new Register(); // DX: Data
-        $this->bx = new Register(); // BX: Base
+        $this->ax = new Register('AX'); // AX: Accumulator
+        $this->cx = new Register('CX'); // CX: Count
+        $this->dx = new Register('DX'); // DX: Data
+        $this->bx = new Register('BX'); // BX: Base
 
         // Pointer
-        $this->sp = new Register(); // Stack Pointer
-        $this->bp = new Register(); // Base Pointer
+        $this->sp = new Register('SP'); // Stack Pointer
+        $this->bp = new Register('BP'); // Base Pointer
 
         // Index
-        $this->si = new Register(); // Source Index
-        $this->di = new Register(); // Destination Index
+        $this->si = new Register('SI'); // Source Index
+        $this->di = new Register('DI'); // Destination Index
 
         // Segment
-        $this->ds = new Register(); // Data Segment
-        $this->ss = new Register(); // Stack Segment
-        $this->es = new Register(); // Extra Segment
+        $this->ds = new Register('DS'); // Data Segment
+        $this->ss = new Register('SS'); // Stack Segment
+        $this->es = new Register('ES'); // Extra Segment
 
         // Set CS:IP to F000:0100
-        $this->cs = new Register(new Address(0xF000)); // Code Segment
-        $this->ip = new Register(new Address(0x0100)); // Instruction Pointer
+        $this->cs = new Register('CS', new Address(0xF000)); // Code Segment
+        $this->ip = new Register('IP', new Address(0x0100)); // Instruction Pointer
 
+        $this->registers = [
+            0 => $this->ax,
+            1 => $this->cx,
+            2 => $this->dx,
+            3 => $this->bx,
+
+            4 => $this->sp,
+            5 => $this->bp,
+            6 => $this->si,
+            7 => $this->di,
+        ];
+    }
+
+    private function setupFlags()
+    {
         // Flags
         $this->flags = new Flags();
     }
@@ -198,10 +236,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         for ($i = 0; $i < 20; $i++) {
             $offset = 0xF0000 + (0x81 + $i) * self::SIZE_BYTE;
+            $tableAddr = $this->ram->readAddress($offset, self::SIZE_BYTE);
+            $tableAddrInt = $tableAddr->toInt();
+
+            $this->output->writeln(sprintf('table %d', $i));
 
             for ($j = 0; $j < 256; $j++) {
-                $tableAddr = $this->ram->readAddress($offset, self::SIZE_BYTE);
-                $valueAddr = 0xF0000 + $tableAddr->toInt() + $j;
+                $valueAddr = 0xF0000 + $tableAddrInt + $j;
                 $v = $this->ram->read($valueAddr, 1);
 
                 $tables[$i][$j] = $v[0];
@@ -213,9 +254,57 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output->writeln('bios data tables done');
     }
 
+    /**
+     * Use this for development.
+     */
+    private function setupDevBiosDataTables()
+    {
+        $this->biosDataTables[8] = [9, 9, 9, 9, 7, 7, 25, 26, 9, 9, 9, 9, 7, 7, 25, 48, 9, 9, 9, 9, 7, 7, 25, 26, 9, 9, 9, 9, 7, 7, 25, 26, 9, 9, 9, 9, 7, 7, 27, 28, 9, 9, 9, 9, 7, 7, 27, 28, 9, 9, 9, 9, 7, 7, 27, 29, 9, 9, 9, 9, 7, 7, 27, 29, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 51, 54, 52, 52, 52, 52, 52, 52, 55, 55, 55, 55, 52, 52, 52, 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 15, 15, 24, 24, 9, 9, 9, 9, 10, 10, 10, 10, 16, 16, 16, 16, 16, 16, 16, 16, 30, 31, 32, 53, 33, 34, 35, 36, 11, 11, 11, 11, 17, 17, 18, 18, 47, 47, 17, 17, 17, 17, 18, 18, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 12, 19, 19, 37, 37, 20, 20, 49, 50, 19, 19, 38, 39, 40, 19, 12, 12, 12, 12, 41, 42, 43, 44, 53, 53, 53, 53, 53, 53, 53, 53, 13, 13, 13, 13, 21, 21, 22, 22, 14, 14, 14, 14, 21, 21, 22, 22, 53, 0, 23, 23, 53, 45, 6, 6, 46, 46, 46, 46, 46, 46, 5, 5];
+
+        $this->biosDataTables[9] = [0, 0, 0, 0, 0, 0, 8, 8, 1, 1, 1, 1, 1, 1, 9, 36, 2, 2, 2, 2, 2, 2, 10, 10, 3, 3, 3, 3, 3, 3, 11, 11, 4, 4, 4, 4, 4, 4, 8, 0, 5, 5, 5, 5, 5, 5, 9, 1, 6, 6, 6, 6, 6, 6, 10, 2, 7, 7, 7, 7, 7, 7, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 21, 21, 21, 21, 21, 0, 0, 0, 0, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 12, 12, 12, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 16, 22, 0, 0, 0, 0, 1, 1, 0, 255, 48, 2, 0, 0, 0, 0, 255, 255, 40, 11, 3, 3, 3, 3, 3, 3, 3, 3, 43, 43, 43, 43, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 21, 0, 0, 2, 40, 21, 21, 80, 81, 92, 93, 94, 95, 0, 0];
+
+        $this->biosDataTables[10] = [3, 3, 3, 3, 3, 3, 0, 0, 5, 5, 5, 5, 5, 5, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 5, 5, 5, 5, 5, 5, 0, 1, 3, 3, 3, 3, 3, 3, 0, 1, 5, 5, 5, 5, 5, 5, 0, 1, 3, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        $this->biosDataTables[11] = [1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1];
+
+        $this->biosDataTables[12] = [2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 0, 0, 2, 2, 2, 2, 4, 1, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2];
+
+        $this->biosDataTables[13] = [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        $this->biosDataTables[14] = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1];
+    }
+
+    private function printXlatOpcodes()
+    {
+        $this->output->writeln('XLAT');
+
+        $codes = $this->biosDataTables[self::TABLE_XLAT_OPCODE];
+
+        $groupped = [];
+        foreach ($codes as $opcode => $xlatId) {
+            if (isset($groupped[$xlatId])) {
+                $groupped[$xlatId][] = $opcode;
+            } else {
+                $groupped[$xlatId] = [$opcode];
+            }
+        }
+
+        foreach ($groupped as $xlatId => $opcodes) {
+            $s = array_map(function ($c) {
+                return sprintf('%02x', $c);
+            }, $opcodes);
+            $s = join(' ', $s);
+            $this->output->writeln(sprintf('-> %d = %s', $xlatId, $s));
+        }
+
+        $this->output->writeln('XLAT END');
+    }
+
     public function run()
     {
-        $this->setupBiosDataTables();
+        //$this->setupBiosDataTables(); // @todo activate this
+        $this->setupDevBiosDataTables();
+        //$this->printXlatOpcodes();
 
         // Debug
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
@@ -229,78 +318,106 @@ class Cpu implements CpuInterface, OutputAwareInterface
         while ($opcodeRaw = $this->getOpcode()) {
             //$opcodeInt = $opcodeRaw[0];
 
-            $this->output->writeln(sprintf('[%s] run %d @%04x:%04x -> %02x',
+            $this->output->writeln(sprintf(
+                '[%s] run %d @%04x:%04x -> %02x',
                 'CPU',
                 $cycle,
-                $this->cs->toInt(), $this->ip->toInt(),
-                $opcodeRaw));
+                $this->cs->toInt(),
+                $this->ip->toInt(),
+                $opcodeRaw
+            ));
 
             // Decode
-            $xlatId = $this->biosDataTables[8][$opcodeRaw];
-            $extra = $this->biosDataTables[9][$opcodeRaw];
-            $iModeSize = $this->biosDataTables[14][$opcodeRaw];
-            $setFlagsType = $this->biosDataTables[10][$opcodeRaw];
+            $xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
+            //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
+            $iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
+            //$setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
 
-            $iReg4bit = $opcodeRaw & 7;
-            $iw = $iReg4bit & 1;
-            $id = $iReg4bit / 2 & 1;
+            // 0-7 number of the 8-bit Registers.
+            $iReg4bit = $opcodeRaw & 7; // xxxx111
+
+            // Is Word Instruction, means 2 Byte long.
+            $iw = (bool)($iReg4bit & 1); // xxxxxx1
+
+            // Instruction Direction
+            $id = (bool)($iReg4bit & 2); // xxxxx1x
+
+            $this->output->writeln(sprintf('reg 4bit: %x (%s) %x %x', $iReg4bit, $iReg4bit / 2, $iw, $id));
 
             $offset = $this->getInstructionOffset();
 
-            $data = $this->ram->read($offset + 1, self::SIZE_BYTE);
-            $iData0 = new Address($data);
+            //$data = $this->ram->read($offset + 1, 1);
+            //$iData0 = new Address($data);
+            //
+            //$data = $this->ram->read($offset + 2, 1);
+            //$iData1 = new Address($data);
+            //
+            //$data = $this->ram->read($offset + 3, 1);
+            //$iData2 = new Address($data);
 
-            $data = $this->ram->read($offset + 1 + 2, self::SIZE_BYTE);
-            $iData1 = new Address($data);
-
-            $data = $this->ram->read($offset + 1 + 2 + 2, self::SIZE_BYTE);
-            $iData2 = new Address($data);
+            $data = $this->ram->read($offset + 1, 3);
 
             // @todo seg overwrite here
 
-            // i_mod_size > 0 indicates that opcode uses i_mod/i_rm/i_reg, so decode them
+            $iMod = 0;
+            $iRm = 0; // Is Register/Memory?
+            $iReg = 0;
+
+            // i_mod_size > 0 indicates that opcode uses Mod/Reg/RM, so decode them
             if ($iModeSize) {
-                $iMod = $iData0->getLow() >> 6;
-                $iRm = $iData0->getLow() & 7;
-                $iReg = $iData0->toInt() / 8;
-                $iReg = $iReg & 7;
-
-                if (!$iMod && 6 === $iRm || 2 === $iMod) {
-                    $data = $this->ram->read($offset + 1 + 2 + 2 + 2, self::SIZE_BYTE);
-                    $iData2 = new Address($data);
-                } elseif (1 !== $iMod) {
-                    $iData2 = $iData1;
-                } else {
-                    $data = $iData1->getLow();
-                    $iData1 = new Address($data);
-                }
-
+            //    $iMod = $iData0->getLow() >> 6;     // 11xxxxxx
+            //    $iReg = $iData0->getLow() >> 3 & 7; // xx111xxx
+            //    $iRm = $iData0->getLow() & 7;       // xxxxx111
+            //
+            //    if (!$iMod && 6 === $iRm || 2 === $iMod) { // 6 = 110 || 2 = 10
+            //        $data = $this->ram->read($offset + 1 + 2 + 2 + 2, self::SIZE_BYTE);
+            //        $iData2 = new Address($data);
+            //    } elseif (1 !== $iMod) {
+            //        $iData2 = $iData1;
+            //    } else {
+            //        $data = $iData1->getLow();
+            //        $iData1 = new Address($data);
+            //    }
+            //
                 throw new NotImplementedException('DECODE_RM_REG');
-            } else {
-                $iMod = 0;
-                $iRm = 0;
-                $iReg = 0;
             }
 
             switch ($xlatId) {
-                case 14: // JMP | CALL short/near
+                case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+                    $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
+
+                    $register = $this->getRegisterByNumber($iw, $iReg4bit);
+
+                    if ($iw) {
+                        $register->setData([$data[0], $data[1]]);
+                    } else {
+                        $register->setData([$data[0]]);
+                    }
+
+                    $this->output->writeln(sprintf('MOV reg, imm (iw=%d, iReg4bit=%d, reg=%s)', $iw, $iReg4bit, $register));
+                    break;
+
+                case 14: // JMP | CALL short/near - OpCodes: e8 e9 ea eb
                     $this->ip->add(3 - $id);
                     if (!$iw) {
                         if ($id) {
                             // JMP far
-                            $this->cs->setData($iData2);
+                            $this->output->writeln(sprintf('JMP far'));
+                            //$this->cs->setData($iData2);
                             $this->ip->setData(0);
                         } else {
                             // CALL
                             //@todo
+                            $this->output->writeln(sprintf('CALL'));
                             throw new NotImplementedException('CALL');
                         }
                     }
 
                     if ($id && $iw) {
-                        $add = $iData0->getLow();
+                        //$add = $iData0->getLow();
+                        $add = $data[0];
                     } else {
-                        $add = $iData0->toInt();
+                        throw new NotImplementedException('NOT ID AND NOT IW');
                     }
 
                     $this->output->writeln(sprintf('IP old: %04x', $this->ip->toInt()));
@@ -313,11 +430,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     throw new NotImplementedException(sprintf('xLatID %02x (=%d dec)', $xlatId, $xlatId));
             } // switch $xlatId
 
-            $instSize = $this->biosDataTables[12][$opcodeRaw];
-            $iwSize = $this->biosDataTables[13][$opcodeRaw] * ($iw + 1);
-
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
+            $instSize = $this->biosDataTables[self::TABLE_BASE_INST_SIZE][$opcodeRaw];
+            $iwSize = $this->biosDataTables[self::TABLE_I_W_SIZE][$opcodeRaw] * ($iw + 1);
             $add =
                 (
                     $iMod * (3 !== $iMod)
@@ -375,5 +491,19 @@ class Cpu implements CpuInterface, OutputAwareInterface
         // @todo use separate framebuffer, or tty, or whatever.
         $this->output->writeln('Update Graphics');
         throw new NotImplementedException('Update Graphics');
+    }
+
+    private function getRegisterByNumber(bool $isWord, int $regId, int $loop = 0): Register
+    {
+        if ($isWord) {
+            return $this->registers[$regId];
+        }
+        if ($loop >= 2) {
+            throw new \RuntimeException('Unhandled recursive call detected.');
+        }
+
+        $effectiveRegId = $regId & 3; // x11
+        $register = $this->getRegisterByNumber(false, $effectiveRegId, 1 + $loop);
+        return $register;
     }
 }

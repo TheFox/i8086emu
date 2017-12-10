@@ -85,9 +85,9 @@ class Ram implements RamInterface
     /**
      * @param int $offset
      * @param int $length
-     * @return AddressInterface
+     * @return Address
      */
-    public function readAddress(int $offset, int $length): AddressInterface
+    public function readAddress(int $offset, int $length): Address
     {
         $data = $this->read($offset, $length);
         $address = new Address($data);

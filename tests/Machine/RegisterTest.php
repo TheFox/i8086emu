@@ -13,7 +13,7 @@ class RegisterTest extends TestCase
         $register = new Register();
         $this->assertEquals(2, $register->getSize());
 
-        $register = new Register(null, 3);
+        $register = new Register(null, null, 3);
         $this->assertEquals(3, $register->getSize());
     }
 
@@ -38,24 +38,24 @@ class RegisterTest extends TestCase
      */
     public function testToInt($data, int $expected)
     {
-        $register = new Register($data);
+        $register = new Register(null, $data);
         $this->assertEquals($expected, $register->toInt());
     }
 
     public function testAdd()
     {
-        $register = new Register([1, 2, 3]);
+        $register = new Register(null, [1, 2, 3]);
         $register->add(2);
         $this->assertEquals(0x030203, $register->toInt());
     }
 
     public function testToAddress()
     {
-        $register = new Register(new Address(0));
+        $register = new Register(null, new Address(0));
         $address = $register->toAddress();
         $this->assertEquals(0, $address->toInt());
 
-        $register = new Register('A');
+        $register = new Register(null, 'A');
         $address = $register->toAddress();
         $this->assertEquals(65, $address->toInt());
     }

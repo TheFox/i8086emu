@@ -1,6 +1,6 @@
 {
     "name": "thefox/i8086emu",
-    "description": "8086 Emulator",
+    "description": "Intel 8086 CPU Emulator",
     "license": "GPL-3.0",
     "type": "project",
     "keywords": [

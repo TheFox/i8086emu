@@ -7,6 +7,13 @@ use TheFox\I8086emu\Blueprint\AddressInterface;
 class Address implements AddressInterface
 {
     /**
+     * Data as Integer.
+     *
+     * @var int
+     */
+    private $i;
+
+    /**
      * @var array
      */
     private $data;
@@ -17,6 +24,7 @@ class Address implements AddressInterface
      */
     public function __construct($data = null)
     {
+        $this->i = null;
         $this->data = [0, 0];
 
         if (is_array($data)) {
@@ -50,14 +58,17 @@ class Address implements AddressInterface
      */
     public function toInt(): int
     {
-        $i = 0;
-        $pos = 0;
-        foreach ($this->data as $n) {
-            $i += $n << $pos;
-            $pos += 8;
+        if (null === $this->i) {
+            $i = 0;
+            $pos = 0;
+            foreach ($this->data as $n) {
+                $i += $n << $pos;
+                $pos += 8;
+            }
+            $this->i = $i;
         }
 
-        return $i;
+        return $this->i;
     }
 
     public function getLow(): int

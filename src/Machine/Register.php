@@ -12,6 +12,18 @@ use TheFox\I8086emu\Blueprint\RegisterInterface;
 class Register implements RegisterInterface, AddressInterface
 {
     /**
+     * @var string
+     */
+    private $name;
+
+    /**
+     * Data as Integer.
+     *
+     * @var int
+     */
+    private $i;
+
+    /**
      * @var null|int[]|Address
      */
     private $data;
@@ -23,21 +35,39 @@ class Register implements RegisterInterface, AddressInterface
      */
     private $size;
 
-    public function __construct($data = null, int $size = 2)
+    public function __construct($name = null, $data = [0, 0], int $size = 2)
     {
+        $this->name = $name;
         $this->setData($data);
         $this->size = $size;
     }
 
+    public function __toString()
+    {
+        $data = [$this->data[1], $this->data[0]];
+        if ($this->name) {
+            array_unshift($data, $this->name);
+        } else {
+            array_unshift($data, 'REG');
+        }
+        return vsprintf('%s[%02x%02x]', $data);
+    }
+
     public function setData($data)
     {
+        // Reset Integer value;
+        $this->i = null;
+
         if (is_array($data)) {
+            $pos = 0;
             foreach ($data as $c) {
                 if (is_string($c)) {
-                    $this->data[] = ord($c);
+                    $this->data[$pos] = ord($c);
                 } else {
-                    $this->data[] = $c;
+                    $this->data[$pos] = $c;
                 }
+
+                $pos++;
             }
         } elseif (is_string($data)) {
             $data = str_split($data);
@@ -61,20 +91,24 @@ class Register implements RegisterInterface, AddressInterface
      */
     public function toInt(): int
     {
-        if ($this->data instanceof AddressInterface) {
-            return $this->data->toInt();
-        } elseif (is_array($this->data)) {
-            $i = 0;
-            $pos = 0;
-            foreach ($this->data as $n) {
-                $i += $n << $pos;
-                $pos += 8;
-            }
+        if (null === $this->i) {
+            if ($this->data instanceof AddressInterface) {
+                $this->i = $this->data->toInt();
+            } elseif (is_array($this->data)) {
+                $i = 0;
+                $pos = 0;
+                foreach ($this->data as $n) {
+                    $i += $n << $pos;
+                    $pos += 8;
+                }
 
-            return $i;
+                $this->i = $i;
+            } else {
+                throw new \RuntimeException('Unknown data type.');
+            }
         }
 
-        return 0;
+        return $this->i;
     }
 
     public function toAddress(): Address
@@ -101,6 +135,7 @@ class Register implements RegisterInterface, AddressInterface
             $pos += 1;
         }
 
+        $this->i = null;
         $this->data = $data;
     }
 }
