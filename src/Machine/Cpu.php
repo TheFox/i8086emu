@@ -120,6 +120,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $registers;
 
     /**
+     * @var array
+     */
+    private $segmentRegisters;
+
+    /**
      * @var Flags
      */
     private $flags;
@@ -176,6 +181,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
             5 => $this->bp,
             6 => $this->si,
             7 => $this->di,
+        ];
+
+        $this->segmentRegisters = [
+            0 => $this->es,
+            1 => $this->cs,
+            2 => $this->ss,
+            3 => $this->ds,
         ];
     }
 
@@ -289,6 +301,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
         }
 
+        sort($groupped);
         foreach ($groupped as $xlatId => $opcodes) {
             $s = array_map(function ($c) {
                 return sprintf('%02x', $c);
@@ -304,7 +317,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
     {
         //$this->setupBiosDataTables(); // @todo activate this
         $this->setupDevBiosDataTables();
-        //$this->printXlatOpcodes();
+        $this->printXlatOpcodes();
 
         // Debug
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
@@ -313,11 +326,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
         //throw new \RuntimeException('Not implemented');
 
         $trapFlag = false;
+        $segOverride = '';
+        $segOverrideEn = 0;
+        $regOverride = '';
+        $regOverrideEn = 0;
+        //$scratch=0;
+        //$scratch2=0;
 
         $cycle = 0;
         while ($opcodeRaw = $this->getOpcode()) {
-            //$opcodeInt = $opcodeRaw[0];
-
             $this->output->writeln(sprintf(
                 '[%s] run %d @%04x:%04x -> %02x',
                 'CPU',
@@ -346,46 +363,58 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             $offset = $this->getInstructionOffset();
 
-            //$data = $this->ram->read($offset + 1, 1);
-            //$iData0 = new Address($data);
-            //
-            //$data = $this->ram->read($offset + 2, 1);
-            //$iData1 = new Address($data);
-            //
-            //$data = $this->ram->read($offset + 3, 1);
-            //$iData2 = new Address($data);
-
             $data = $this->ram->read($offset + 1, 3);
 
-            // @todo seg overwrite here
+            if ($segOverrideEn) {
+                --$segOverrideEn;
+            }
+            if ($regOverrideEn) {
+                --$segOverrideEn;
+            }
 
             $iMod = 0;
             $iRm = 0; // Is Register/Memory?
             $iReg = 0;
+            //$from = null;
+            //$to = null;
 
-            // i_mod_size > 0 indicates that opcode uses Mod/Reg/RM, so decode them
+            // $iModeSize > 0 indicates that opcode uses Mod/Reg/RM, so decode them
             if ($iModeSize) {
-            //    $iMod = $iData0->getLow() >> 6;     // 11xxxxxx
-            //    $iReg = $iData0->getLow() >> 3 & 7; // xx111xxx
-            //    $iRm = $iData0->getLow() & 7;       // xxxxx111
-            //
-            //    if (!$iMod && 6 === $iRm || 2 === $iMod) { // 6 = 110 || 2 = 10
-            //        $data = $this->ram->read($offset + 1 + 2 + 2 + 2, self::SIZE_BYTE);
-            //        $iData2 = new Address($data);
-            //    } elseif (1 !== $iMod) {
-            //        $iData2 = $iData1;
-            //    } else {
-            //        $data = $iData1->getLow();
-            //        $iData1 = new Address($data);
-            //    }
-            //
-                throw new NotImplementedException('DECODE_RM_REG');
+                $iMod = $data[0] >> 6;     // 11xxxxxx
+                $iReg = $data[0] >> 3 & 7; // xx111xxx
+                $iRm = $data[0] & 7;       // xxxxx111
+
+                if (!$iMod && 6 === $iRm || 2 === $iMod) { // 6 = 110 || 2 = 10
+                    throw new NotImplementedException();
+                    //$dataTmp = $this->ram->read($offset + 4, 1);
+                    //$data[2] = $dataTmp[0];
+                } elseif (1 !== $iMod) {
+                    //throw new NotImplementedException();
+                    //$data[2] = $data[1];
+                } else {
+                    throw new NotImplementedException(sprintf('iModeSize ELSE: %d', $data[1]));
+                    // i_data1 = (char)i_data1;
+                }
+
+                //throw new NotImplementedException('DECODE_RM_REG');
+                //$scratch2=4*!$iMod;
+
+                //switch ($iMod) {
+                //    case 3:
+                //
+                //        $to = $iReg;
+                //        break;
+                //
+                //    default:
+                //        throw new NotImplementedException(sprintf('iMod %d', $iMod));
+                //}
             }
 
             switch ($xlatId) {
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
                     $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
 
+                    // R_M_OP
                     $register = $this->getRegisterByNumber($iw, $iReg4bit);
 
                     if ($iw) {
@@ -395,6 +424,31 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
 
                     $this->output->writeln(sprintf('MOV reg, imm (iw=%d, iReg4bit=%d, reg=%s)', $iw, $iReg4bit, $register));
+                    break;
+
+                case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: c8
+                    if (!$iw) {
+                        // MOV
+                        $this->output->writeln(sprintf('MOV sreg, r/m'));
+
+                        $toRegister = $this->getSegmentRegisterByNumber($iReg);
+                        $this->output->writeln(sprintf(' -> TO   %s', $toRegister));
+
+                        if (3 === $iMod) {
+                            // if mod = 11 then r/m is treated as a REG field
+                            $fromRegister = $this->getRegisterByNumber(true, $iRm);
+                            $this->output->writeln(sprintf(' -> FROM %s', $fromRegister));
+                        } else {
+                            throw new NotImplementedException('else');
+                        }
+                    } elseif (!$id) {
+                        // LEA
+                        $segOverrideEn = 1;
+                        $segOverride = 'ZERO';
+                    } else {
+                        // POP
+                        throw new NotImplementedException('POP');
+                    }
                     break;
 
                 case 14: // JMP | CALL short/near - OpCodes: e8 e9 ea eb
@@ -496,7 +550,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private function getRegisterByNumber(bool $isWord, int $regId, int $loop = 0): Register
     {
         if ($isWord) {
-            return $this->registers[$regId];
+            $register = $this->registers[$regId];
+            return $register;
         }
         if ($loop >= 2) {
             throw new \RuntimeException('Unhandled recursive call detected.');
@@ -505,5 +560,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $effectiveRegId = $regId & 3; // x11
         $register = $this->getRegisterByNumber(false, $effectiveRegId, 1 + $loop);
         return $register;
+    }
+
+    private function getSegmentRegisterByNumber(int $regId):Register
+    {
+        $register=$this->segmentRegisters[$regId];
+        return $register;
+    }
+
+    private function getEffectiveAddress()
+    {
+
     }
 }
