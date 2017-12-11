@@ -429,6 +429,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->output->writeln(sprintf('MOV reg, imm (iw=%d, iReg4bit=%d, reg=%s)', $iw, $iReg4bit, $register));
                     break;
 
+                case 3: // PUSH reg - OpCodes: 98
+                    $register = $this->getRegisterByNumber(true, $iReg4bit);
+                    $this->output->writeln(sprintf('PUSH %s', $register));
+                    $this->pushToStack($register, self::SIZE_BYTE);
+                    break;
+
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: c8
                     if (!$iw) {
                         // MOV
@@ -480,9 +486,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         throw new NotImplementedException('NOT ID AND NOT IW');
                     }
 
-                    $this->output->writeln(sprintf('IP old: %04x', $this->ip->toInt()));
+                    //$this->output->writeln(sprintf('IP old: %04x', $this->ip->toInt()));
                     $this->ip->add($add);
-                    $this->output->writeln(sprintf('IP new: %04x', $this->ip->toInt()));
+                    //$this->output->writeln(sprintf('IP new: %04x', $this->ip->toInt()));
                     break;
 
                 case 25: // PUSH reg - OpCodes: c4 c5
@@ -614,7 +620,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
 
             $data = $register->getData();
-            if ($data instanceof AddressInterface) {
+            if ($data instanceof AddressInterface || is_array($data)) {
                 $this->pushToStack($data, $size);
             } else {
                 throw new NotImplementedException('ELSE push data B');
