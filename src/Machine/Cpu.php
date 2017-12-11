@@ -346,7 +346,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             // Decode
             $xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
-            //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
+            $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
             $iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
             $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
             if ($setFlagsType) {
@@ -506,6 +506,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $register->setData($stackData);
                     break;
 
+                case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: 50 51 52 53 54 55 56 57
+                    $val = $extra & 1;
+                    $flagId = ($extra >> 1) & 7; // xxxx111x
+                    $this->output->writeln(sprintf('CLx %02x (=%d) ID=%d v=%d', $extra, $extra, $flagId, $val));
+                    $this->flags->set($flagId, (bool)$val);
+                    break;
+
                 default:
                     throw new NotImplementedException(sprintf('xLatID %02x (=%d dec)', $xlatId, $xlatId));
             } // switch $xlatId
@@ -543,7 +550,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             if ($trapFlag) {
                 $this->interrupt(1);
             }
-            $trapFlag = $this->flags->get('TF');
+            $trapFlag = $this->flags->get(5);
 
             // @todo interrupt 8
 
