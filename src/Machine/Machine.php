@@ -73,7 +73,7 @@ class Machine implements MachineInterface, OutputAwareInterface
         }
 
         // Load BIOS into RAM.
-        $biosPos = 0xF000 * 16 + 0x0100;// @todo
+        $biosPos = (0xF000 << 4) + 0x0100; // @todo
         $biosLen = 0xFF00;
         $this->ram->loadFromFile($this->biosFilePath, $biosPos, $biosLen);
 

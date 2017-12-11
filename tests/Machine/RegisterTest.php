@@ -49,6 +49,13 @@ class RegisterTest extends TestCase
         $this->assertEquals(0x030203, $register->toInt());
     }
 
+    public function testSub()
+    {
+        $register = new Register(null, [1, 2, 3]);
+        $register->add(-2);
+        $this->assertEquals(0x0301FF, $register->toInt());
+    }
+
     public function testToAddress()
     {
         $register = new Register(null, new Address(0));

@@ -19,7 +19,6 @@ class Address implements AddressInterface
     private $data;
 
     /**
-     * Address constructor.
      * @param null|string|string[]|int[] $data
      */
     public function __construct($data = null)
@@ -74,5 +73,13 @@ class Address implements AddressInterface
     public function getLow(): int
     {
         return $this->data[0];
+    }
+
+    /**
+     * @return array
+     */
+    public function getData(): array
+    {
+        return $this->data;
     }
 }

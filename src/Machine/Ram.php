@@ -49,6 +49,11 @@ class Ram implements RamInterface
         $this->writePointer = $pos;
     }
 
+    public function writeRaw(int $char, int $pos)
+    {
+        $this->data[$pos] = $char;
+    }
+
     public function writeStr(string $str, int $offset = null)
     {
         $data = str_split($str);

@@ -11,8 +11,8 @@ namespace TheFox\I8086emu\Machine;
 
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
-use TheFox\I8086emu\Blueprint\FlagsInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Blueprint\RegisterInterface;
@@ -164,8 +164,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         // Segment
         $this->ds = new Register('DS'); // Data Segment
-        $this->ss = new Register('SS'); // Stack Segment
         $this->es = new Register('ES'); // Extra Segment
+        $this->ss = new Register('SS'); // Stack Segment
 
         // Set CS:IP to F000:0100
         $this->cs = new Register('CS', new Address(0xF000)); // Code Segment
@@ -348,7 +348,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
             //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
             $iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
-            //$setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
+            $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
+            if ($setFlagsType) {
+                throw new NotImplementedException(sprintf('FLAGS TYPE: %d', $setFlagsType));
+            }
 
             // 0-7 number of the 8-bit Registers.
             $iReg4bit = $opcodeRaw & 7; // xxxx111
@@ -438,13 +441,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             // if mod = 11 then r/m is treated as a REG field
                             $fromRegister = $this->getRegisterByNumber(true, $iRm);
                             $this->output->writeln(sprintf(' -> FROM %s', $fromRegister));
+
+                            $toRegister->setData($fromRegister);
                         } else {
-                            throw new NotImplementedException('else');
+                            throw new NotImplementedException(sprintf('else %d', $iMod));
                         }
                     } elseif (!$id) {
                         // LEA
-                        $segOverrideEn = 1;
-                        $segOverride = 'ZERO';
+                        //$segOverrideEn = 1;
+                        //$segOverride = 'ZERO';
+                        throw new NotImplementedException('LEA');
                     } else {
                         // POP
                         throw new NotImplementedException('POP');
@@ -477,7 +483,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->output->writeln(sprintf('IP old: %04x', $this->ip->toInt()));
                     $this->ip->add($add);
                     $this->output->writeln(sprintf('IP new: %04x', $this->ip->toInt()));
+                    break;
 
+                case 25: // PUSH reg - OpCodes: c4 c5
+                    $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
+                    $register = $this->getSegmentRegisterByNumber($iReg);
+                    $this->output->writeln(sprintf('PUSH %s', $register));
+                    $this->pushToStack($register, self::SIZE_BYTE);
+                    break;
+
+                case 26: // POP reg - OpCodes: c6 c7
+                    $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
+                    $register = $this->getSegmentRegisterByNumber($iReg);
+                    $this->output->writeln(sprintf('POP %s', $register));
+                    $stackData = $this->popFromStack(self::SIZE_BYTE);
+                    $register->setData($stackData);
                     break;
 
                 default:
@@ -562,14 +582,67 @@ class Cpu implements CpuInterface, OutputAwareInterface
         return $register;
     }
 
-    private function getSegmentRegisterByNumber(int $regId):Register
+    private function getSegmentRegisterByNumber(int $regId): Register
     {
-        $register=$this->segmentRegisters[$regId];
+        $register = $this->segmentRegisters[$regId];
         return $register;
     }
 
-    private function getEffectiveAddress()
+    /**
+     * EA
+     *
+     * @return int
+     */
+    private function getEffectiveAddress(): int
     {
+        $ea = ($this->ss->toInt() << 4) + $this->sp->toInt();
+        return $ea;
+    }
 
+    /**
+     * @param Register|Address|int[] $data
+     * @param int $size
+     */
+    private function pushToStack($data, int $size)
+    {
+        if ($data instanceof RegisterInterface) {
+            /** @var Register $register */
+            $register = $data;
+
+            if ($size !== $register->getSize()) {
+                throw new \RangeException(sprintf('Wrong size. Register is %d bytes, data is %d bytes.', $register->getSize(), $size));
+            }
+
+            $data = $register->getData();
+            if ($data instanceof AddressInterface) {
+                $this->pushToStack($data, $size);
+            } else {
+                throw new NotImplementedException('ELSE push data B');
+            }
+        } elseif ($data instanceof AddressInterface) {
+            /** @var Address $address */
+            $address = $data;
+            $this->pushToStack($address->getData(), $size);
+        } elseif (is_array($data)) {
+            $ea = $this->getEffectiveAddress();
+            for ($i = 0; $i < $size; ++$i) {
+                $c = array_pop($data);
+                --$ea;
+                $this->ram->writeRaw($c, $ea);
+            }
+            $this->sp->add(-$size);
+        } else {
+            throw new NotImplementedException('ELSE push data A');
+        }
+    }
+
+    private function popFromStack(int $size): array
+    {
+        $ea = $this->getEffectiveAddress();
+        $data = $this->ram->read($ea, $size);
+
+        $this->sp->add($size);
+
+        return $data;
     }
 }

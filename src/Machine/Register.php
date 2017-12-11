@@ -8,6 +8,8 @@ namespace TheFox\I8086emu\Machine;
 
 use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\RegisterInterface;
+use TheFox\I8086emu\Exception\RegisterNegativeValueException;
+use TheFox\I8086emu\Exception\RegisterValueExceedException;
 
 class Register implements RegisterInterface, AddressInterface
 {
@@ -18,6 +20,7 @@ class Register implements RegisterInterface, AddressInterface
 
     /**
      * Data as Integer.
+     * Also see $maxValue.
      *
      * @var int
      */
@@ -35,24 +38,50 @@ class Register implements RegisterInterface, AddressInterface
      */
     private $size;
 
+    /**
+     * Base on the size this holds the maximum Integer value.
+     *
+     * @var int
+     */
+    private $maxValue;
+
+    /**
+     * Register constructor.
+     * @param null $name
+     * @param int[] $data
+     * @param int $size
+     */
     public function __construct($name = null, $data = [0, 0], int $size = 2)
     {
         $this->name = $name;
         $this->setData($data);
         $this->size = $size;
+        $this->calcMaxVal();
     }
 
-    public function __toString()
+    public function __toString(): string
     {
-        $data = [$this->data[1], $this->data[0]];
         if ($this->name) {
-            array_unshift($data, $this->name);
+            $name = $this->name;
         } else {
-            array_unshift($data, 'REG');
+            $name = 'REG';
         }
-        return vsprintf('%s[%02x%02x]', $data);
+
+        if ($this->data instanceof AddressInterface) {
+            $data = $this->data->getData();
+            $data = [$name, $data[1], $data[0]];
+            return vsprintf('%s[ADDR[%02x%02x]]', $data);
+        } elseif (is_array($this->data)) {
+            $data = [$name, $this->data[1], $this->data[0]];
+            return vsprintf('%s[%02x%02x]', $data);
+        } else {
+            throw new \RuntimeException('Unknown data type.');
+        }
     }
 
+    /**
+     * @param string[]|int[]|Register $data
+     */
     public function setData($data)
     {
         // Reset Integer value;
@@ -73,9 +102,20 @@ class Register implements RegisterInterface, AddressInterface
             $data = str_split($data);
             $data = array_map('ord', $data);
             $this->data = $data;
+        } elseif ($data instanceof RegisterInterface) {
+            /** @var Register $data */
+            $this->data = $data->getData();
         } else {
             $this->data = $data;
         }
+    }
+
+    /**
+     * @return int[]|null|Address
+     */
+    public function getData()
+    {
+        return $this->data;
     }
 
     /**
@@ -103,9 +143,13 @@ class Register implements RegisterInterface, AddressInterface
                 }
 
                 $this->i = $i;
+            } elseif (null === $this->data) {
+                $this->i = 0;
             } else {
                 throw new \RuntimeException('Unknown data type.');
             }
+
+            $this->checkInt();
         }
 
         return $this->i;
@@ -121,9 +165,11 @@ class Register implements RegisterInterface, AddressInterface
         return $address;
     }
 
-    public function add(int $i)
+    public function add(int $i): int
     {
         $i += $this->toInt();
+        $this->i = $i;
+        $this->checkInt();
 
         $data = [];
 
@@ -135,7 +181,30 @@ class Register implements RegisterInterface, AddressInterface
             $pos += 1;
         }
 
-        $this->i = null;
         $this->data = $data;
+
+        return $this->i;
+    }
+
+    private function checkInt()
+    {
+        if ($this->i < 0) {
+            throw new RegisterNegativeValueException('Register cannot have a negative value.');
+        }
+
+        if ($this->i > $this->maxValue) {
+            throw new RegisterValueExceedException(sprintf('Wanted to assign %d to Register. Maximum %d is allowed.', $this->i, $this->maxValue));
+        }
+    }
+
+    private function calcMaxVal()
+    {
+        // Calculate effective size.
+        $this->maxValue = 0;
+        $bits = 0;
+        for ($i = $this->getSize(); $i > 0; --$i) {
+            $this->maxValue += 0xFF << $bits;
+            $bits += 8;
+        }
     }
 }
