@@ -38,20 +38,20 @@ class RegisterTest extends TestCase
      */
     public function testToInt($data, int $expected)
     {
-        $register = new Register(null, $data);
+        $register = new Register(null, $data, 3);
         $this->assertEquals($expected, $register->toInt());
     }
 
     public function testAdd()
     {
-        $register = new Register(null, [1, 2, 3]);
+        $register = new Register(null, [1, 2, 3], 3);
         $register->add(2);
         $this->assertEquals(0x030203, $register->toInt());
     }
 
     public function testSub()
     {
-        $register = new Register(null, [1, 2, 3]);
+        $register = new Register(null, [1, 2, 3], 3);
         $register->add(-2);
         $this->assertEquals(0x0301FF, $register->toInt());
     }

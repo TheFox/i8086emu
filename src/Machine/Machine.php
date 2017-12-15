@@ -69,7 +69,7 @@ class Machine implements MachineInterface, OutputAwareInterface
             throw new NoBiosException();
         }
         if ($this->hardDiskFilePath) {
-            throw  new \RuntimeException('HDD file not implemented');
+            throw new \RuntimeException('HDD file not implemented');
         }
 
         // Load BIOS into RAM.

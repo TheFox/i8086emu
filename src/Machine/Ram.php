@@ -23,7 +23,7 @@ class Ram implements RamInterface
     private $writePointer;
 
     /**
-     * @var array
+     * @var \SplFixedArray
      */
     private $data;
 
@@ -31,10 +31,16 @@ class Ram implements RamInterface
     {
         $this->size = $size;
         $this->writePointer = 0;
-        $this->data = array_fill(0, $this->size, 0);
+        //$this->data = array_fill(0, $this->size, 0);
+        //$this->data = \SplFixedArray::fromArray(array_fill(0, $this->size, 0));
+        $this->data = new \SplFixedArray($this->size);
     }
 
-    public function write(array $data, int $offset = null)
+    /**
+     * @param int[]|\SplFixedArray $data
+     * @param int|null $offset
+     */
+    public function write($data, int $offset = null)
     {
         if (null === $offset) {
             $offset = $this->writePointer;
@@ -73,16 +79,22 @@ class Ram implements RamInterface
      * @param int $length
      * @return int[]
      */
-    public function read(int $offset, int $length): array
+    public function read(int $offset, int $length): \SplFixedArray
     {
-        if ($offset < 0) {
-            throw new \RangeException(sprintf('Want to access %04x but minimum address is at 0', $offset));
-        }
-        if ($length <= 0) {
-            throw new \RangeException('Length cannot be negative.');
-        }
+        //if ($offset < 0) {
+        //    throw new \RangeException(sprintf('Want to access %04x but minimum address is at 0', $offset));
+        //}
+        //if ($length <= 0) {
+        //    throw new \RangeException('Length cannot be negative.');
+        //}
 
-        $data = array_slice($this->data, $offset, $length);
+        //$data = array_slice($this->data, $offset, $length);
+
+        $data = new \SplFixedArray($length);
+        $maxPos = $offset + $length;
+        for ($pos = $offset, $i = 0; $pos < $maxPos; ++$pos, ++$i) {
+            $data[$i] = $this->data[$pos];
+        }
 
         return $data;
     }

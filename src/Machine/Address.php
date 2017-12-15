@@ -14,19 +14,20 @@ class Address implements AddressInterface
     private $i;
 
     /**
-     * @var array
+     * @var \SplFixedArray
      */
     private $data;
 
     /**
-     * @param null|string|string[]|int[] $data
+     * @param null|string|string[]|int[]|\ArrayAccess $data
      */
     public function __construct($data = null)
     {
         $this->i = null;
-        $this->data = [0, 0];
+        //$this->data = \SplFixedArray::fromArray([0,0]);
+        $this->data = new \SplFixedArray(2);
 
-        if (is_array($data)) {
+        if (is_iterable($data)) {
             $pos = 0;
             foreach ($data as $c) {
                 if (is_string($c)) {
@@ -40,7 +41,7 @@ class Address implements AddressInterface
         } elseif (is_string($data)) {
             $data = str_split($data);
             $data = array_map('ord', $data);
-            $this->data = $data;
+            $this->data = \SplFixedArray::fromArray($data);
         } elseif (is_numeric($data)) {
             $pos = 0;
             while ($data && $pos < 16) {
@@ -76,9 +77,9 @@ class Address implements AddressInterface
     }
 
     /**
-     * @return array
+     * @return \SplFixedArray
      */
-    public function getData(): array
+    public function getData(): \SplFixedArray
     {
         return $this->data;
     }

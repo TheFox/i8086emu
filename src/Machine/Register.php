@@ -27,7 +27,7 @@ class Register implements RegisterInterface, AddressInterface
     private $i;
 
     /**
-     * @var null|int[]|Address
+     * @var null|int[]
      */
     private $data;
 
@@ -51,11 +51,12 @@ class Register implements RegisterInterface, AddressInterface
      * @param int[] $data
      * @param int $size
      */
-    public function __construct($name = null, $data = [0, 0], int $size = 2)
+    public function __construct($name = null, $data = null, int $size = 2)
     {
         $this->name = $name;
-        $this->setData($data);
         $this->size = $size;
+
+        $this->setData($data);
         $this->calcMaxVal();
     }
 
@@ -67,27 +68,27 @@ class Register implements RegisterInterface, AddressInterface
             $name = 'REG';
         }
 
-        if ($this->data instanceof AddressInterface) {
-            $data = $this->data->getData();
-            $data = [$name, $data[1], $data[0]];
-            return vsprintf('%s[ADDR[%02x%02x]]', $data);
-        } elseif (is_array($this->data)) {
+        if (is_iterable($this->data)) {
             $data = [$name, $this->data[1], $this->data[0]];
             return vsprintf('%s[%02x%02x]', $data);
+        } elseif (null === $this->data) {
+            return sprintf('%s[NULL]', $name);
         } else {
             throw new \RuntimeException('Unknown data type.');
         }
     }
 
     /**
-     * @param string[]|int[]|Register $data
+     * @param string[]|int[]|Register|Address|\SplFixedArray $data
      */
     public function setData($data)
     {
         // Reset Integer value;
         $this->i = null;
 
-        if (is_array($data)) {
+        $this->data = new \SplFixedArray($this->getSize());
+
+        if (is_iterable($data)) {
             $pos = 0;
             foreach ($data as $c) {
                 if (is_string($c)) {
@@ -101,17 +102,16 @@ class Register implements RegisterInterface, AddressInterface
         } elseif (is_string($data)) {
             $data = str_split($data);
             $data = array_map('ord', $data);
-            $this->data = $data;
-        } elseif ($data instanceof RegisterInterface) {
-            /** @var Register $data */
-            $this->data = $data->getData();
+            $this->data = \SplFixedArray::fromArray($data);
+        } elseif ($data instanceof RegisterInterface || $data instanceof AddressInterface) {
+            $this->setData($data->getData());
         } else {
             $this->data = $data;
         }
     }
 
     /**
-     * @return int[]|null|Address
+     * @return int[]|null|\ArrayAccess
      */
     public function getData()
     {
@@ -132,9 +132,7 @@ class Register implements RegisterInterface, AddressInterface
     public function toInt(): int
     {
         if (null === $this->i) {
-            if ($this->data instanceof AddressInterface) {
-                $this->i = $this->data->toInt();
-            } elseif (is_array($this->data)) {
+            if (is_iterable($this->data)) {
                 $i = 0;
                 $pos = 0;
                 foreach ($this->data as $n) {
@@ -157,10 +155,6 @@ class Register implements RegisterInterface, AddressInterface
 
     public function toAddress(): Address
     {
-        if ($this->data instanceof AddressInterface) {
-            return $this->data;
-        }
-
         $address = new Address($this->toInt());
         return $address;
     }
@@ -171,10 +165,10 @@ class Register implements RegisterInterface, AddressInterface
         $this->i = $i;
         $this->checkInt();
 
-        $data = [];
+        $data = new \SplFixedArray($this->getSize());
 
         $pos = 0;
-        while ($i > 0 && $pos < 16) {
+        while ($i > 0 && $pos < 2) {
             $data[$pos] = $i & 0xFF;
             $i = $i >> 8;
 
