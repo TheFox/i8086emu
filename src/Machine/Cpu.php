@@ -332,16 +332,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         $cycle = 0;
         while ($opcodeRaw = $this->getOpcode()) {
-            $this->output->writeln(sprintf(
-                '[%s] run %d @%04x:%04x -> %02x [%08b]',
-                'CPU',
-                $cycle,
-                $this->cs->toInt(),
-                $this->ip->toInt(),
-                $opcodeRaw,
-                $opcodeRaw
-            ));
-
             // Decode
             $xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
             $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
@@ -360,11 +350,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
             // Instruction Direction
             $id = (bool)($iReg4bit & 2); // xxxxx1x
 
-            $this->output->writeln(sprintf('reg 4bit: %x %03b', $iReg4bit, $iReg4bit));
+            //$this->output->writeln(sprintf('reg 4bit: %x %03b', $iReg4bit, $iReg4bit));
 
             $offset = $this->getInstructionOffset();
 
             $data = $this->ram->read($offset + 1, 3);
+
+            $this->output->writeln(sprintf(
+                '[%s] run %d @%04x:%04x -> OP 0x%02x [%08b] XLAT 0x%02x [%08b]',
+                'CPU',
+                $cycle,
+                $this->cs->toInt(),
+                $this->ip->toInt(),
+                $opcodeRaw, $opcodeRaw,
+                $xlatId, $xlatId
+            ));
 
             if ($segOverrideEn) {
                 --$segOverrideEn;
@@ -433,6 +433,37 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->pushToStack($register, self::SIZE_BYTE);
                     break;
 
+                case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 9f
+                    if (3 === $iMod) {
+                        $register = $this->getRegisterByNumber($iw, $iRm);
+                    } else {
+                        // @todo EA from r/m needs to be calculated here.
+                        throw new NotImplementedException(sprintf('EA from r/m %d', $iMod));
+                    }
+
+                    if ($id) {
+                        $fromRegister = $register;
+                        $toRegister = $this->getRegisterByNumber($iw, $iReg);
+                    } else {
+                        $fromRegister = $this->getRegisterByNumber($iw, $iReg);
+                        $toRegister = $register;
+                    }
+
+                    switch ($extra) {
+                        case 0: // ADD
+                            throw new NotImplementedException(sprintf('ADD'));
+                            break;
+
+                        case 6: // XOR
+                            $v=$fromRegister->toInt()^$toRegister->toInt();
+                            $toRegister->setData($v);
+                            break;
+
+                        default:
+                            throw new NotImplementedException(sprintf('else %d', $extra));
+                    }
+                    break;
+
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: c8
                     if (!$iw) {
                         // MOV
@@ -448,7 +479,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                             $toRegister->setData($fromRegister);
                         } else {
-                            throw new NotImplementedException(sprintf('else %d', $iMod));
+                            // @todo EA from r/m needs to be calculated here.
+                            throw new NotImplementedException(sprintf('EA from r/m %d', $iMod));
                         }
                     } elseif (!$id) {
                         // LEA
@@ -512,7 +544,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 default:
-                    throw new NotImplementedException(sprintf('xLatID %02x (=%d [%08b])', $xlatId, $xlatId, $xlatId));
+                    throw new NotImplementedException(sprintf('xLatID 0x%02x (=%d [%08b]) OP 0x%02x (=%d [%08b])', $xlatId, $xlatId, $xlatId, $opcodeRaw, $opcodeRaw, $opcodeRaw));
             } // switch $xlatId
 
             // Increment instruction pointer by computed instruction length.
