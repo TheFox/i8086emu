@@ -455,7 +455,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 6: // XOR
-                            $v=$fromRegister->toInt()^$toRegister->toInt();
+                            $v = $fromRegister->toInt() ^ $toRegister->toInt();
                             $toRegister->setData($v);
                             break;
 

@@ -79,7 +79,7 @@ class Register implements RegisterInterface, AddressInterface
     }
 
     /**
-     * @param string[]|int[]|Register|Address|\SplFixedArray $data
+     * @param int|string[]|int[]|Register|Address|\SplFixedArray $data
      */
     public function setData($data)
     {
@@ -103,6 +103,13 @@ class Register implements RegisterInterface, AddressInterface
             $data = str_split($data);
             $data = array_map('ord', $data);
             $this->data = \SplFixedArray::fromArray($data);
+        } elseif (is_numeric($data)) {
+            $pos = 0;
+            while ($data && $pos < 2) {
+                $this->data[$pos] = $data & 0xFF;
+                $data>>=8;
+                $pos++;
+            }
         } elseif ($data instanceof RegisterInterface || $data instanceof AddressInterface) {
             $this->setData($data->getData());
         } else {
@@ -170,7 +177,7 @@ class Register implements RegisterInterface, AddressInterface
         $pos = 0;
         while ($i > 0 && $pos < 2) {
             $data[$pos] = $i & 0xFF;
-            $i = $i >> 8;
+            $i >>= 8;
 
             $pos += 1;
         }
