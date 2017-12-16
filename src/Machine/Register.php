@@ -14,6 +14,16 @@ use TheFox\I8086emu\Exception\RegisterValueExceedException;
 class Register implements RegisterInterface, AddressInterface
 {
     /**
+     * @var null|Register
+     */
+    private $parent;
+
+    /**
+     * @var bool
+     */
+    private $isParentHigh;
+
+    /**
      * @var string
      */
     private $name;
@@ -79,6 +89,30 @@ class Register implements RegisterInterface, AddressInterface
     }
 
     /**
+     * @param null|Register $parent
+     */
+    public function setParent(Register $parent = null)
+    {
+        $this->parent = $parent;
+    }
+
+    /**
+     * @param bool $isParentHigh
+     */
+    public function setIsParentHigh(bool $isParentHigh)
+    {
+        $this->isParentHigh = $isParentHigh;
+    }
+
+    /**
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
      * @param int|string[]|int[]|Register|Address|\SplFixedArray $data
      */
     public function setData($data)
@@ -86,34 +120,36 @@ class Register implements RegisterInterface, AddressInterface
         // Reset Integer value;
         $this->i = null;
 
-        $this->data = new \SplFixedArray($this->getSize());
-
-        if (is_iterable($data)) {
-            $pos = 0;
-            foreach ($data as $c) {
-                if (is_string($c)) {
-                    $this->data[$pos] = ord($c);
-                } else {
-                    $this->data[$pos] = $c;
-                }
-
-                $pos++;
+        if (null === $data) {
+            $this->data=null;
+        } elseif (null !== $this->parent) {
+            if ($this->isParentHigh) {
+                $this->parent->setHigh($data);
+            } else {
+                $this->parent->setLow($data);
             }
+        } elseif ($data instanceof \SplFixedArray) {
+            $this->data = clone $data;
+        } elseif (is_array($data)) {
+            $this->data = \SplFixedArray::fromArray($data);
         } elseif (is_string($data)) {
             $data = str_split($data);
             $data = array_map('ord', $data);
-            $this->data = \SplFixedArray::fromArray($data);
+            $this->setData($data);
         } elseif (is_numeric($data)) {
+            $this->data = new \SplFixedArray($this->getSize());
             $pos = 0;
-            while ($data && $pos < 2) {
-                $this->data[$pos] = $data & 0xFF;
-                $data>>=8;
+            $this->i = $data;
+            while ($data && $pos < $this->getSize()) {
+                $n = $data & 0xFF;
+                $this->data[$pos] = $n;
+                $data >>= 8;
                 $pos++;
             }
         } elseif ($data instanceof RegisterInterface || $data instanceof AddressInterface) {
             $this->setData($data->getData());
         } else {
-            $this->data = $data;
+            throw new \RuntimeException('Invalid data type.');
         }
     }
 
@@ -123,6 +159,31 @@ class Register implements RegisterInterface, AddressInterface
     public function getData()
     {
         return $this->data;
+    }
+
+    public function setLow(int $data)
+    {
+        $this->data[0] = $data;
+    }
+
+    public function getLow():?int
+    {
+        return $this->data[0];
+    }
+
+    public function setHigh(int $data)
+    {
+        $this->data[1] = $data;
+    }
+
+    public function getHigh():?int
+    {
+        return $this->data[1];
+    }
+
+    public function getEffectiveHigh()
+    {
+        return $this->getHigh() << 8;
     }
 
     /**
@@ -138,7 +199,17 @@ class Register implements RegisterInterface, AddressInterface
      */
     public function toInt(): int
     {
-        if (null === $this->i) {
+        if (null !== $this->parent) {
+            if (null === $this->i) {
+                if ($this->isParentHigh) {
+                    $this->i = $this->parent->getEffectiveHigh();
+                } else {
+                    $this->i = $this->parent->getLow();
+                }
+
+                $this->checkInt();
+            }
+        } elseif (null === $this->i) {
             if (is_iterable($this->data)) {
                 $i = 0;
                 $pos = 0;
@@ -166,25 +237,10 @@ class Register implements RegisterInterface, AddressInterface
         return $address;
     }
 
-    public function add(int $i): int
+    public function add(int $i)
     {
         $i += $this->toInt();
-        $this->i = $i;
-        $this->checkInt();
-
-        $data = new \SplFixedArray($this->getSize());
-
-        $pos = 0;
-        while ($i > 0 && $pos < 2) {
-            $data[$pos] = $i & 0xFF;
-            $i >>= 8;
-
-            $pos += 1;
-        }
-
-        $this->data = $data;
-
-        return $this->i;
+        $this->setData($i);
     }
 
     private function checkInt()
