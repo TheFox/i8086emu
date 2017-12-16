@@ -6,7 +6,6 @@
 
 namespace TheFox\I8086emu\Machine;
 
-use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Blueprint\RegisterInterface;
 
@@ -18,12 +17,6 @@ class Ram implements RamInterface
     private $size;
 
     /**
-     * @deprecated
-     * @var int
-     */
-    private $writePointer;
-
-    /**
      * @var \SplFixedArray
      */
     private $data;
@@ -31,20 +24,15 @@ class Ram implements RamInterface
     public function __construct(int $size = 0x10000)
     {
         $this->size = $size;
-        $this->writePointer = 0;
         $this->data = new \SplFixedArray($this->size);
     }
 
     /**
-     * @param null|int[]|\SplFixedArray $data
-     * @param int|null $offset
+     * @param int[]|\SplFixedArray $data
+     * @param int $offset
      */
-    public function write($data, int $offset = null)
+    public function write($data, int $offset)
     {
-        if (null === $offset) {
-            $offset = $this->writePointer;
-        }
-
         if (!is_iterable($data)) {
             throw new \RuntimeException('Not iterable.');
         }
@@ -54,8 +42,6 @@ class Ram implements RamInterface
             $this->data[$pos] = $c;
             $pos++;
         }
-
-        $this->writePointer = $pos;
     }
 
     public function writeRaw(int $char, int $pos)
@@ -63,7 +49,7 @@ class Ram implements RamInterface
         $this->data[$pos] = $char;
     }
 
-    public function writeStr(string $str, int $offset = null)
+    public function writeStr(string $str, int $offset)
     {
         $data = str_split($str);
         $data = array_map('ord', $data);
