@@ -315,10 +315,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
         $trapFlag = false;
-        $segOverride = '';
-        $segOverrideEn = 0;
-        $regOverride = '';
-        $regOverrideEn = 0;
+        //$segOverride = '';
+        $segOverrideEn = 0; // Segment Override
+        //$regOverride = '';
+        $repOverrideEn = 0;
         //$scratch=0;
         //$scratch2=0;
 
@@ -361,7 +361,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             if ($segOverrideEn) {
                 --$segOverrideEn;
             }
-            if ($regOverrideEn) {
+            if ($repOverrideEn) {
                 --$segOverrideEn;
             }
 
@@ -514,6 +514,45 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugCsIpRegister();
                     break;
 
+                case 17: // MOVSx|STOSx|LODSx - OpCodes: d6
+                    if ($segOverrideEn) {
+                        throw new NotImplementedException('SEG REG Override');
+                    }
+                    if ($repOverrideEn) {
+                        throw new NotImplementedException('REP Override');
+                    }
+                    switch ($extra) {
+                        case 0: // MOVSx
+                            throw new NotImplementedException('MOVSx');
+                            break;
+
+                        case 1: // STOSx
+                            $this->output->writeln(sprintf('STOSx %d %d %b', $iw, $extra, $extra));
+                            $this->output->writeln(sprintf(' -> REG %s', $this->di));
+
+                            $from = $this->getRegisterByNumber($iw, 0); // AL/AX
+                            $this->output->writeln(sprintf(' -> FROM %s', $from));
+
+                            $ea = $this->getEffectiveEsDiAddress();
+                            $this->output->writeln(sprintf(' -> EA %04x [%016b]', $ea, $ea));
+
+                            $this->ram->writeRegister($from, $ea);
+
+                            $add = (2 * $this->flags->getByName('df') - 1) * ($iw + 1); // direction flag
+                            $this->di->add(-$add);
+                            $this->output->writeln(sprintf(' -> REG %s (%d)', $this->di, $add));
+
+                            break;
+
+                        case 2: // LODSx
+                            throw new NotImplementedException('LODSx');
+                            break;
+                    }
+                    if ($repOverrideEn) {
+                        $this->cx->setData(0);
+                    }
+                    break;
+
                 case 25: // PUSH sreg - OpCodes: c4 c5
                     $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
                     $register = $this->getSegmentRegisterByNumber($iReg);
@@ -651,6 +690,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private function getEffectiveInstructionPointerAddress(): int
     {
         $ea = ($this->cs->toInt() << 4) + $this->ip->toInt();
+        return $ea;
+    }
+
+    private function getEffectiveEsDiAddress(): int
+    {
+        $ea = ($this->es->toInt() << 4) + $this->di->toInt();
         return $ea;
     }
 

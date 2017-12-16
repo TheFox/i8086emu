@@ -15,3 +15,4 @@
 - <https://www-user.tu-chemnitz.de/~heha/viewchm.php/hs/x86.chm/x86.htm>
 - <http://www.c-jump.com/CIS77/CPU/x86/X77_0060_mod_reg_r_m_byte.htm>
 - <https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture>
+- <http://wiki.osdev.org/X86-64_Instruction_Encoding>

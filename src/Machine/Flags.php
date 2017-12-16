@@ -10,6 +10,18 @@ use TheFox\I8086emu\Blueprint\FlagsInterface;
 
 class Flags implements FlagsInterface
 {
+    private const NAMES = [
+        'cf' => 0,
+        'pf' => 1,
+        'af' => 2,
+        'zf' => 3,
+        'sf' => 4,
+        'tf' => 5,
+        'if' => 6,
+        'df' => 7,
+        'of' => 8,
+    ];
+
     /**
      * @var array
      */
@@ -55,5 +67,11 @@ class Flags implements FlagsInterface
     public function get(int $flagId)
     {
         return $this->data[$flagId];
+    }
+
+    public function getByName(string $name)
+    {
+        $name = strtolower($name);
+        return $this->get(self::NAMES[$name]);
     }
 }

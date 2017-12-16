@@ -18,6 +18,7 @@ class Ram implements RamInterface
     private $size;
 
     /**
+     * @deprecated
      * @var int
      */
     private $writePointer;
@@ -31,19 +32,21 @@ class Ram implements RamInterface
     {
         $this->size = $size;
         $this->writePointer = 0;
-        //$this->data = array_fill(0, $this->size, 0);
-        //$this->data = \SplFixedArray::fromArray(array_fill(0, $this->size, 0));
         $this->data = new \SplFixedArray($this->size);
     }
 
     /**
-     * @param int[]|\SplFixedArray $data
+     * @param null|int[]|\SplFixedArray $data
      * @param int|null $offset
      */
     public function write($data, int $offset = null)
     {
         if (null === $offset) {
             $offset = $this->writePointer;
+        }
+
+        if (!is_iterable($data)) {
+            throw new \RuntimeException('Not iterable.');
         }
 
         $pos = $offset;
@@ -68,6 +71,11 @@ class Ram implements RamInterface
         $this->write($data, $offset);
     }
 
+    public function writeRegister(Register $register, int $offset)
+    {
+        $this->write($register->getData(), $offset);
+    }
+
     public function loadFromFile(string $path, int $offset = null, int $length = null)
     {
         $content = file_get_contents($path, false, null, 0, $length);
@@ -77,7 +85,7 @@ class Ram implements RamInterface
     /**
      * @param int $offset
      * @param int $length
-     * @return int[]
+     * @return \SplFixedArray
      */
     public function read(int $offset, int $length): \SplFixedArray
     {
@@ -113,9 +121,9 @@ class Ram implements RamInterface
 
     /**
      * @param RegisterInterface $register
-     * @return array|int[]
+     * @return \SplFixedArray
      */
-    public function readFromRegister(RegisterInterface $register): array
+    public function readFromRegister(RegisterInterface $register): \SplFixedArray
     {
         $offset = $register->toInt();
         $length = $register->getSize();
