@@ -700,6 +700,55 @@ class Cpu implements CpuInterface, OutputAwareInterface
     }
 
     /**
+     * r/m EA
+     * SIB: Scale*Index+Base
+     *
+     * @param int $rm
+     * @param int $disp
+     * @return int
+     */
+    private function getEffectiveRegisterMemoryAddress(int $rm, int $disp): int
+    {
+        switch ($rm) {
+            case 0: // 000 EA = (BX) + (SI) + DISP
+                $ea = $this->bx->toInt() + $this->si->toInt() + $disp;
+                break;
+
+            case 1: // 001 EA = (BX) + (DI) + DISP
+                $ea = $this->bx->toInt() + $this->di->toInt() + $disp;
+                break;
+
+            case 2: // 010 EA = (BP) + (SI) + DISP
+                $ea = $this->bp->toInt() + $this->si->toInt() + $disp;
+                break;
+
+            case 3: // 011 EA = (BP) + (DI) + DISP
+                $ea = $this->bp->toInt() + $this->di->toInt() + $disp;
+                break;
+
+            case 4: // 100 EA = (SI) + DISP
+                $ea = $this->si->toInt() + $disp;
+                break;
+
+            case 5: // 101 EA = (DI) + DISP
+                $ea = $this->di->toInt() + $disp;
+                break;
+
+            case 6: // 110 EA = (BP) + DISP
+                $ea = $this->bp->toInt() + $disp;
+                break;
+
+            case 7: // 111 EA = (BX) + DISP
+                $ea = $this->bx->toInt() + $disp;
+                break;
+
+            default:
+                throw new \RuntimeException(sprintf('getEffectiveRegisterMemoryAddress invalid: %d %b', $rm, $rm));
+        }
+        return $ea;
+    }
+
+    /**
      * @param Register|Address|int[]|\SplFixedArray $data
      * @param int $size
      */
