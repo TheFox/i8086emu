@@ -440,8 +440,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 6: // XOR
-                            $v = $from->toInt() ^ $to->toInt();
-                            $to->setData($v);
+                            $this->output->writeln(sprintf('XOR'));
+                            $this->output->writeln(sprintf(' -> FROM %s', $from));
+                            $this->output->writeln(sprintf(' -> TO   %s', $to));
+                            if ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
+                                $v = $from->toInt() ^ $to->toInt();
+                                $to->setData($v);
+                            } else {
+                                throw new NotImplementedException(sprintf('XOR else'));
+                            }
+
                             break;
 
                         default:
