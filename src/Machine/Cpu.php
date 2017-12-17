@@ -315,12 +315,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
         $trapFlag = false;
-        //$segOverride = '';
+        $segOverride = 0;
         $segOverrideEn = 0; // Segment Override
-        //$regOverride = '';
-        $repOverrideEn = 0;
-        //$scratch=0;
-        //$scratch2=0;
+        $regOverride = 0;
+        $repOverrideEn = 0; // Repeat
 
         $cycle = 0;
         while ($opcodeRaw = $this->getOpcode()) {
@@ -550,8 +548,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 27: // xS: segment overrides - OpCodes: 26 2e 36 3e
-
-                    throw new NotImplementedException(sprintf('27 %d %b', $extra, $extra));
+                    $segOverrideEn = 2;
+                    $segOverride = $extra;
+                    if ($repOverrideEn) {
+                        $repOverrideEn++;
+                    }
+                    $iReg = ($opcodeRaw >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
+                    $this->output->writeln(sprintf('POP %d %02b', $iReg, $iReg));
                     break;
 
                 case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: f8 f9 fa fb fc fd
