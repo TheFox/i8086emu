@@ -292,7 +292,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
         }
 
-        sort($groupped);
+        ksort($groupped);
         foreach ($groupped as $xlatId => $opcodes) {
             $s = array_map(function ($c) {
                 return sprintf('%02x', $c);
@@ -349,12 +349,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $data = $this->ram->read($offset + 1, 3);
 
             $this->output->writeln(sprintf(
-                '[%s] run %d @%04x:%04x -> OP 0x%02x [%08b] XLAT 0x%02x %d [%08b]',
+                '[%s] run %d @%04x:%04x -> OP 0x%02x %d [%08b] XLAT 0x%02x %d [%08b]',
                 'CPU',
                 $cycle,
                 $this->cs->toInt(),
                 $this->ip->toInt(),
-                $opcodeRaw, $opcodeRaw,
+                $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
 
@@ -412,28 +412,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->output->writeln(sprintf('MOV reg, imm (reg=%s)', $register));
                     break;
 
-                case 3: // PUSH reg - OpCodes: 98
+                case 3: // PUSH reg - OpCodes: 50 51 52 53 54 55 56 57
                     $register = $this->getRegisterByNumber(true, $iReg4bit);
                     $this->output->writeln(sprintf('PUSH %s', $register));
                     $this->pushToStack($register, self::SIZE_BYTE);
                     break;
 
-                case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 9f
-                    //if (3 === $iMod) {
-                    //    $register = $this->getRegisterByNumber($iw, $iRm);
-                    //} else {
-                    //    // @todo EA from r/m needs to be calculated here.
-                    //    throw new NotImplementedException(sprintf('EA from r/m %d', $iMod));
-                    //}
-                    //
-                    //if ($id) {
-                    //    $fromRegister = $register;
-                    //    $toRegister = $this->getRegisterByNumber($iw, $iReg);
-                    //} else {
-                    //    $fromRegister = $this->getRegisterByNumber($iw, $iReg);
-                    //    $toRegister = $register;
-                    //}
-
+                case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
                     switch ($extra) {
                         case 0: // ADD
                             throw new NotImplementedException(sprintf('ADD'));
@@ -457,7 +442,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
                     break;
 
-                case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: c8
+                case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: 8c 8d 8e 8f
                     if (!$iw) {
                         // MOV
                         $this->output->writeln(sprintf('MOV sreg, r/m'));
@@ -514,7 +499,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugCsIpRegister();
                     break;
 
-                case 17: // MOVSx|STOSx|LODSx - OpCodes: d6
+                case 17: // MOVSx|STOSx|LODSx - OpCodes: a4 a5 aa ab ac ad
                     if ($segOverrideEn) {
                         throw new NotImplementedException('SEG REG Override');
                     }
@@ -553,14 +538,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
                     break;
 
-                case 25: // PUSH sreg - OpCodes: c4 c5
+                case 25: // PUSH sreg - OpCodes: 06 0e 16 1e
                     $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
                     $register = $this->getSegmentRegisterByNumber($iReg);
                     $this->output->writeln(sprintf('PUSH %s', $register));
                     $this->pushToStack($register, self::SIZE_BYTE);
                     break;
 
-                case 26: // POP sreg - OpCodes: c6 c7
+                case 26: // POP sreg - OpCodes: 07 17 1f
                     $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
                     $register = $this->getSegmentRegisterByNumber($iReg);
                     $this->output->writeln(sprintf('POP %s', $register));
@@ -568,7 +553,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $register->setData($stackData);
                     break;
 
-                case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: 50 51 52 53 54 55 56 57
+                case 27: // xS: segment overrides - OpCodes: 26 2e 36 3e
+
+                    throw new NotImplementedException(sprintf('27 %d %b', $extra, $extra));
+                    break;
+
+                case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: f8 f9 fa fb fc fd
                     $val = $extra & 1;
                     $flagId = ($extra >> 1) & 7; // xxxx111x
                     $this->output->writeln(sprintf('CLx %02x (=%d [%08b]) ID=%d v=%d', $extra, $extra, $extra, $flagId, $val));
@@ -576,7 +566,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 default:
-                    throw new NotImplementedException(sprintf('xLatID 0x%02x (=%d [%08b]) OP 0x%02x (=%d [%08b])', $xlatId, $xlatId, $xlatId, $opcodeRaw, $opcodeRaw, $opcodeRaw));
+                    throw new NotImplementedException(sprintf('OP 0x%02x (=%d [%08b]) xLatID 0x%02x (=%d [%08b])',
+                        $opcodeRaw, $opcodeRaw, $opcodeRaw,
+                        $xlatId, $xlatId, $xlatId
+                    ));
             } // switch $xlatId
 
             // Increment instruction pointer by computed instruction length.
