@@ -37,7 +37,7 @@ class Register implements RegisterInterface, AddressInterface
     private $i;
 
     /**
-     * @var null|int[]
+     * @var \SplFixedArray
      */
     private $data;
 
@@ -72,20 +72,18 @@ class Register implements RegisterInterface, AddressInterface
 
     public function __toString(): string
     {
-        if ($this->name) {
-            $name = $this->name;
+        if ($this->getName()) {
+            $name = $this->getName();
         } else {
             $name = 'REG';
         }
 
-        if (is_iterable($this->data)) {
-            $data = [$name, $this->data[1], $this->data[0]];
-            return vsprintf('%s[%02x%02x]', $data);
-        } elseif (null === $this->data) {
-            return sprintf('%s[NULL]', $name);
-        } else {
-            throw new \RuntimeException('Unknown data type.');
-        }
+        $data = array_reverse($this->data->toArray());
+        array_unshift($data, $name);
+
+        $format = str_repeat('%02x', $this->getSize());
+        $format = sprintf('%%s[%s]', $format);
+        return vsprintf($format, $data);
     }
 
     /**
@@ -107,7 +105,7 @@ class Register implements RegisterInterface, AddressInterface
     /**
      * @return string
      */
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }
@@ -120,9 +118,10 @@ class Register implements RegisterInterface, AddressInterface
         // Reset Integer value;
         $this->i = null;
 
-        if (null === $data) {
-            $this->data=null;
-        } elseif (null !== $this->parent) {
+        if (null !== $this->parent) {
+            if (is_iterable($data)) {
+                $data = $data[0];
+            }
             if ($this->isParentHigh) {
                 $this->parent->setHigh($data);
             } else {
@@ -149,12 +148,12 @@ class Register implements RegisterInterface, AddressInterface
         } elseif ($data instanceof RegisterInterface || $data instanceof AddressInterface) {
             $this->setData($data->getData());
         } else {
-            throw new \RuntimeException('Invalid data type.');
+            $this->data = new \SplFixedArray($this->getSize());
         }
     }
 
     /**
-     * @return int[]|null|\ArrayAccess
+     * @return \SplFixedArray
      */
     public function getData()
     {
@@ -166,7 +165,7 @@ class Register implements RegisterInterface, AddressInterface
         $this->data[0] = $data;
     }
 
-    public function getLow():?int
+    public function getLow(): ?int
     {
         return $this->data[0];
     }
@@ -176,7 +175,7 @@ class Register implements RegisterInterface, AddressInterface
         $this->data[1] = $data;
     }
 
-    public function getHigh():?int
+    public function getHigh(): ?int
     {
         return $this->data[1];
     }
@@ -200,29 +199,18 @@ class Register implements RegisterInterface, AddressInterface
     public function toInt(): int
     {
         if (null !== $this->parent) {
-            if (null === $this->i) {
-                if ($this->isParentHigh) {
-                    $this->i = $this->parent->getEffectiveHigh();
-                } else {
-                    $this->i = $this->parent->getLow();
-                }
-
-                $this->checkInt();
+            if ($this->isParentHigh) {
+                return $this->parent->getEffectiveHigh();
             }
+            return $this->parent->getLow();
         } elseif (null === $this->i) {
             if (is_iterable($this->data)) {
-                $i = 0;
+                $this->i = 0;
                 $pos = 0;
                 foreach ($this->data as $n) {
-                    $i += $n << $pos;
+                    $this->i += $n << $pos;
                     $pos += 8;
                 }
-
-                $this->i = $i;
-            } elseif (null === $this->data) {
-                $this->i = 0;
-            } else {
-                throw new \RuntimeException('Unknown data type.');
             }
 
             $this->checkInt();

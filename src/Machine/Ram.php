@@ -28,15 +28,11 @@ class Ram implements RamInterface
     }
 
     /**
-     * @param int[]|\SplFixedArray $data
+     * @param iterable $data
      * @param int $offset
      */
-    public function write($data, int $offset)
+    public function write(iterable $data, int $offset)
     {
-        if (!is_iterable($data)) {
-            throw new \RuntimeException('Not iterable.');
-        }
-
         $pos = $offset;
         foreach ($data as $c) {
             $this->data[$pos] = $c;
@@ -59,10 +55,11 @@ class Ram implements RamInterface
 
     public function writeRegister(Register $register, int $offset)
     {
-        $this->write($register->getData(), $offset);
+        $data = $register->getData();
+        $this->write($data, $offset);
     }
 
-    public function loadFromFile(string $path, int $offset = null, int $length = null)
+    public function loadFromFile(string $path, int $offset, int $length = null)
     {
         $content = file_get_contents($path, false, null, 0, $length);
         $this->writeStr($content, $offset);
@@ -75,15 +72,6 @@ class Ram implements RamInterface
      */
     public function read(int $offset, int $length): \SplFixedArray
     {
-        //if ($offset < 0) {
-        //    throw new \RangeException(sprintf('Want to access %04x but minimum address is at 0', $offset));
-        //}
-        //if ($length <= 0) {
-        //    throw new \RangeException('Length cannot be negative.');
-        //}
-
-        //$data = array_slice($this->data, $offset, $length);
-
         $data = new \SplFixedArray($length);
         $maxPos = $offset + $length;
         for ($pos = $offset, $i = 0; $pos < $maxPos; ++$pos, ++$i) {
@@ -106,10 +94,10 @@ class Ram implements RamInterface
     }
 
     /**
-     * @param RegisterInterface $register
+     * @param Register $register
      * @return \SplFixedArray
      */
-    public function readFromRegister(RegisterInterface $register): \SplFixedArray
+    public function readFromRegister(Register $register): \SplFixedArray
     {
         $offset = $register->toInt();
         $length = $register->getSize();

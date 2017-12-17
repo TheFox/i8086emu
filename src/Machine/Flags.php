@@ -23,13 +23,13 @@ class Flags implements FlagsInterface
     ];
 
     /**
-     * @var array
+     * @var \SplFixedArray
      */
     private $data;
 
     public function __construct()
     {
-        $this->data = [
+        $this->data = \SplFixedArray::fromArray([
             false, // carry flag
             false, // parity flag
             false, // auxiliary carry flag
@@ -39,37 +39,20 @@ class Flags implements FlagsInterface
             false, // interrupt enable flag
             false, // direction flag
             false, // overflow flag
-        ];
+        ]);
     }
-
-    //public function get(string $flag)
-    //{
-    //    $flag = strtoupper($flag);
-    //
-    //    if (!array_key_exists($flag, $this->data)) {
-    //        throw new \RangeException(sprintf('Flag %s does not exist.', $flag));
-    //    }
-    //
-    //    return $this->data[$flag];
-    //}
-    //
-    //public function set(string $flag, bool $val = true)
-    //{
-    //    $flag = strtoupper($flag);
-    //    $this->data[$flag] = (bool)$val;
-    //}
 
     public function set(int $flagId, bool $val)
     {
         $this->data[$flagId] = $val;
     }
 
-    public function get(int $flagId)
+    public function get(int $flagId): bool
     {
         return $this->data[$flagId];
     }
 
-    public function getByName(string $name)
+    public function getByName(string $name): bool
     {
         $name = strtolower($name);
         return $this->get(self::NAMES[$name]);

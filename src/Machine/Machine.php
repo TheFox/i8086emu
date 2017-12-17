@@ -109,6 +109,7 @@ class Machine implements MachineInterface, OutputAwareInterface
     public function setOutput(OutputInterface $output)
     {
         $this->output = $output;
+
         $this->cpu->setOutput($this->output);
     }
 }

@@ -17,7 +17,7 @@ class AddressTest extends TestCase
             ["\x0a\x0b", 2826],
             ["\x0b\x0c", 3083],
             [["\x0a", "\x0b"], 2826],
-            [[255, 255, 255], 16777215],
+            [[255, 255, 255], 0xFFFF], // Index 2 will be ignored.
             [0xFF0A, 65290],
         ];
         return $data;

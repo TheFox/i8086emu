@@ -19,12 +19,11 @@ class Address implements AddressInterface
     private $data;
 
     /**
-     * @param null|string|string[]|int[]|\ArrayAccess $data
+     * @param null|iterable|string|int $data
      */
     public function __construct($data = null)
     {
         $this->i = null;
-        //$this->data = \SplFixedArray::fromArray([0,0]);
         $this->data = new \SplFixedArray(2);
 
         if (is_iterable($data)) {
@@ -37,6 +36,9 @@ class Address implements AddressInterface
                 }
 
                 $pos++;
+                if ($pos >= 2) {
+                    break;
+                }
             }
         } elseif (is_string($data)) {
             $data = str_split($data);
@@ -59,19 +61,18 @@ class Address implements AddressInterface
     public function toInt(): int
     {
         if (null === $this->i) {
-            $i = 0;
-            $pos = 0;
+            $this->i = 0;
+            $bits = 0;
             foreach ($this->data as $n) {
-                $i += $n << $pos;
-                $pos += 8;
+                $this->i += $n << $bits;
+                $bits += 8;
             }
-            $this->i = $i;
         }
 
         return $this->i;
     }
 
-    public function getLow(): int
+    public function getLow(): ?int
     {
         return $this->data[0];
     }
