@@ -340,7 +340,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             $offset = $this->getEffectiveInstructionPointerAddress();
 
-            $data = $this->ram->read($offset + 1, 3);
+            $data = $this->ram->read($offset + 1, 4);
 
             $this->output->writeln(sprintf(
                 '[%s] run %d @%04x:%04x -> OP 0x%02x %d [%08b] XLAT 0x%02x %d [%08b]',
@@ -362,6 +362,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $iMod = 0;
             $iRm = 0; // Is Register/Memory?
             $iReg = 0;
+            $disp = 0;
             $from = null;
             $to = null;
             $opResult = null; // Needs to be null for development.
@@ -376,12 +377,43 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->output->writeln(sprintf('REG %d %03b', $iReg, $iReg));
                 $this->output->writeln(sprintf('R/M %d %03b', $iRm, $iRm));
 
-                if (3 === $iMod) {
-                    // if mod = 11 then r/m is treated as a REG field
-                    $rm = $this->getRegisterByNumber($iw, $iRm);
-                } else {
-                    $rm = $this->getEffectiveRegisterMemoryAddress($iRm);
+                switch ($iMod) {
+                    case 0:
+                        // if mod == 00 then DISP = 0
+                        $disp = 0;
+                        if (0 === $iMod && 6 === $iRm) {
+                            // except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
+                            // @todo use $data[3];
+                            // @todo set disp
+                        }
+                        break;
+
+                    case 1:
+                        // @todo
+
+                        throw new NotImplementedException(sprintf('imod: %d', $iMod));
+                        break;
+
+                    case 2:
+                        // if mod = 10 then DISP = disp-high; disp-low
+                        //$disp = $data[3];
+                        // @todo use $data[3];
+                        // @todo set disp
+
+                        throw new NotImplementedException(sprintf('imod: %d', $iMod));
+                        break;
+
+                    case 3:
+                        // if mod = 11 then r/m is treated as a REG field
+                        $rm = $this->getRegisterByNumber($iw, $iRm);
+                        break;
                 }
+
+                //if (3 === $iMod) {
+                //} else {
+                //    $rm = 'INVALID';
+                //    //$rm = $this->getEffectiveRegisterMemoryAddress($iRm);
+                //}
 
                 if ($id) {
                     $from = $rm;
@@ -716,6 +748,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
         return $ea;
     }
 
+    /**
+     * EA of ES:DI
+     *
+     * @return int
+     */
     private function getEffectiveEsDiAddress(): int
     {
         $ea = ($this->es->toInt() << 4) + $this->di->toInt();
@@ -758,6 +795,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 break;
 
             case 6: // 110 EA = (BP) + DISP
+                // except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
+                // @todo What needs to be done for the comment above?
+
                 $ea = $this->bp->toInt() + $disp;
                 break;
 
