@@ -11,15 +11,15 @@ use TheFox\I8086emu\Blueprint\FlagsInterface;
 class Flags implements FlagsInterface
 {
     private const NAMES = [
-        'cf' => 0,
-        'pf' => 1,
-        'af' => 2,
-        'zf' => 3,
-        'sf' => 4,
-        'tf' => 5,
-        'if' => 6,
-        'df' => 7,
-        'of' => 8,
+        'CF' => 0,
+        'PF' => 1, // parity flag
+        'AF' => 2,
+        'ZF' => 3, // zero flag
+        'SF' => 4, // sign flag
+        'TF' => 5, // trap flag
+        'IF' => 6,
+        'DF' => 7,
+        'OF' => 8,
     ];
 
     /**
@@ -47,6 +47,11 @@ class Flags implements FlagsInterface
         $this->data[$flagId] = $val;
     }
 
+    public function setByName(string $name, bool $val)
+    {
+        $this->set(self::NAMES[$name], $val);
+    }
+
     public function get(int $flagId): bool
     {
         return $this->data[$flagId];
@@ -54,7 +59,6 @@ class Flags implements FlagsInterface
 
     public function getByName(string $name): bool
     {
-        $name = strtolower($name);
         return $this->get(self::NAMES[$name]);
     }
 }

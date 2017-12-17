@@ -32,11 +32,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
     public const TABLE_BASE_INST_SIZE = 12;
     public const TABLE_I_W_SIZE = 13;
     public const TABLE_I_MOD_SIZE = 14;
-    public const TABLE_COND_JUMP_DECODE_A = 15;
-    public const TABLE_COND_JUMP_DECODE_B = 16;
-    public const TABLE_COND_JUMP_DECODE_C = 17;
-    public const TABLE_COND_JUMP_DECODE_D = 18;
-    public const TABLE_FLAGS_BITFIELDS = 19;
+    //public const TABLE_COND_JUMP_DECODE_A = 15;
+    //public const TABLE_COND_JUMP_DECODE_B = 16;
+    //public const TABLE_COND_JUMP_DECODE_C = 17;
+    //public const TABLE_COND_JUMP_DECODE_D = 18;
+    //public const TABLE_FLAGS_BITFIELDS = 19;
 
     /**
      * Debug
@@ -328,10 +328,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
             $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
             $iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
-            $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
-            //if ($setFlagsType) {
-            //    throw new NotImplementedException(sprintf('FLAGS TYPE: %d [%04b]', $setFlagsType, $setFlagsType));
-            //}
 
             // 0-7 number of the 8-bit Registers.
             $iReg4bit = $opcodeRaw & 7; // xxxx111
@@ -370,6 +366,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $iReg = 0;
             $from = null;
             $to = null;
+            $opResult = null; // Needs to be null for development.
 
             // $iModeSize > 0 indicates that opcode uses Mod/Reg/RM, so decode them
             if ($iModeSize) {
@@ -429,8 +426,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $this->output->writeln(sprintf(' -> FROM %s', $from));
                             $this->output->writeln(sprintf(' -> TO   %s', $to));
                             if ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
-                                $v = $from->toInt() ^ $to->toInt();
-                                $to->setData($v);
+                                $opResult = $from->toInt() ^ $to->toInt();
+                                $to->setData($opResult);
                             } else {
                                 throw new NotImplementedException(sprintf('XOR else'));
                             }
@@ -523,10 +520,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                             $this->ram->writeRegister($from, $ea);
 
-                            $add = (2 * $this->flags->getByName('df') - 1) * ($iw + 1); // direction flag
+                            $add = (2 * $this->flags->getByName('DF') - 1) * ($iw + 1); // direction flag
                             $this->di->add(-$add);
                             $this->output->writeln(sprintf(' -> REG %s (%d)', $this->di, $add));
-
                             break;
 
                         case 2: // LODSx
@@ -589,6 +585,32 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
             $this->debugCsIpRegister();
 
+            // If instruction needs to update SF, ZF and PF, set them as appropriate.
+            $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
+            if ($setFlagsType & 1) {
+                if (null === $opResult) {
+                    throw new NotImplementedException('$opResult has not been set, but maybe it needs to be.');
+                }
+
+                $sign = $opResult < 0;
+
+                // unsigned char. For example, int -42 = unsigned char 214
+                // Since we deal with Integer values < 256 we only need a 0xFF-mask.
+                $ucOpResult = $opResult & 0xFF;
+
+                $this->flags->setByName('SF', $sign);
+                $this->flags->setByName('ZF', !$opResult);
+                $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult]);
+
+                if ($setFlagsType & 2) { // FLAGS_UPDATE_AO_ARITH
+                    throw new NotImplementedException(sprintf('FLAGS TYPE: %d [%04b]', $setFlagsType, $setFlagsType));
+                }
+                if ($setFlagsType & 4) { // FLAGS_UPDATE_OC_LOGIC
+                    $this->flags->setByName('CF', false);
+                    $this->flags->setByName('OF', false);
+                }
+            }
+
             // Update Instruction counter.
             $cycle++;
 
@@ -601,13 +623,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->updateGraphics();
             }
 
-            // If instruction needs to update SF, ZF and PF, set them as appropriate.
-            // @todo
-
             if ($trapFlag) {
                 $this->interrupt(1);
             }
-            $trapFlag = $this->flags->get(5);
+            $trapFlag = $this->flags->getByName('TF');
 
             // @todo interrupt 8
 
