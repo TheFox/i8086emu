@@ -115,6 +115,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $ds;
 
     /**
+     * @var Register
+     */
+    private $zero;
+
+    /**
+     * @var Register
+     */
+    private $scratch;
+
+    /**
      * @var \SplFixedArray
      */
     private $registers;
@@ -170,6 +180,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->cs = new Register('CS', new Address(0xF000)); // Code Segment
         $this->ip = new Register('IP', new Address(0x0100)); // Instruction Pointer
 
+        $this->zero = new Register('ZERO'); // I don't know what's this is.
+        $this->scratch = new Register('SCRATCH'); // I don't know what's this is.
+
         $this->registers = \SplFixedArray::fromArray([
             0 => $this->ax,
             1 => $this->cx,
@@ -180,6 +193,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
             5 => $this->bp,
             6 => $this->si,
             7 => $this->di,
+
+            8 => $this->es,
+            9 => $this->cs,
+            10 => $this->ss,
+            11 => $this->ds,
+
+            12 => $this->zero,
+            13 => $this->scratch,
         ]);
 
         $this->segmentRegisters = \SplFixedArray::fromArray([
@@ -381,11 +402,33 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     case 0:
                         // if mod == 00 then DISP = 0
                         $disp = 0;
-                        if (0 === $iMod && 6 === $iRm) {
+                        if (6 === $iRm) {
                             // except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
                             // @todo use $data[3];
                             // @todo set disp
                         }
+
+                        if ($segOverrideEn) {
+                            $segReg = $segOverride;
+                        } else {
+                            /**
+                             * Table 7: R/M mode 0 "default segment" lookup
+                             * @var int $segReg
+                             */
+                            $segReg = $this->biosDataTables[7][$iRm];
+                        }
+
+                        // Table 4: R/M mode 0 "register 1" lookup
+                        $segOfs = $this->biosDataTables[4][$iRm];
+
+                        $seg = $this->getRegisterByNumber(true, $segReg);
+                        $ofs = $this->getRegisterByNumber(true, $segOfs);
+
+                        $op1=0;//@todo
+
+                        $this->output->writeln(sprintf('SEG %s %d', $seg, $segReg));
+                        $this->output->writeln(sprintf('OFS %s %d', $ofs, $segOfs));
+
                         break;
 
                     case 1:
