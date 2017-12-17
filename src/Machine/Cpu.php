@@ -432,8 +432,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                             break;
 
+                        case 8:
+                            $this->output->writeln(sprintf('MOV'));
+                            $this->output->writeln(sprintf(' -> FROM %s', $from));
+                            $this->output->writeln(sprintf(' -> TO   %s', $to));
+
+                            throw new NotImplementedException(sprintf('MOV %s %s', $to, $from));
+                            break;
+
                         default:
-                            throw new NotImplementedException(sprintf('else %d', $extra));
+                            throw new NotImplementedException(sprintf('else %d %b', $extra, $extra));
                     }
                     break;
 
