@@ -406,34 +406,46 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             // except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
                             // @todo use $data[3];
                             // @todo set disp
+                            //throw new NotImplementedException(sprintf('imod: %d, rm: %d', $iMod, $iRm));
                         }
 
                         if ($segOverrideEn) {
-                            $segReg = $segOverride;
+                            $segRegId = $segOverride;
                         } else {
                             /**
                              * Table 7: R/M mode 0 "default segment" lookup
-                             * @var int $segReg
+                             * @var int $segRegId
                              */
-                            $segReg = $this->biosDataTables[7][$iRm];
+                            $segRegId = $this->biosDataTables[7][$iRm];
                         }
 
                         // Table 4: R/M mode 0 "register 1" lookup
-                        $segOfs = $this->biosDataTables[4][$iRm];
-
-                        $seg = $this->getRegisterByNumber(true, $segReg);
-                        $ofs = $this->getRegisterByNumber(true, $segOfs);
+                        $segOffsetId = $this->biosDataTables[4][$iRm];
+                        
+                        // if (!$iw) {
+                        //     throw new NotImplementedException('iw is false');
+                        // }
+                        
+                        // Convert Register IDs to objects.
+                        $segBaseRegister = $this->getRegisterByNumber(true, $segRegId);
+                        $segOffsetRegister = $this->getRegisterByNumber(true, $segOffsetId);
 
                         $op1=0;//@todo
+                        $op2=0;//@todo
+                        $op=0;//@todo
 
-                        $this->output->writeln(sprintf('SEG %s %d', $seg, $segReg));
-                        $this->output->writeln(sprintf('OFS %s %d', $ofs, $segOfs));
+                        $this->output->writeln(sprintf('SEG %s %d', $segBaseRegister, $segRegId));
+                        $this->output->writeln(sprintf('OFS %s %d', $segOffsetRegister, $segOffsetId));
+                        $this->output->writeln(sprintf('op1 %d', $op1));
+                        $this->output->writeln(sprintf('op2 %d', $op2));
+                        $this->output->writeln(sprintf('op %d', $op));
+                        
+                        throw new NotImplementedException();
 
                         break;
 
                     case 1:
                         // @todo
-
                         throw new NotImplementedException(sprintf('imod: %d', $iMod));
                         break;
 
@@ -442,7 +454,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         //$disp = $data[3];
                         // @todo use $data[3];
                         // @todo set disp
-
                         throw new NotImplementedException(sprintf('imod: %d', $iMod));
                         break;
 
