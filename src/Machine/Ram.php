@@ -59,6 +59,12 @@ class Ram implements RamInterface
         $this->write($data, $offset);
     }
 
+    public function writeRegisterToAddress(Register $register, Address $address)
+    {
+        $offset = $address->toInt();
+        $this->writeRegister($register, $offset);
+    }
+
     public function loadFromFile(string $path, int $offset, int $length = null)
     {
         $content = file_get_contents($path, false, null, 0, $length);

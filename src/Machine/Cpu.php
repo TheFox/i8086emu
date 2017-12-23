@@ -10,6 +10,7 @@
 namespace TheFox\I8086emu\Machine;
 
 use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
@@ -40,7 +41,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     /**
      * Debug
-     * @var OutputInterface
+     * @var Output
      */
     private $output;
 
@@ -372,6 +373,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
+            $this->output->writeln(sprintf('data0 %d', $data[0]));
+            $this->output->writeln(sprintf('data1 %d', $data[1]));
+            $this->output->writeln(sprintf('data2 %d', $data[2]));
 
             if ($segOverrideEn) {
                 --$segOverrideEn;
@@ -383,7 +387,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $iMod = 0;
             $iRm = 0; // Is Register/Memory?
             $iReg = 0;
-            $disp = 0;
+            //$disp = 0;
             $from = null;
             $to = null;
             $opResult = null; // Needs to be null for development.
@@ -398,84 +402,103 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->output->writeln(sprintf('REG %d %03b', $iReg, $iReg));
                 $this->output->writeln(sprintf('R/M %d %03b', $iRm, $iRm));
 
+                $biosDataTableBaseIndex = 0;
+
                 switch ($iMod) {
                     case 0:
-                        // if mod == 00 then DISP = 0
+                        $biosDataTableBaseIndex += 4;
+                    // no break
+
+                    case 1:
+                    case 2:
+                        // if mod == 00 then DISP = 0*
                         $disp = 0;
-                        if (6 === $iRm) {
-                            // except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
-                            // @todo use $data[3];
-                            // @todo set disp
-                            //throw new NotImplementedException(sprintf('imod: %d, rm: %d', $iMod, $iRm));
+                        if (0 === $iMod && 6 === $iRm || 2 === $iMod) {
+                            // *except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
+                            // if mod = 10 then DISP = disp-high; disp-low
+                            $disp = ($data[2] << 8) + $data[1];
                         }
 
                         if ($segOverrideEn) {
-                            $segRegId = $segOverride;
+                            $defaultSegId = $segOverride;
                         } else {
                             /**
-                             * Table 7: R/M mode 0 "default segment" lookup
-                             * @var int $segRegId
+                             * Table 3/7: R/M "default segment" lookup
+                             * @var int $defaultSegId
                              */
-                            $segRegId = $this->biosDataTables[7][$iRm];
+                            $defaultSegId = $this->biosDataTables[$biosDataTableBaseIndex + 3][$iRm];
                         }
 
-                        // Table 4: R/M mode 0 "register 1" lookup
-                        $segOffsetId = $this->biosDataTables[4][$iRm];
-                        
-                        // if (!$iw) {
-                        //     throw new NotImplementedException('iw is false');
-                        // }
-                        
+                        // Table 0/4: R/M "register 1" lookup
+                        $register1Id = $this->biosDataTables[$biosDataTableBaseIndex][$iRm];
+
+                        // Table 1/5: R/M "register 2" lookup
+                        $register2Id = $this->biosDataTables[$biosDataTableBaseIndex + 1][$iRm];
+
                         // Convert Register IDs to objects.
-                        $segBaseRegister = $this->getRegisterByNumber(true, $segRegId);
-                        $segOffsetRegister = $this->getRegisterByNumber(true, $segOffsetId);
+                        $defaultSegReg = $this->getRegisterByNumber(true, $defaultSegId);
+                        $register1 = $this->getRegisterByNumber(true, $register1Id);
+                        $register2 = $this->getRegisterByNumber(true, $register2Id);
 
-                        $op1=0;//@todo
-                        $op2=0;//@todo
-                        $op=0;//@todo
+                        // Table 2/6: R/M "DISP multiplier" lookup
+                        $dispMultiplier = $this->biosDataTables[$biosDataTableBaseIndex + 2][$iRm];
 
-                        $this->output->writeln(sprintf('SEG %s %d', $segBaseRegister, $segRegId));
-                        $this->output->writeln(sprintf('OFS %s %d', $segOffsetRegister, $segOffsetId));
-                        $this->output->writeln(sprintf('op1 %d', $op1));
-                        $this->output->writeln(sprintf('op2 %d', $op2));
-                        $this->output->writeln(sprintf('op %d', $op));
-                        
-                        throw new NotImplementedException();
+                        $addr1 =
+                            $register1->toInt()
+                            + $register2->toInt()
+                            + $disp * $dispMultiplier;
 
-                        break;
+                        $addr2 =
+                            ($defaultSegReg->toInt() << 4)
+                            + (0xFFFF & $addr1); // cast to "unsigned short".
 
-                    case 1:
-                        // @todo
-                        throw new NotImplementedException(sprintf('imod: %d', $iMod));
-                        break;
+                        $rm = new Address($addr2);
+                        //if ($id) {
+                        //    $from = new Address($addr2);
+                        //    $to = $this->getRegisterByNumber($iw, $iReg);
+                        //} else {
+                        //    $from = $this->getRegisterByNumber($iw, $iReg);
+                        //    $to = new Address($addr2);
+                        //}
 
-                    case 2:
-                        // if mod = 10 then DISP = disp-high; disp-low
-                        //$disp = $data[3];
-                        // @todo use $data[3];
-                        // @todo set disp
-                        throw new NotImplementedException(sprintf('imod: %d', $iMod));
+                        $this->output->writeln(sprintf('DEF  %s %d', $defaultSegReg, $defaultSegId));
+                        $this->output->writeln(sprintf('REG1 %s %d', $register1, $register1Id));
+                        $this->output->writeln(sprintf('REG2 %s %d', $register2, $register2Id));
+                        $this->output->writeln(sprintf('ADDR1 %d', $addr1));
+                        $this->output->writeln(sprintf('ADDR2 %d', $addr2));
+
                         break;
 
                     case 3:
                         // if mod = 11 then r/m is treated as a REG field
                         $rm = $this->getRegisterByNumber($iw, $iRm);
+
+                        //$from = $to = $this->getRegisterByNumber($iw, $iReg);
+                        //
+                        //if ($id) {
+                        //    $from = $this->getRegisterByNumber($iw, $iRm);
+                        //    //$to = $this->getRegisterByNumber($iw, $iReg);
+                        //} else {
+                        //    //$from = $this->getRegisterByNumber($iw, $iReg);
+                        //    $to = $this->getRegisterByNumber($iw, $iRm);
+                        //}
                         break;
+                } // switch $iMod
+
+                if (!isset($rm)) {
+                    throw new \RuntimeException('rm variable has not been set yet.');
                 }
 
-                //if (3 === $iMod) {
-                //} else {
-                //    $rm = 'INVALID';
-                //    //$rm = $this->getEffectiveRegisterMemoryAddress($iRm);
-                //}
-
+                $from = $to = $this->getRegisterByNumber($iw, $iReg);
                 if ($id) {
                     $from = $rm;
-                    $to = $this->getRegisterByNumber($iw, $iReg);
                 } else {
-                    $from = $this->getRegisterByNumber($iw, $iReg);
                     $to = $rm;
                 }
+
+                $this->output->writeln(sprintf('FROM %s', $from));
+                $this->output->writeln(sprintf('TO   %s', $to));
+                $this->output->writeln('---');
             }
 
             switch ($xlatId) {
@@ -506,10 +529,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 6: // XOR
-                            $this->output->writeln(sprintf('XOR'));
+                            $this->output->writeln(sprintf('XOR reg, r/m'));
                             $this->output->writeln(sprintf(' -> FROM %s', $from));
                             $this->output->writeln(sprintf(' -> TO   %s', $to));
-                            if ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
+                            if ($from instanceof Register && $to instanceof Register) {
                                 $opResult = $from->toInt() ^ $to->toInt();
                                 $to->setData($opResult);
                             } else {
@@ -518,12 +541,20 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                             break;
 
-                        case 8:
-                            $this->output->writeln(sprintf('MOV'));
+                        case 8: // MOV
+                            $this->output->writeln(sprintf('MOV reg, r/m'));
                             $this->output->writeln(sprintf(' -> FROM %s', $from));
                             $this->output->writeln(sprintf(' -> TO   %s', $to));
 
-                            throw new NotImplementedException(sprintf('MOV %s %s', $to, $from));
+                            if ($from instanceof Register && $to instanceof Register) {
+                                throw new NotImplementedException('from REG to REG');
+                            } elseif ($from instanceof Register && $to instanceof Address) {
+                                $this->ram->writeRegisterToAddress($from, $to);
+                            } elseif ($from instanceof Address && $to instanceof Register) {
+                                throw new NotImplementedException('from ADDR to REG');
+                            } elseif ($from instanceof Address && $to instanceof Address) {
+                                throw new NotImplementedException('from ADDR to ADDR');
+                            }
                             break;
 
                         default:
@@ -536,12 +567,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         // MOV
                         $this->output->writeln(sprintf('MOV sreg, r/m'));
 
+                        $from = $to = $this->getRegisterByNumber(true, $iRm);
+
                         if ($id) {
-                            $from = $this->getRegisterByNumber(true, $iRm);
+                            //$from = $this->getRegisterByNumber(true, $iRm);
                             $to = $this->getSegmentRegisterByNumber($iReg);
                         } else {
                             $from = $this->getSegmentRegisterByNumber($iReg);
-                            $to = $this->getRegisterByNumber(true, $iRm);
+                            //$to = $this->getRegisterByNumber(true, $iRm);
                         }
 
                         $this->output->writeln(sprintf('FROM %s', $from));
@@ -648,7 +681,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $repOverrideEn++;
                     }
                     $iReg = ($opcodeRaw >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
-                    $this->output->writeln(sprintf('POP %d %02b', $iReg, $iReg));
+                    $this->output->writeln(sprintf('SEG override %d %02b', $iReg, $iReg));
                     break;
 
                 case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: f8 f9 fa fb fc fd
