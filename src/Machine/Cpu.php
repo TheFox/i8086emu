@@ -514,8 +514,20 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
-                    $this->output->writeln(sprintf('8: mod=%x reg=%x r/m=%s s=%d w=%d', $iMod, $iReg, $rm, $id, $iw));
-                    $extra = $iReg;
+                    $this->output->writeln(sprintf('08: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra));
+                    //$extra = $iReg;
+
+                    $id |= !$iw;
+
+                    $this->ip->add(!$id + 1);
+
+                    // Decode
+                    $opcodeRaw = 0x8 * $iReg;
+                    //$xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
+                    $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
+                    //$iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
+
+                    $this->output->writeln(sprintf('%02x: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b', $opcodeRaw, $iMod, $iReg, $rm, $id, $iw, !$iw, $extra));
                 // no break
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
@@ -534,6 +546,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             } else {
                                 throw new NotImplementedException(sprintf('XOR else'));
                             }
+                            break;
+
+                        case 7: // CMP
+                            throw new NotImplementedException(sprintf('CMP'));
                             break;
 
                         case 8: // MOV
