@@ -39,11 +39,21 @@ class Ram implements RamInterface
         }
     }
 
+    /**
+     * @deprecated
+     * @param int $char
+     * @param int $pos
+     */
     public function writeRaw(int $char, int $pos)
     {
         $this->data[$pos] = $char;
     }
 
+    /**
+     * @deprecated
+     * @param string $str
+     * @param int $offset
+     */
     public function writeStr(string $str, int $offset)
     {
         $data = str_split($str);
@@ -52,18 +62,27 @@ class Ram implements RamInterface
         $this->write($data, $offset);
     }
 
+    /**
+     * @deprecated Move to Ram
+     */
     public function writeRegister(Register $register, int $offset)
     {
         $data = $register->getData();
         $this->write($data, $offset);
     }
 
+    /**
+     * @deprecated Move to Ram
+     */
     public function writeRegisterToAddress(Register $register, Address $address)
     {
         $offset = $address->toInt();
         $this->writeRegister($register, $offset);
     }
 
+    /**
+     * @deprecated Remove from Ram. Maybe move to Machine?
+     */
     public function loadFromFile(string $path, int $offset, int $length = null)
     {
         $content = file_get_contents($path, false, null, 0, $length);
@@ -83,30 +102,6 @@ class Ram implements RamInterface
             $data[$i] = $this->data[$pos];
         }
 
-        return $data;
-    }
-
-    /**
-     * @param int $offset
-     * @param int $length
-     * @return Address
-     */
-    public function readAddress(int $offset, int $length): Address
-    {
-        $data = $this->read($offset, $length);
-        $address = new Address($data);
-        return $address;
-    }
-
-    /**
-     * @param Register $register
-     * @return \SplFixedArray
-     */
-    public function readFromRegister(Register $register): \SplFixedArray
-    {
-        $offset = $register->toInt();
-        $length = $register->getSize();
-        $data = $this->read($offset, $length);
         return $data;
     }
 }

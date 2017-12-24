@@ -261,13 +261,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         for ($i = 0; $i < 20; $i++) {
             $offset = 0xF0000 + (0x81 + $i) * self::SIZE_BYTE;
-            $tableAddr = $this->ram->readAddress($offset, self::SIZE_BYTE);
-            $tableAddrInt = $tableAddr->toInt();
+            $data=$this->ram->read($offset, self::SIZE_BYTE);
+            $addr=($data[1]<<8)|$data[0];
+            //$tableAddr = $this->ram->readAddress($offset, self::SIZE_BYTE);
+            //$tableAddrInt = $tableAddr->toInt();
 
             $this->output->writeln(sprintf('table %d', $i));
 
             for ($j = 0; $j < 256; $j++) {
-                $valueAddr = 0xF0000 + $tableAddrInt + $j;
+                $valueAddr = 0xF0000 + $addr + $j;
                 $v = $this->ram->read($valueAddr, 1);
 
                 $tables[$i][$j] = $v[0];

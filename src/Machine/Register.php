@@ -219,12 +219,6 @@ class Register implements RegisterInterface, AddressInterface
         return $this->i;
     }
 
-    public function toAddress(): Address
-    {
-        $address = new Address($this->toInt());
-        return $address;
-    }
-
     public function add(int $i)
     {
         $i += $this->toInt();

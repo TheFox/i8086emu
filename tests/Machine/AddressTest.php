@@ -32,6 +32,5 @@ class AddressTest extends TestCase
     {
         $address = new Address($data);
         $this->assertEquals($expectedInt, $address->toInt());
-        $this->assertEquals($expectedInt & 0xFF, $address->getLow());
     }
 }

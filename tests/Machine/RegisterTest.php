@@ -86,17 +86,6 @@ class RegisterTest extends TestCase
         $this->assertEquals(0x0301FF, $register->toInt());
     }
 
-    public function testToAddress()
-    {
-        $register = new Register(null, new Address(0));
-        $address = $register->toAddress();
-        $this->assertEquals(0, $address->toInt());
-
-        $register = new Register(null, 'A');
-        $address = $register->toAddress();
-        $this->assertEquals(65, $address->toInt());
-    }
-
     /**
      * @expectedException \TheFox\I8086emu\Exception\RegisterNegativeValueException
      */
@@ -113,5 +102,52 @@ class RegisterTest extends TestCase
     {
         $register = new Register('TT', [256, 256]);
         $register->toInt();
+    }
+
+    public function testSetGetLowHigh()
+    {
+        $register = new Register('TT');
+        $this->assertNull($register->getLow());
+        $this->assertNull($register->getHigh());
+
+        $register->setLow(1);
+        $register->setHigh(2);
+        $l = $register->getLow();
+        $h = $register->getHigh();
+        $eh = $register->getEffectiveHigh();
+        $this->assertEquals(1, $l);
+        $this->assertEquals(2, $h);
+        $this->assertEquals(512, $eh);
+    }
+
+    public function testParent()
+    {
+        $register1 = new Register('T1');
+        $register1->setData([1, 2]);
+
+        $register2 = new Register('T2');
+        $this->assertEquals(0, $register2->toInt());
+
+        $register2->setParent($register1);
+        $this->assertEquals(1, $register2->toInt());
+
+        $register2->setIsParentHigh(true);
+        $this->assertEquals(512, $register2->toInt());
+
+        $register2->setData([3, 4]);
+        $this->assertEquals(3, $register1->getHigh());
+
+        $register2->setData(5);
+        $this->assertEquals(5, $register1->getHigh());
+
+        $register2->setIsParentHigh(false);
+
+        $register2->setData([6, 7]);
+        $this->assertEquals(5, $register1->getHigh());
+        $this->assertEquals(6, $register1->getLow());
+
+        $register2->setData(8);
+        $this->assertEquals(5, $register1->getHigh());
+        $this->assertEquals(8, $register1->getLow());
     }
 }
