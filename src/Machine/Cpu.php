@@ -373,7 +373,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
-            $this->output->writeln(sprintf('data: %d %d %d', $data[0], $data[1], $data[2]));
+            $this->output->writeln(sprintf('data: 0=%d 1=%d 2=%d', $data[0], $data[1], $data[2]));
 
             if ($segOverrideEn) {
                 --$segOverrideEn;
@@ -501,6 +501,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $register = $this->getRegisterByNumber(true, $iReg4bit);
                     $this->output->writeln(sprintf('PUSH %s', $register));
                     $this->pushToStack($register, self::SIZE_BYTE);
+                    break;
+
+                case 4: // POP reg - OpCodes: 58 59 5a 5b 5c 5d 5e 5f
+                    $register = $this->getRegisterByNumber(true, $iReg4bit);
+                    $this->output->writeln(sprintf('POP %s', $register));
+                    $stackData = $this->popFromStack(self::SIZE_BYTE);
+                    $register->setData($stackData);
                     break;
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
