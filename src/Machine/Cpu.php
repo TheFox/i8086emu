@@ -405,12 +405,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 switch ($iMod) {
                     case 0:
                         $biosDataTableBaseIndex += 4;
+
+                        // if mod == 00 then DISP = 0*
+                        $disp = 0;
                     // no break
 
                     case 1:
-                    case 2:
-                        // if mod == 00 then DISP = 0*
-                        $disp = 0;
+                        //case 2:
                         if (0 === $iMod && 6 === $iRm || 2 === $iMod) {
                             // *except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
                             // if mod = 10 then DISP = disp-high; disp-low
@@ -457,13 +458,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $this->output->writeln(sprintf('REG2 %s %d', $register2, $register2Id));
                         $this->output->writeln(sprintf('ADDR1 %d', $addr1));
                         $this->output->writeln(sprintf('ADDR2 %d', $addr2));
-
                         break;
 
                     case 3:
                         // if mod = 11 then r/m is treated as a REG field
                         $rm = $this->getRegisterByNumber($iw, $iRm);
                         break;
+
+                    default:
+                        throw new NotImplementedException(sprintf('Unhandled mode: %d', $iMod));
                 } // switch $iMod
 
                 if (!isset($rm)) {
@@ -509,6 +512,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $stackData = $this->popFromStack(self::SIZE_BYTE);
                     $register->setData($stackData);
                     break;
+
+                case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
+                    $this->output->writeln(sprintf('8: mod=%x reg=%x r/m=%s s=%d w=%d', $iMod, $iReg, $rm, $id, $iw));
+                    $extra = $iReg;
+                // no break
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
                     switch ($extra) {
