@@ -365,7 +365,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $data = $this->ram->read($offset + 1, 4);
 
             $this->output->writeln(sprintf(
-                '[%s] run %d @%04x:%04x -> OP 0x%02x %d [%08b] XLAT 0x%02x %d [%08b]',
+                '<info>[%s] run %d @%04x:%04x -> OP 0x%02x %d [%08b] XLAT 0x%02x %d [%08b]</info>',
                 'CPU',
                 $cycle,
                 $this->cs->toInt(),
@@ -373,9 +373,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
-            $this->output->writeln(sprintf('data0 %d', $data[0]));
-            $this->output->writeln(sprintf('data1 %d', $data[1]));
-            $this->output->writeln(sprintf('data2 %d', $data[2]));
+            $this->output->writeln(sprintf('data: %d %d %d', $data[0], $data[1], $data[2]));
 
             if ($segOverrideEn) {
                 --$segOverrideEn;
@@ -479,8 +477,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $to = $rm;
                 }
 
-                $this->output->writeln(sprintf('FROM %s', $from));
-                $this->output->writeln(sprintf('TO   %s', $to));
+                $this->output->writeln(sprintf('<info>FROM %s</info>', $from));
+                $this->output->writeln(sprintf('<info>TO   %s</info>', $to));
                 $this->output->writeln('---');
             }
 
@@ -639,6 +637,30 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if ($repOverrideEn) {
                         $this->cx->setData(0);
                     }
+                    break;
+
+                case 22: // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
+                    // @link https://pdos.csail.mit.edu/6.828/2010/readings/i386/OUT.htm
+
+                    //$this->output->writeln('<error>OUT DX/imm8, AL/AX</error>');
+                    $ahReg = $this->getRegisterByNumber($iw, 0);
+
+                    if ($extra) {
+                        $scratch = $this->dx->toInt();
+                    } else {
+                        $scratch = $data[0];
+                    }
+
+                    $this->output->writeln(sprintf('<error>[%s] word=%d extra=%d AL/AH=%s DX=%s v=%x</error>',
+                        'PORT', $iw, $extra, $ahReg, $this->dx, $scratch));
+
+                    // @todo create class to handle shit below
+                    // handle Speaker control here
+                    // handle PIT rate programming here
+                    // handle Graphics here? Hm?
+                    // handle Speaker here
+                    // handle CRT video RAM start offset
+                    // handle CRT cursor position
                     break;
 
                 case 25: // PUSH sreg - OpCodes: 06 0e 16 1e
