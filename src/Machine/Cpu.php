@@ -453,13 +453,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             + (0xFFFF & $addr1); // cast to "unsigned short".
 
                         $rm = new Address($addr2);
-                        //if ($id) {
-                        //    $from = new Address($addr2);
-                        //    $to = $this->getRegisterByNumber($iw, $iReg);
-                        //} else {
-                        //    $from = $this->getRegisterByNumber($iw, $iReg);
-                        //    $to = new Address($addr2);
-                        //}
 
                         $this->output->writeln(sprintf('DEF  %s %d', $defaultSegReg, $defaultSegId));
                         $this->output->writeln(sprintf('REG1 %s %d', $register1, $register1Id));
@@ -472,16 +465,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     case 3:
                         // if mod = 11 then r/m is treated as a REG field
                         $rm = $this->getRegisterByNumber($iw, $iRm);
-
-                        //$from = $to = $this->getRegisterByNumber($iw, $iReg);
-                        //
-                        //if ($id) {
-                        //    $from = $this->getRegisterByNumber($iw, $iRm);
-                        //    //$to = $this->getRegisterByNumber($iw, $iReg);
-                        //} else {
-                        //    //$from = $this->getRegisterByNumber($iw, $iReg);
-                        //    $to = $this->getRegisterByNumber($iw, $iRm);
-                        //}
                         break;
                 } // switch $iMod
 
@@ -538,7 +521,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             } else {
                                 throw new NotImplementedException(sprintf('XOR else'));
                             }
-
                             break;
 
                         case 8: // MOV

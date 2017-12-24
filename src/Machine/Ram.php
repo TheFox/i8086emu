@@ -7,7 +7,6 @@
 namespace TheFox\I8086emu\Machine;
 
 use TheFox\I8086emu\Blueprint\RamInterface;
-use TheFox\I8086emu\Blueprint\RegisterInterface;
 
 class Ram implements RamInterface
 {
