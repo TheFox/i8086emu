@@ -10,16 +10,23 @@ use TheFox\I8086emu\Blueprint\FlagsInterface;
 
 class Flags implements FlagsInterface
 {
-    private const NAMES = [
-        'CF' => 0,
-        'PF' => 1, // parity flag
-        'AF' => 2,
-        'ZF' => 3, // zero flag
-        'SF' => 4, // sign flag
-        'TF' => 5, // trap flag
-        'IF' => 6,
-        'DF' => 7,
-        'OF' => 8,
+    public const NAMES = [
+        'CF' => 0, // carry flag
+        // 1 reserved
+        'PF' => 2, // parity flag
+        // 3 reserved
+        'AF' => 4, // auxiliary carry flag
+        // 5 reserved
+        'ZF' => 6, // zero flag
+        'SF' => 7, // sign flag
+        'TF' => 8, // trap flag
+        'IF' => 9, // interrupt enable flag
+        'DF' => 10, // direction flag
+        'OF' => 11, // overflow flag
+        // 12 reserved
+        // 13 reserved
+        // 14 reserved
+        // 15 reserved
     ];
 
     /**
@@ -27,19 +34,33 @@ class Flags implements FlagsInterface
      */
     private $data;
 
+    /**
+     * @var array
+     */
+    private $flippedNames;
+
     public function __construct()
     {
         $this->data = \SplFixedArray::fromArray([
             false, // carry flag
+            false, // 1 reserved
             false, // parity flag
+            false, // 3 reserved
             false, // auxiliary carry flag
+            false, // 5 reserved
             false, // zero flag
             false, // sign flag
             false, // trap flag
             false, // interrupt enable flag
             false, // direction flag
             false, // overflow flag
+            false, // 12 reserved
+            false, // 13 reserved
+            false, // 14 reserved
+            false, // 15 reserved
         ]);
+
+        $this->flippedNames = array_flip(self::NAMES);
     }
 
     public function set(int $flagId, bool $val)
@@ -60,5 +81,10 @@ class Flags implements FlagsInterface
     public function getByName(string $name): bool
     {
         return $this->get(self::NAMES[$name]);
+    }
+
+    public function getName(int $flagId)
+    {
+        return $this->flippedNames[$flagId];
     }
 }

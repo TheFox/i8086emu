@@ -32,11 +32,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
     public const TABLE_BASE_INST_SIZE = 12;
     public const TABLE_I_W_SIZE = 13;
     public const TABLE_I_MOD_SIZE = 14;
-    //public const TABLE_COND_JUMP_DECODE_A = 15;
-    //public const TABLE_COND_JUMP_DECODE_B = 16;
-    //public const TABLE_COND_JUMP_DECODE_C = 17;
-    //public const TABLE_COND_JUMP_DECODE_D = 18;
-    //public const TABLE_FLAGS_BITFIELDS = 19;
+    public const TABLE_COND_JUMP_DECODE_A = 15;
+    public const TABLE_COND_JUMP_DECODE_B = 16;
+    public const TABLE_COND_JUMP_DECODE_C = 17;
+    public const TABLE_COND_JUMP_DECODE_D = 18;
+    public const TABLE_FLAGS_BITFIELDS = 19;
+    public const FLAGS_BASE = 40;
 
     /**
      * Debug
@@ -782,7 +783,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: f8 f9 fa fb fc fd
                     $val = $extra & 1;
                     $flagId = ($extra >> 1) & 7; // xxxx111x
-                    $this->output->writeln(sprintf('CLx %02x (=%d [%08b]) ID=%d v=%d', $extra, $extra, $extra, $flagId, $val));
+                    $flagId = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$flagId];
+                    $flagName = $this->flags->getName($flagId);
+                    $this->output->writeln(sprintf('CLx %02x (=%d [%08b]) ID=%d v=%d F=%s', $extra, $extra, $extra, $flagId, $val, $flagName));
                     $this->flags->set($flagId, (bool)$val);
                     break;
 
