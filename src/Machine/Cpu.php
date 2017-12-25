@@ -402,6 +402,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
             //$disp = 0;
             $from = null;
             $to = null;
+            $opSource = null;
+            $opDest = null;
             $opResult = null; // Needs to be null for development.
 
             $debug = null;
@@ -583,22 +585,24 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             //throw new NotImplementedException(sprintf('CMP'));
                             if (is_numeric($from) && $to instanceof Address) {
                                 //$op2 = $this->ram->read($from->toInt(), $length);
-                                $op2 = $from;
+                                $opSource = $from;
 
-                                $op1 = $this->ram->read($to->toInt(), $iwSize);
+                                $to = $this->ram->read($to->toInt(), $iwSize);
                                 if ($iwSize == 2) {
-                                    $op1 = ($op1[1] << 8) | $op1[0];
+                                    $opDest = ($to[1] << 8) | $to[0];
                                 } else {
-                                    $op1 = $op1[0];
+                                    $opDest = $to[0];
                                 }
 
-                                $opResult = $op1 - $op2;
-                                $opDest = $op1;
+                                $opResult = $opDest - $opSource;
                             } else {
                                 throw new NotImplementedException(sprintf('CMP else'));
                             }
                             $cf = $opResult > $opDest;
                             $this->flags->setByName('CF', $cf);
+
+                            $this->output->writeln(sprintf('CMP %b %b => %b CF=%d',$opDest,$opSource,$opResult,$cf));
+
                             break;
 
                         case 8: // MOV
@@ -818,7 +822,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult]);
 
                 if ($setFlagsType & 2) { // FLAGS_UPDATE_AO_ARITH
-                    throw new NotImplementedException(sprintf('FLAGS TYPE: %d [%04b]', $setFlagsType, $setFlagsType));
+                    //throw new NotImplementedException(sprintf('FLAGS TYPE: %d [%04b]', $setFlagsType, $setFlagsType));
+                    $this->setAfOfArith($opSource, $opDest, $opResult, $iw);
                 }
                 if ($setFlagsType & 4) { // FLAGS_UPDATE_OC_LOGIC
                     $this->flags->setByName('CF', false);
@@ -827,7 +832,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
 
             // Update Instruction counter.
-            $cycle++;
+            ++$cycle;
 
             $int8 = false;
             if (0 === $cycle % self::KEYBOARD_TIMER_UPDATE_DELAY) {
@@ -1030,6 +1035,25 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->sp->add($size);
 
         return $data;
+    }
+
+    private function setAfOfArith(int $src, int $dest, int $result, bool $isWord)
+    {
+        $topBit = $isWord ? 15 : 7;
+
+        $x = $dest ^ $result;
+        $src ^= $x;
+        $af = $src & 0x10;
+        $this->flags->setByName('AF', $af);
+
+        $cf = $this->flags->getByName('CF');
+
+        if ($result === $dest) {
+            $of = 0;
+        } else {
+            $of = ($cf ^ $src >> $topBit) & 1;
+        }
+        $this->flags->setByName('OF', $of);
     }
 
     private function debugSsSpRegister()
