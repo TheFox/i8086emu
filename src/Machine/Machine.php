@@ -73,12 +73,11 @@ class Machine implements MachineInterface, OutputAwareInterface
         }
 
         // Load BIOS into RAM.
-        $biosPos = (0xF000 << 4) + 0x0100; // @todo
+        $biosOffset = (0xF000 << 4) + 0x0100; // @todo
         $biosLen = 0xFF00;
-        $this->ram->loadFromFile($this->biosFilePath, $biosPos, $biosLen);
-
-        printf("bios start %08x\n", $biosPos);
-        printf("bios end   %08x\n", $biosPos + $biosLen);
+        $this->writeRamFromFile($this->biosFilePath, $biosOffset, $biosLen);
+        printf("bios start %08x\n", $biosOffset);
+        printf("bios end   %08x\n", $biosOffset + $biosLen);
 
         // Setup CPU.
         $this->cpu->setRam($this->ram);
@@ -111,5 +110,13 @@ class Machine implements MachineInterface, OutputAwareInterface
         $this->output = $output;
 
         $this->cpu->setOutput($this->output);
+    }
+
+    private function writeRamFromFile(string $path, int $offset, int $length)
+    {
+        $content = file_get_contents($path, false, null, 0, $length);
+        $data = str_split($content);
+        $data = array_map('ord', $data);
+        $this->ram->write($data, $offset);
     }
 }

@@ -40,56 +40,6 @@ class Ram implements RamInterface
     }
 
     /**
-     * @deprecated
-     * @param int $char
-     * @param int $pos
-     */
-    public function writeRaw(int $char, int $pos)
-    {
-        $this->data[$pos] = $char;
-    }
-
-    /**
-     * @deprecated
-     * @param string $str
-     * @param int $offset
-     */
-    public function writeStr(string $str, int $offset)
-    {
-        $data = str_split($str);
-        $data = array_map('ord', $data);
-
-        $this->write($data, $offset);
-    }
-
-    /**
-     * @deprecated Move to Ram
-     */
-    public function writeRegister(Register $register, int $offset)
-    {
-        $data = $register->getData();
-        $this->write($data, $offset);
-    }
-
-    /**
-     * @deprecated Move to Ram
-     */
-    public function writeRegisterToAddress(Register $register, Address $address)
-    {
-        $offset = $address->toInt();
-        $this->writeRegister($register, $offset);
-    }
-
-    /**
-     * @deprecated Remove from Ram. Maybe move to Machine?
-     */
-    public function loadFromFile(string $path, int $offset, int $length = null)
-    {
-        $content = file_get_contents($path, false, null, 0, $length);
-        $this->writeStr($content, $offset);
-    }
-
-    /**
      * @param int $offset
      * @param int $length
      * @return \SplFixedArray

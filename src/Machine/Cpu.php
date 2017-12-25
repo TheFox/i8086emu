@@ -601,7 +601,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $cf = $opResult > $opDest;
                             $this->flags->setByName('CF', $cf);
 
-                            $this->output->writeln(sprintf('CMP %b %b => %b CF=%d',$opDest,$opSource,$opResult,$cf));
+                            $this->output->writeln(sprintf('CMP %b %b => %b CF=%d', $opDest, $opSource, $opResult, $cf));
 
                             break;
 
@@ -613,7 +613,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             if ($from instanceof Register && $to instanceof Register) {
                                 throw new NotImplementedException('from REG to REG');
                             } elseif ($from instanceof Register && $to instanceof Address) {
-                                $this->ram->writeRegisterToAddress($from, $to);
+                                //$this->ram->writeRegisterToAddress($from, $to);
+                                $offset = $to->toInt();
+                                $data = $from->getData();
+                                $this->ram->write($data, $offset);
                             } elseif ($from instanceof Address && $to instanceof Register) {
                                 throw new NotImplementedException('from ADDR to REG');
                             } elseif ($from instanceof Address && $to instanceof Address) {
@@ -708,10 +711,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $ea = $this->getEffectiveEsDiAddress();
                             $this->output->writeln(sprintf(' -> EA %04x [%016b]', $ea, $ea));
 
-                            $this->ram->writeRegister($from, $ea);
+                            $data = $from->getData();
+                            $this->ram->write($data, $ea);
 
                             $add = (2 * $this->flags->getByName('DF') - 1) * ($iw + 1); // direction flag
                             $this->di->add(-$add);
+
                             $this->output->writeln(sprintf(' -> REG %s (%d)', $this->di, $add));
                             break;
 
