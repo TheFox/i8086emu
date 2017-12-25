@@ -121,9 +121,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $zero;
 
     /**
-     * @var Register
+     * var Register
      */
-    private $scratch;
+    //private $scratch;
 
     /**
      * @var \SplFixedArray
@@ -181,8 +181,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->cs = new Register('CS', new Address(0xF000)); // Code Segment
         $this->ip = new Register('IP', new Address(0x0100)); // Instruction Pointer
 
+        //print(''.$this->cs);
+
         $this->zero = new Register('ZERO'); // I don't know what's this is.
-        $this->scratch = new Register('SCRATCH'); // I don't know what's this is.
+        //$this->scratch = new Register('SCRATCH'); // I don't know what's this is.
 
         $this->registers = \SplFixedArray::fromArray([
             0 => $this->ax,
@@ -201,7 +203,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             11 => $this->ds,
 
             12 => $this->zero,
-            13 => $this->scratch,
+            //13 => $this->scratch,
         ]);
 
         $this->segmentRegisters = \SplFixedArray::fromArray([
@@ -261,8 +263,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
         for ($i = 0; $i < 20; $i++) {
             $offset = 0xF0000 + (0x81 + $i) * self::SIZE_BYTE;
-            $data=$this->ram->read($offset, self::SIZE_BYTE);
-            $addr=($data[1]<<8)|$data[0];
+            $data = $this->ram->read($offset, self::SIZE_BYTE);
+            $addr = ($data[1] << 8) | $data[0];
             //$tableAddr = $this->ram->readAddress($offset, self::SIZE_BYTE);
             //$tableAddrInt = $tableAddr->toInt();
 
@@ -356,6 +358,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             // Is Word Instruction, means 2 Byte long.
             $iw = (bool)($iReg4bit & 1); // xxxxxx1
+            $iwSize = $iw ? 2 : 1;
 
             // Instruction Direction
             $id = (bool)($iReg4bit & 2); // xxxxx1x
@@ -364,7 +367,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             $offset = $this->getEffectiveInstructionPointerAddress();
 
-            $data = $this->ram->read($offset + 1, 4);
+            $data = $this->ram->read($offset + 1, 5);
+            $dataWord = [
+                ($data[1] << 8) | $data[0],
+                ($data[2] << 8) | $data[1],
+                ($data[3] << 8) | $data[2],
+                ($data[4] << 8) | $data[3],
+            ];
 
             $this->output->writeln(sprintf(
                 '<info>[%s] run %d @%04x:%04x -> OP 0x%02x %d [%08b] XLAT 0x%02x %d [%08b]</info>',
@@ -375,7 +384,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
-            $this->output->writeln(sprintf('data: 0=%d 1=%d 2=%d', $data[0], $data[1], $data[2]));
+            $this->output->writeln(sprintf('data: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $data[0], $data[1], $data[2], $data[3], $data[4]));
+            foreach ($dataWord as $n => $tmpWord) {
+                $this->output->writeln(sprintf('data%d word: %x', $n, $tmpWord));
+            }
 
             if ($segOverrideEn) {
                 --$segOverrideEn;
@@ -392,6 +404,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $to = null;
             $opResult = null; // Needs to be null for development.
 
+            $debug = null;
+
             // $iModeSize > 0 indicates that opcode uses Mod/Reg/RM, so decode them
             if ($iModeSize) {
                 $iMod = $data[0] >> 6;     // 11xxxxxx
@@ -407,17 +421,19 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 switch ($iMod) {
                     case 0:
                         $biosDataTableBaseIndex += 4;
-
-                        // if mod == 00 then DISP = 0*
-                        $disp = 0;
                     // no break
 
                     case 1:
-                        //case 2:
+                    case 2:
                         if (0 === $iMod && 6 === $iRm || 2 === $iMod) {
                             // *except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
                             // if mod = 10 then DISP = disp-high; disp-low
-                            $disp = ($data[2] << 8) + $data[1];
+                            $dataWord[2] = $dataWord[3]; // @todo activate this if needed
+                            $debug = 'set $dataWord[2] = $dataWord[3]';
+                        } else { // $iMod == 1
+                            // If i_mod is 1, operand is (usually) 8 bits rather than 16 bits
+                            //$dataWord[1] = $data[1]; // @todo activate this if needed
+                            $debug = 'set $dataWord[1] = $data[1]';
                         }
 
                         if ($segOverrideEn) {
@@ -447,24 +463,26 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $addr1 =
                             $register1->toInt()
                             + $register2->toInt()
-                            + $disp * $dispMultiplier;
+                            + $dataWord[1] * $dispMultiplier;
 
                         $addr2 =
                             ($defaultSegReg->toInt() << 4)
                             + (0xFFFF & $addr1); // cast to "unsigned short".
 
-                        $rm = new Address($addr2);
+                        $rm = new AbsoluteAddress($addr2);
 
                         $this->output->writeln(sprintf('DEF  %s %d', $defaultSegReg, $defaultSegId));
                         $this->output->writeln(sprintf('REG1 %s %d', $register1, $register1Id));
                         $this->output->writeln(sprintf('REG2 %s %d', $register2, $register2Id));
-                        $this->output->writeln(sprintf('ADDR1 %d', $addr1));
-                        $this->output->writeln(sprintf('ADDR2 %d', $addr2));
+                        $this->output->writeln(sprintf('ADDR1 %x', $addr1));
+                        $this->output->writeln(sprintf('ADDR2 %x', $addr2));
                         break;
 
                     case 3:
                         // if mod = 11 then r/m is treated as a REG field
                         $rm = $this->getRegisterByNumber($iw, $iRm);
+                        //$dataWord[2] = $dataWord[1]; // @todo activate this if needed
+                        $debug = 'set $dataWord[2] = $dataWord[1]';
                         break;
 
                     default:
@@ -494,9 +512,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $register = $this->getRegisterByNumber($iw, $iReg4bit);
 
                     if ($iw) {
-                        $register->setData([$data[0], $data[1]]);
+                        $register->setData($dataWord[0]);
                     } else {
-                        $register->setData([$data[0]]);
+                        $register->setData($data[0]);
                     }
 
                     $this->output->writeln(sprintf('MOV reg, imm (reg=%s)', $register));
@@ -516,12 +534,23 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
-                    $this->output->writeln(sprintf('08: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra));
+                    $this->output->writeln(sprintf('08: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
+                    $this->output->writeln(sprintf('data2 %x %x', $dataWord[2], $data[2]));
                     //$extra = $iReg;
 
                     $id |= !$iw;
 
+                    // I don't know what's this good for.
+                    if ($id) {
+                        $from = $dataWord[2] & 0xFF;
+                    } else {
+                        $from = $dataWord[2];
+                    }
+
+                    $this->output->writeln(sprintf('FROM %s', $from));
+
                     $this->ip->add(!$id + 1);
+                    //$this->output->writeln(sprintf('08: ip=%s', $this->ip));
 
                     // Decode
                     $opcodeRaw = 0x8 * $iReg;
@@ -529,7 +558,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
                     //$iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
 
-                    $this->output->writeln(sprintf('%02x: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b', $opcodeRaw, $iMod, $iReg, $rm, $id, $iw, !$iw, $extra));
+                    $this->output->writeln(sprintf('%02x: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $opcodeRaw, $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
                 // no break
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
@@ -551,7 +580,25 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 7: // CMP
-                            throw new NotImplementedException(sprintf('CMP'));
+                            //throw new NotImplementedException(sprintf('CMP'));
+                            if (is_numeric($from) && $to instanceof Address) {
+                                //$op2 = $this->ram->read($from->toInt(), $length);
+                                $op2 = $from;
+
+                                $op1 = $this->ram->read($to->toInt(), $iwSize);
+                                if ($iwSize == 2) {
+                                    $op1 = ($op1[1] << 8) | $op1[0];
+                                } else {
+                                    $op1 = $op1[0];
+                                }
+
+                                $opResult = $op1 - $op2;
+                                $opDest = $op1;
+                            } else {
+                                throw new NotImplementedException(sprintf('CMP else'));
+                            }
+                            $cf = $opResult > $opDest;
+                            $this->flags->setByName('CF', $cf);
                             break;
 
                         case 8: // MOV
@@ -624,7 +671,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if ($id && $iw) {
                         $add = $data[0];
                     } else {
-                        throw new NotImplementedException('NOT ID AND NOT IW');
+                        $add = $dataWord[0];
+                        //throw new NotImplementedException('NOT ID AND NOT IW');
                     }
 
                     $this->debugCsIpRegister();
@@ -945,12 +993,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
             /** @var Register $register */
             $register = $data;
 
-            if ($size !== $register->getSize()) {
-                throw new \RangeException(sprintf('Wrong size. Register is %d bytes, data is %d bytes.', $register->getSize(), $size));
-            }
+            //if ($size !== $register->getSize()) {
+            //    throw new \RangeException(sprintf('Wrong size. Register is %d bytes, data is %d bytes.', $register->getSize(), $size));
+            //}
 
             $data = $register->getData();
-            if ($data instanceof AddressInterface || is_iterable($data)) {
+            if (is_iterable($data)) {
                 $this->pushToStack($data, $size);
             } elseif (null === $data) {
                 $this->pushToStack(new \SplFixedArray($size), $size);

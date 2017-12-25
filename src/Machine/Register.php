@@ -11,6 +11,9 @@ use TheFox\I8086emu\Blueprint\RegisterInterface;
 use TheFox\I8086emu\Exception\RegisterNegativeValueException;
 use TheFox\I8086emu\Exception\RegisterValueExceedException;
 
+/**
+ * @todo Should extend Address and implement only RegisterInterface
+ */
 class Register implements RegisterInterface, AddressInterface
 {
     /**
@@ -145,9 +148,11 @@ class Register implements RegisterInterface, AddressInterface
                 $data >>= 8;
                 $pos++;
             }
-        } elseif ($data instanceof RegisterInterface || $data instanceof AddressInterface) {
+        } elseif ($data instanceof Register || $data instanceof Address) {
+            $this->setSize($data->getSize());
             $this->setData($data->getData());
         } else {
+            //throw new \RuntimeException(sprintf('size %d', $this->getSize()));
             $this->data = new \SplFixedArray($this->getSize());
         }
     }
@@ -183,6 +188,11 @@ class Register implements RegisterInterface, AddressInterface
     public function getEffectiveHigh()
     {
         return $this->getHigh() << 8;
+    }
+
+    private function setSize(int $size)
+    {
+        $this->size = $size;
     }
 
     /**

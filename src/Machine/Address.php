@@ -19,13 +19,19 @@ class Address implements AddressInterface
     private $data;
 
     /**
-     * @param null|iterable|string|int $data
-     * @param int $size Needs to be at least 3 bytes to address maximum 20 bits.
+     * @var int
      */
-    public function __construct($data = null, int $size = 3)
+    private $size;
+
+    /**
+     * @param null|iterable|string|int $data
+     * @param int $size
+     */
+    public function __construct($data = null, int $size = 2)
     {
         $this->i = null;
         $this->data = new \SplFixedArray($size);
+        $this->size = $size;
 
         if (is_iterable($data)) {
             $pos = 0;
@@ -58,7 +64,9 @@ class Address implements AddressInterface
 
     public function __toString()
     {
-        return sprintf('ADDR[%06x]', $this->toInt());
+        $format = sprintf('ADDR[%%0%dx]', $this->getSize() << 1);
+        $name = sprintf($format, $this->toInt());
+        return $name;
     }
 
     /**
@@ -78,9 +86,12 @@ class Address implements AddressInterface
         return $this->i;
     }
 
+    /**
+     * @deprecated
+     */
     public function getLow(): ?int
     {
-        return $this->data[0];
+        throw new \RuntimeException('DEPRECATED');
     }
 
     /**
@@ -89,5 +100,13 @@ class Address implements AddressInterface
     public function getData(): \SplFixedArray
     {
         return $this->data;
+    }
+
+    /**
+     * @return int
+     */
+    public function getSize(): int
+    {
+        return $this->size;
     }
 }
