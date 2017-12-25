@@ -37,7 +37,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
     public const TABLE_COND_JUMP_DECODE_C = 17;
     public const TABLE_COND_JUMP_DECODE_D = 18;
     public const TABLE_FLAGS_BITFIELDS = 19;
-    public const FLAGS_BASE = 40;
+    private const TABLE_LENGTHS = [
+        15 => 8,
+        16 => 8,
+        17 => 8,
+        18 => 8,
+        19 => 10,
+    ];
 
     /**
      * Debug
@@ -257,8 +263,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output->writeln('setup bios data tables');
 
         $tables = \SplFixedArray::fromArray(array_fill(0, 20, 0));
-        foreach ($tables as $index => $table) {
-            $tables[$index] = \SplFixedArray::fromArray(array_fill(0, 256, $table));
+        foreach ($tables as $i => $table) {
+            if (isset(self::TABLE_LENGTHS[$i])) {
+                $tableLength = self::TABLE_LENGTHS[$i];
+            } else {
+                $tableLength = 256;
+            }
+            $tables[$i] = \SplFixedArray::fromArray(array_fill(0, $tableLength, $table));
         }
 
         for ($i = 0; $i < 20; $i++) {
@@ -270,7 +281,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             $this->output->writeln(sprintf('table %d', $i));
 
-            for ($j = 0; $j < 256; $j++) {
+            if (isset(self::TABLE_LENGTHS[$i])) {
+                $tableLength = self::TABLE_LENGTHS[$i];
+            } else {
+                $tableLength = 256;
+            }
+
+            for ($j = 0; $j < $tableLength; $j++) {
                 $valueAddr = 0xF0000 + $addr + $j;
                 $v = $this->ram->read($valueAddr, 1);
 
@@ -510,6 +527,90 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
 
             switch ($xlatId) {
+                case 0: // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
+                    /**
+                     * $iw is the invert Flag.
+                     * For example, $iw == 0 means JAE, $iw == 1 means JNAE
+                     */
+
+                    $flagId = ($opcodeRaw >> 1) & 7; // xxxx111x
+
+                    $condDecodeA = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_A][$flagId];
+                    $condDecodeB = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_B][$flagId];
+                    $condDecodeC = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_C][$flagId];
+                    $condDecodeD = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_D][$flagId];
+
+                    if ($condDecodeA >= 40) {
+                        $condDecodeA -= 40;
+                    }
+                    if ($condDecodeB >= 40) {
+                        $condDecodeB -= 40;
+                    }
+                    if ($condDecodeC >= 40) {
+                        $condDecodeC -= 40;
+                    }
+                    if ($condDecodeD >= 40) {
+                        $condDecodeD -= 40;
+                    }
+
+                    if ($condDecodeA >= 9) {
+                        $realFlagIdA = 12;
+                    } else {
+                        $realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
+                    }
+                    if ($condDecodeB >= 9) {
+                        $realFlagIdB = 12;
+                    } else {
+                        $realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
+                    }
+                    if ($condDecodeC >= 9) {
+                        $realFlagIdC = 12;
+                    } else {
+                        $realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
+                    }
+                    if ($condDecodeD >= 9) {
+                        $realFlagIdD = 12;
+                    } else {
+                        $realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
+                    }
+
+                    //$realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
+                    //$realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
+                    //$realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
+                    //$realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
+
+                    $flagA = $this->flags->get($realFlagIdA);
+                    $flagB = $this->flags->get($realFlagIdB);
+                    $flagC = $this->flags->get($realFlagIdC);
+                    $flagD = $this->flags->get($realFlagIdD);
+
+                    $this->output->writeln(sprintf('JMP w=%d e=%b f=%d d0=%d', $iw, $extra, $flagId, $dataByte[0]));
+
+                    $this->output->writeln(sprintf(' -> A org: %d', $condDecodeA));
+                    $this->output->writeln(sprintf(' -> B org: %d', $condDecodeB));
+                    $this->output->writeln(sprintf(' -> C org: %d', $condDecodeC));
+                    $this->output->writeln(sprintf(' -> D org: %d', $condDecodeD));
+
+                    $this->output->writeln(sprintf(' -> Flag A: %s %d', $realFlagIdA, $flagA));
+                    $this->output->writeln(sprintf(' -> Flag B: %s %d', $realFlagIdB, $flagB));
+                    $this->output->writeln(sprintf(' -> Flag C: %s %d', $realFlagIdC, $flagC));
+                    $this->output->writeln(sprintf(' -> Flag D: %s %d', $realFlagIdD, $flagD));
+
+                    $flagsVal1 =
+                        $flagA
+                        || $flagB
+                        || $flagC ^ $flagD;
+                    $flagsVal2 = $flagsVal1 ^ $iw;
+                    $add = $dataByte[0] * $flagsVal2;
+
+                    $this->debugCsIpRegister();
+                    if ($add) {
+                        $this->ip->add($add);
+                    }
+                    $this->debugCsIpRegister();
+
+                    break;
+
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
                     $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
 
@@ -783,10 +884,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: f8 f9 fa fb fc fd
                     $val = $extra & 1;
                     $flagId = ($extra >> 1) & 7; // xxxx111x
-                    $flagId = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$flagId];
-                    $flagName = $this->flags->getName($flagId);
-                    $this->output->writeln(sprintf('CLx %02x (=%d [%08b]) ID=%d v=%d F=%s', $extra, $extra, $extra, $flagId, $val, $flagName));
-                    $this->flags->set($flagId, (bool)$val);
+                    $realFlagId = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$flagId];
+                    $flagName = $this->flags->getName($realFlagId);
+                    $this->output->writeln(sprintf('CLx %02x (=%d [%08b]) ID=%d/%d v=%d F=%s', $extra, $extra, $extra, $flagId, $realFlagId, $val, $flagName));
+                    $this->flags->set($realFlagId, (bool)$val);
                     break;
 
                 default:

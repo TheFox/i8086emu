@@ -12,21 +12,21 @@ class Flags implements FlagsInterface
 {
     public const NAMES = [
         'CF' => 0, // carry flag
-        // 1 reserved
+        'R1' => 1, // 1 reserved
         'PF' => 2, // parity flag
-        // 3 reserved
+        'R3' => 3, // 3 reserved
         'AF' => 4, // auxiliary carry flag
-        // 5 reserved
+        'R5' => 5, // 5 reserved
         'ZF' => 6, // zero flag
         'SF' => 7, // sign flag
         'TF' => 8, // trap flag
         'IF' => 9, // interrupt enable flag
         'DF' => 10, // direction flag
         'OF' => 11, // overflow flag
-        // 12 reserved
-        // 13 reserved
-        // 14 reserved
-        // 15 reserved
+        'XF' => 12, // 12 reserved
+        'R13' => 13, // 13 reserved
+        'R14' => 14, // 14 reserved
+        'R15' => 15, // 15 reserved
     ];
 
     /**
