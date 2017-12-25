@@ -22,7 +22,6 @@ use TheFox\I8086emu\Exception\NotImplementedException;
 class Cpu implements CpuInterface, OutputAwareInterface
 {
     public const SIZE_BYTE = 2;
-    //public const SIZE_BIT = 16;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
     public const GRAPHICS_UPDATE_DELAY = 360000;
     // Lookup tables in the BIOS binary.
@@ -367,12 +366,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             $offset = $this->getEffectiveInstructionPointerAddress();
 
-            $data = $this->ram->read($offset + 1, 5);
+            $dataByte = $this->ram->read($offset + 1, 5);
             $dataWord = [
-                ($data[1] << 8) | $data[0],
-                ($data[2] << 8) | $data[1],
-                ($data[3] << 8) | $data[2],
-                ($data[4] << 8) | $data[3],
+                ($dataByte[1] << 8) | $dataByte[0],
+                ($dataByte[2] << 8) | $dataByte[1],
+                ($dataByte[3] << 8) | $dataByte[2],
+                ($dataByte[4] << 8) | $dataByte[3],
             ];
 
             $this->output->writeln(sprintf(
@@ -384,7 +383,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
-            $this->output->writeln(sprintf('data: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $data[0], $data[1], $data[2], $data[3], $data[4]));
+            $this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
             foreach ($dataWord as $n => $tmpWord) {
                 $this->output->writeln(sprintf('data%d word: %x', $n, $tmpWord));
             }
@@ -410,9 +409,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             // $iModeSize > 0 indicates that opcode uses Mod/Reg/RM, so decode them
             if ($iModeSize) {
-                $iMod = $data[0] >> 6;     // 11xxxxxx
-                $iReg = $data[0] >> 3 & 7; // xx111xxx
-                $iRm = $data[0] & 7;       // xxxxx111
+                $iMod = $dataByte[0] >> 6;     // 11xxxxxx
+                $iReg = $dataByte[0] >> 3 & 7; // xx111xxx
+                $iRm = $dataByte[0] & 7;       // xxxxx111
 
                 $this->output->writeln(sprintf('MOD %d  %02b', $iMod, $iMod));
                 $this->output->writeln(sprintf('REG %d %03b', $iReg, $iReg));
@@ -430,8 +429,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         if (0 === $iMod && 6 === $iRm || 2 === $iMod) {
                             // *except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
                             // if mod = 10 then DISP = disp-high; disp-low
-                            $dataWord[2] = $dataWord[3]; // @todo activate this if needed
-                            $debug = 'set $dataWord[2] = $dataWord[3]';
+                            $dataWord[2] = $dataWord[3];
+                            $dataByte[2] = $dataWord[2] & 0xFF;
+                            //$debug = 'set $dataWord[2] = $dataWord[3]';
                         } else { // $iMod == 1
                             // If i_mod is 1, operand is (usually) 8 bits rather than 16 bits
                             //$dataWord[1] = $data[1]; // @todo activate this if needed
@@ -484,6 +484,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         // if mod = 11 then r/m is treated as a REG field
                         $rm = $this->getRegisterByNumber($iw, $iRm);
                         //$dataWord[2] = $dataWord[1]; // @todo activate this if needed
+                        //$dataByte[2] = $dataWord[2]&0xFF; // @todo activate this if needed
                         $debug = 'set $dataWord[2] = $dataWord[1]';
                         break;
 
@@ -516,7 +517,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if ($iw) {
                         $register->setData($dataWord[0]);
                     } else {
-                        $register->setData($data[0]);
+                        $register->setData($dataByte[0]);
                     }
 
                     $this->output->writeln(sprintf('MOV reg, imm (reg=%s)', $register));
@@ -537,7 +538,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
                     $this->output->writeln(sprintf('08: mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
-                    $this->output->writeln(sprintf('data2 %x %x', $dataWord[2], $data[2]));
+                    $this->output->writeln(sprintf('data2 %x %x', $dataWord[2], $dataByte[2]));
                     //$extra = $iReg;
 
                     $id |= !$iw;
@@ -676,7 +677,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
 
                     if ($id && $iw) {
-                        $add = $data[0];
+                        $add = $dataByte[0];
                     } else {
                         $add = $dataWord[0];
                         //throw new NotImplementedException('NOT ID AND NOT IW');
@@ -738,7 +739,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if ($extra) {
                         $scratch = $this->dx->toInt();
                     } else {
-                        $scratch = $data[0];
+                        $scratch = $dataByte[0];
                     }
 
                     $this->output->writeln(sprintf('<error>[%s] word=%d extra=%d AL/AH=%s DX=%s v=%x</error>',
