@@ -35,7 +35,7 @@ class Ram implements RamInterface
         $pos = $offset;
         foreach ($data as $c) {
             $this->data[$pos] = $c;
-            $pos++;
+            ++$pos;
         }
     }
 

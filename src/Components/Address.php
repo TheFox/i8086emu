@@ -13,7 +13,15 @@ class Address implements AddressInterface
      */
     private $size;
 
+    /**
+     * @var int
+     */
     private $halfSize;
+
+    /**
+     * @var int
+     */
+    private $halfBits;
 
     /**
      * Base on the size this holds the maximum Integer value.
@@ -23,11 +31,38 @@ class Address implements AddressInterface
     private $maxValue;
 
     /**
+     * @var int
+     */
+    private $lowMask;
+
+    /**
+     * Bit Mask to get Effective High.
+     *
+     * @var int
+     */
+    private $effectiveHighMask;
+
+    /**
      * Data as one Integer.
      *
      * @var int
      */
     private $dataInt;
+
+    /**
+     * @var int
+     */
+    private $dataLowInt;
+
+    /**
+     * @var int
+     */
+    private $dataHighInt;
+
+    /**
+     * @var int
+     */
+    private $dataEffectiveHighInt;
 
     /**
      * Data as Integer array.
@@ -42,16 +77,47 @@ class Address implements AddressInterface
         $this->setData($data);
     }
 
-    public function __toString()
+    public function __toString(): string
     {
-        return 'TODO';
+        $format = sprintf('ADDR[%%0%dx]', $this->getSize() << 1);
+        $s = sprintf($format, $this->toInt());
+        return $s;
     }
 
-    private function setSize(int $size = 2): void
+    public function setSize(int $size = 2): void
     {
         $this->size = $size;
         $this->halfSize = $this->size >> 1;
-        $this->maxValue = pow(256, $this->size) - 1;
+        if ($this->halfSize < 1) {
+            $this->halfSize = 1;
+        }
+
+        $this->maxValue = (1 << ($this->size << 3)) - 1;
+
+        $this->halfBits = $this->halfSize << 3; // * 8
+        $this->lowMask = (1 << $this->halfBits) - 1;
+        $this->effectiveHighMask = $this->lowMask << $this->halfBits;
+    }
+
+    /**
+     * @return int
+     */
+    public function getSize(): int
+    {
+        return $this->size;
+    }
+
+    public function getHalfSize(): int
+    {
+        return $this->halfSize;
+    }
+
+    /**
+     * @return int
+     */
+    public function getHalfBits(): int
+    {
+        return $this->halfBits;
     }
 
     /**
@@ -60,6 +126,21 @@ class Address implements AddressInterface
     public function toInt(): int
     {
         return $this->dataInt;
+    }
+
+    public function getLowInt(): int
+    {
+        return $this->dataLowInt;
+    }
+
+    public function getHighInt(): int
+    {
+        return $this->dataHighInt;
+    }
+
+    public function getEffectiveHighInt(): int
+    {
+        return $this->dataEffectiveHighInt;
     }
 
     /**
@@ -111,6 +192,10 @@ class Address implements AddressInterface
             $this->dataInt = 0;
             $this->dataBytes = new \SplFixedArray($this->size);
         }
+
+        $this->dataLowInt = $this->dataInt & $this->lowMask;
+        $this->dataHighInt = $this->dataInt >> $this->halfBits;
+        $this->dataEffectiveHighInt = $this->dataInt & $this->effectiveHighMask;
     }
 
     /**
@@ -125,28 +210,5 @@ class Address implements AddressInterface
     {
         $endVal = $this->dataInt + $i;
         $this->setData($endVal);
-    }
-
-    public function getLowInt(): int
-    {
-        $mask = pow(256, $this->halfSize) - 1;
-        $low = $this->dataInt & $mask;
-        return $low;
-    }
-
-    public function getHighInt(): int
-    {
-        $bits = $this->halfSize << 3; // * 8
-        $high = $this->dataInt >> $bits;
-        return $high;
-    }
-
-    public function getEffectiveHighInt(): int
-    {
-        $bits = $this->halfSize << 3; // * 8
-        $mask = pow(256, $this->halfSize) - 1;
-        $mask <<= $bits;
-        $high = $this->dataInt & $mask;
-        return $high;
     }
 }

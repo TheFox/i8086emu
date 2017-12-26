@@ -15,5 +15,6 @@ interface AddressInterface
     public function getLowInt(): int;
 
     public function getHighInt(): int;
+
     public function getEffectiveHighInt(): int;
 }
