@@ -1,10 +1,9 @@
 <?php
 
-namespace TheFox\I8086emu\Test\Machine;
+namespace TheFox\I8086emu\Test\Components;
 
 use PHPUnit\Framework\TestCase;
-use TheFox\I8086emu\Machine\Address;
-use TheFox\I8086emu\Machine\Flags;
+use TheFox\I8086emu\Components\Flags;
 
 class FlagsTest extends TestCase
 {

@@ -4,7 +4,7 @@
  * @link https://en.wikipedia.org/wiki/Intel_8086#Flags
  */
 
-namespace TheFox\I8086emu\Machine;
+namespace TheFox\I8086emu\Components;
 
 use TheFox\I8086emu\Blueprint\FlagsInterface;
 
