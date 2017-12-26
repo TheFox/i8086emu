@@ -757,6 +757,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 14: // JMP | CALL short/near - OpCodes: e8 e9 ea eb
+                    $this->debugOp(sprintf('JMP'));
+                    
                     $this->ip->add(3 - $id);
                     if (!$iw) {
                         if ($id) {
@@ -785,15 +787,20 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 16: // NOP|XCHG AX, regs16 OpCodes: 90 91 92 93 94 95 96 97
+                    //$iw = true;
                     $this->debugOp(sprintf('NOP'));
-                    $from = $this->getRegisterByNumber($iw, $iReg4bit);
-                    $opSource = $from->toInt();
-                    $opDest = 0xF0000;
-                // no break
+                    //$from = $this->getRegisterByNumber($iw, $iReg4bit);
+                    //$opSource = $from->toInt();
+                    //$opDest = 0xF0000;
+                    //$to = new AbsoluteAddress(4, 0xF0000);
+                    break;
 
-                case 24: // NOP|XCHG reg, r/m
-                    $this->debugOp(sprintf('XCHG'));
-                    //throw new NotImplementedException('24');
+                case 24: // NOP|XCHG reg, r/m - OpCodes: 86 87
+                    //$this->debugOp(sprintf('XCHG reg=%s r/m=%s', $to,$from));
+                    //$opSource=$from->toInt();
+                    //$opDest=$to->toInt();
+
+                    throw new NotImplementedException('XCHG');
                     break;
 
                 case 17: // MOVSx|STOSx|LODSx - OpCodes: a4 a5 aa ab ac ad
