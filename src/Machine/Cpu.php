@@ -258,6 +258,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
         return $opcode;
     }
 
+    /**
+     * Read the data tables from BIOS.
+     */
     private function setupBiosDataTables()
     {
         $this->output->writeln('setup bios data tables');
@@ -790,6 +793,18 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $this->ip->add($add);
                     }
                     $this->debugCsIpRegister();
+                    break;
+
+                case 16: // NOP|XCHG AX, regs16 OpCodes: 90 91 92 93 94 95 96 97
+                    //throw new NotImplementedException('NOP');
+                    //break;
+                    $from=$this->getRegisterByNumber($iw, $iReg4bit);
+                    $opSource = $from->toInt();
+                    $opDest = 0xF0000;
+                    // no break
+
+                case 24: // NOP|XCHG reg, r/m
+                    throw new NotImplementedException('24');
                     break;
 
                 case 17: // MOVSx|STOSx|LODSx - OpCodes: a4 a5 aa ab ac ad

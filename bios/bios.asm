@@ -80,14 +80,12 @@ bios_entry:
 	; space is uninitialised, we need to be sure these values are zero before doing anything
 	; else. The instructions we need to use to set them must not rely on look-up operations.
 	; So e.g. MOV to memory is out but string operations are fine.
-
 	cld
-
-	;xor	ax, ax
-	;mov	di, 24		; REG_ZERO 12
-	;stosw			; Set ZS = 0
-	;mov	di, 49		; FLAG_XF 49
-	;stosb			; Set XF = 0
+	xor	ax, ax
+	mov	di, 24		; REG_ZERO 12
+	stosw			; Set ZS = 0
+	mov	di, 49		; FLAG_XF 49
+	stosb			; Set XF = 0
 
 	; Now we can do whatever we want! DL starts off being the boot disk.
 
