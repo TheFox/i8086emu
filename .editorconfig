@@ -12,3 +12,6 @@ insert_final_newline = true
 
 [Makefile]
 indent_style = tab
+
+[*.asm]
+indent_style = tab

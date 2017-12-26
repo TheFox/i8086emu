@@ -543,44 +543,44 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $condDecodeC = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_C][$flagId];
                     $condDecodeD = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_D][$flagId];
 
-                    if ($condDecodeA >= 40) {
-                        $condDecodeA -= 40;
-                    }
-                    if ($condDecodeB >= 40) {
-                        $condDecodeB -= 40;
-                    }
-                    if ($condDecodeC >= 40) {
-                        $condDecodeC -= 40;
-                    }
-                    if ($condDecodeD >= 40) {
-                        $condDecodeD -= 40;
-                    }
+                    //if ($condDecodeA >= 40) {
+                    //    $condDecodeA -= 40;
+                    //}
+                    //if ($condDecodeB >= 40) {
+                    //    $condDecodeB -= 40;
+                    //}
+                    //if ($condDecodeC >= 40) {
+                    //    $condDecodeC -= 40;
+                    //}
+                    //if ($condDecodeD >= 40) {
+                    //    $condDecodeD -= 40;
+                    //}
 
-                    if ($condDecodeA >= 9) {
-                        $realFlagIdA = 12;
-                    } else {
-                        $realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
-                    }
-                    if ($condDecodeB >= 9) {
-                        $realFlagIdB = 12;
-                    } else {
-                        $realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
-                    }
-                    if ($condDecodeC >= 9) {
-                        $realFlagIdC = 12;
-                    } else {
-                        $realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
-                    }
-                    if ($condDecodeD >= 9) {
-                        $realFlagIdD = 12;
-                    } else {
-                        $realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
-                    }
+                    //if ($condDecodeA >= 9) {
+                    //    $realFlagIdA = 12;
+                    //} else {
+                    //    $realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
+                    //}
+                    //if ($condDecodeB >= 9) {
+                    //    $realFlagIdB = 12;
+                    //} else {
+                    //    $realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
+                    //}
+                    //if ($condDecodeC >= 9) {
+                    //    $realFlagIdC = 12;
+                    //} else {
+                    //    $realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
+                    //}
+                    //if ($condDecodeD >= 9) {
+                    //    $realFlagIdD = 12;
+                    //} else {
+                    //    $realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
+                    //}
 
-                    //$realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
-                    //$realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
-                    //$realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
-                    //$realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
+                    $realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
+                    $realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
+                    $realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
+                    $realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
 
                     $flagA = $this->flags->get($realFlagIdA);
                     $flagB = $this->flags->get($realFlagIdB);
@@ -611,7 +611,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $this->ip->add($add);
                     }
                     $this->debugCsIpRegister();
-
                     break;
 
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
@@ -796,8 +795,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 16: // NOP|XCHG AX, regs16 OpCodes: 90 91 92 93 94 95 96 97
-                    //throw new NotImplementedException('NOP');
-                    //break;
                     $from=$this->getRegisterByNumber($iw, $iReg4bit);
                     $opSource = $from->toInt();
                     $opDest = 0xF0000;

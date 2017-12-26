@@ -206,7 +206,7 @@ class Register implements RegisterInterface, AddressInterface
     /**
      * Convert Char data to Integer.
      */
-    public function toInt(): int
+    public function toInt(): ?int
     {
         if (null !== $this->parent) {
             if ($this->isParentHigh) {
