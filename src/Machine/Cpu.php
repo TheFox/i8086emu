@@ -903,6 +903,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->flags->set($realFlagId, (bool)$val);
                     break;
 
+                case 53: // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
+                    $this->debugOp('HLT');
+                    break 2;
+
+                //case 55: // OpCodes: 68 69 6a 6b
+                //    $this->debugOp('???');
+                //    break;
+
                 default:
                     throw new NotImplementedException(sprintf('OP 0x%02x (=%d [%08b]) xLatID 0x%02x (=%d [%08b])',
                         $opcodeRaw, $opcodeRaw, $opcodeRaw,
