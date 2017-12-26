@@ -269,7 +269,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $tables[$i] = \SplFixedArray::fromArray(array_fill(0, $tableLength, $table));
         }
 
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 0; $i < 20; ++$i) {
             $offset = 0xF0000 + (0x81 + $i) * self::SIZE_BYTE;
             $data = $this->ram->read($offset, self::SIZE_BYTE);
             $addr = ($data[1] << 8) | $data[0];
@@ -282,7 +282,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $tableLength = 256;
             }
 
-            for ($j = 0; $j < $tableLength; $j++) {
+            for ($j = 0; $j < $tableLength; ++$j) {
                 $valueAddr = 0xF0000 + $addr + $j;
                 $v = $this->ram->read($valueAddr, 1);
 
@@ -493,9 +493,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     case 3:
                         // if mod = 11 then r/m is treated as a REG field
                         $rm = $this->getRegisterByNumber($iw, $iRm);
-                        //$dataWord[2] = $dataWord[1]; // @todo activate this if needed
-                        //$dataByte[2] = $dataWord[2]&0xFF; // @todo activate this if needed
-                        $debug = 'set $dataWord[2] = $dataWord[1]';
+                        $dataWord[2] = $dataWord[1];
+                        $dataByte[2] = $dataWord[2] & 0xFF;
+                        //$debug = 'set $dataWord[2] = $dataWord[1]';
                         break;
 
                     default:
@@ -667,9 +667,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 6: // XOR
-                            $this->debugOp(sprintf('XOR reg, r/m'));
-                            $this->output->writeln(sprintf(' -> FROM %s', $from));
-                            $this->output->writeln(sprintf(' -> TO   %s', $to));
+                            $this->debugOp(sprintf('XOR reg, r/m %s %s', $to, $from));
+                            //$this->output->writeln(sprintf(' -> FROM %s', $from));
+                            //$this->output->writeln(sprintf(' -> TO   %s', $to));
                             if ($from instanceof AddressInterface && $to instanceof AddressInterface) {
                                 $opResult = $from->toInt() ^ $to->toInt();
                                 $to->setData($opResult);
@@ -704,9 +704,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 8: // MOV
-                            $this->debugOp(sprintf('MOV reg, r/m'));
-                            $this->output->writeln(sprintf(' -> FROM %s', $from));
-                            $this->output->writeln(sprintf(' -> TO   %s', $to));
+                            $this->debugOp(sprintf('MOV reg, r/m %s %s', $to, $from));
+                            //$this->output->writeln(sprintf(' -> FROM %s', $from));
+                            //$this->output->writeln(sprintf(' -> TO   %s', $to));
 
                             if ($from instanceof AddressInterface && $to instanceof AddressInterface) {
                                 $offset = $to->toInt();
@@ -725,7 +725,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: 8c 8d 8e 8f
                     if (!$iw) {
                         // MOV
-                        $this->debugOp(sprintf('MOV sreg, r/m'));
 
                         $from = $to = $this->getRegisterByNumber(true, $iRm);
 
@@ -737,8 +736,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             //$to = $this->getRegisterByNumber(true, $iRm);
                         }
 
-                        $this->output->writeln(sprintf('FROM %s', $from));
-                        $this->output->writeln(sprintf('TO   %s', $to));
+                        $this->debugOp(sprintf('MOV sreg, r/m %s %s', $to, $from));
+                        //$this->output->writeln(sprintf('FROM %s', $from));
+                        //$this->output->writeln(sprintf('TO   %s', $to));
 
                         $to->setData($from->toInt());
 
@@ -758,7 +758,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 14: // JMP | CALL short/near - OpCodes: e8 e9 ea eb
                     $this->debugOp(sprintf('JMP'));
-                    
+
                     $this->ip->add(3 - $id);
                     if (!$iw) {
                         if ($id) {
@@ -845,6 +845,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
                     break;
 
+                case 20: // MOV r/m, immed - OpCodes: c6 c7
+                    $data = $iw ? $dataWord[2] : $dataByte[2];
+
+                    // $id is always true (1100011x) so take $from here.
+                    $this->debugOp(sprintf('MOV r/m, immed %s %x', $from, $data));
+                    $this->ram->write($data, $from->toInt());
+                    break;
+
                 case 22: // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
                     // @link https://pdos.csail.mit.edu/6.828/2010/readings/i386/OUT.htm
 
@@ -888,7 +896,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $segOverrideEn = 2;
                     $segOverride = $extra;
                     if ($repOverrideEn) {
-                        $repOverrideEn++;
+                        ++$repOverrideEn;
                     }
                     $iReg = ($opcodeRaw >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
                     $this->debugOp(sprintf('SEG override %d %02b', $iReg, $iReg));
