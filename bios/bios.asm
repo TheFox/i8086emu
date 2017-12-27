@@ -64,13 +64,12 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 	; DEV
-	mov bx, 0x1234
-	mov ax, 0x5678
-	mov cx, 0x9abc
-	
-	xchg ax, [cs:hd_secs_hi]
-	xchg bx, [cs:hd_secs_hi]
-	xchg ax, [cs:hd_secs_hi]
+	mov	ss, [cs:int_table]
+	mov	sp, 0xf000
+	mov	ss, sp
+	;lea BX, [cs:int_table]
+	;mov AX, 6
+	;xlat
 	
 	hlt
 

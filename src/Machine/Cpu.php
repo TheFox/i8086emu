@@ -625,17 +625,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: 8c 8d 8e 8f
                     if (!$iw) {
                         // MOV
-                        $from = $to = $this->getRegisterByNumber(true, $iRm);
+                        $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
+                        $iw = true;
+                        $iReg += 8;
+                        [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+                        $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
 
-                        if ($id) {
-                            $to = $this->getSegmentRegisterByNumber($iReg);
+                        if ($from instanceof AbsoluteAddress && $to instanceof RegisterInterface) {
+                            $offset = $from->toInt();
+                            $fromData = $this->ram->read($offset, $to->getSize());
+                            $to->setData($fromData);
+                        } elseif ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
+                            $to->setData($from->toInt());
                         } else {
-                            $from = $this->getSegmentRegisterByNumber($iReg);
+                            throw new UnknownTypeException();
                         }
-
-                        $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s', $to, $from));
-
-                        $to->setData($from->toInt());
 
                         $this->output->writeln(sprintf(' -> to=%s', $to));
                     } elseif (!$id) {
