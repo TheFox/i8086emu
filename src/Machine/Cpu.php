@@ -522,10 +522,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             switch ($xlatId) {
                 case 0: // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
-                    /**
-                     * $iw is the invert Flag.
-                     * For example, $iw == 0 means JAE, $iw == 1 means JNAE
-                     */
+                    // $iw is the invert Flag.
+                    // For example, $iw == 0 means JAE, $iw == 1 means JNAE
 
                     $this->debugOp(sprintf('JMP %x', $dataByte[0]));
 
@@ -535,40 +533,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $condDecodeB = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_B][$flagId];
                     $condDecodeC = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_C][$flagId];
                     $condDecodeD = $this->biosDataTables[self::TABLE_COND_JUMP_DECODE_D][$flagId];
-
-                    //if ($condDecodeA >= 40) {
-                    //    $condDecodeA -= 40;
-                    //}
-                    //if ($condDecodeB >= 40) {
-                    //    $condDecodeB -= 40;
-                    //}
-                    //if ($condDecodeC >= 40) {
-                    //    $condDecodeC -= 40;
-                    //}
-                    //if ($condDecodeD >= 40) {
-                    //    $condDecodeD -= 40;
-                    //}
-
-                    //if ($condDecodeA >= 9) {
-                    //    $realFlagIdA = 12;
-                    //} else {
-                    //    $realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
-                    //}
-                    //if ($condDecodeB >= 9) {
-                    //    $realFlagIdB = 12;
-                    //} else {
-                    //    $realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
-                    //}
-                    //if ($condDecodeC >= 9) {
-                    //    $realFlagIdC = 12;
-                    //} else {
-                    //    $realFlagIdC = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeC];
-                    //}
-                    //if ($condDecodeD >= 9) {
-                    //    $realFlagIdD = 12;
-                    //} else {
-                    //    $realFlagIdD = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeD];
-                    //}
 
                     $realFlagIdA = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeA];
                     $realFlagIdB = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$condDecodeB];
@@ -636,7 +600,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
                     $this->debugOp(sprintf('CMP mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
                     $this->output->writeln(sprintf('data2 %x %x', $dataWord[2], $dataByte[2]));
-                    //$extra = $iReg;
 
                     $id |= !$iw;
 
@@ -650,13 +613,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->output->writeln(sprintf('FROM %s', $from));
 
                     $this->ip->add(!$id + 1);
-                    //$this->output->writeln(sprintf('08: ip=%s', $this->ip));
 
                     // Decode
                     $opcodeRaw = 0x8 * $iReg;
-                    //$xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
                     $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
-                    //$iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
 
                     $this->output->writeln(sprintf('CMP %02x mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $opcodeRaw, $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
                 // no break
@@ -706,9 +666,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 8: // MOV
-                            $this->debugOp(sprintf('MOV reg, r/m %s %s', $to, $from));
-                            //$this->output->writeln(sprintf(' -> FROM %s', $from));
-                            //$this->output->writeln(sprintf(' -> TO   %s', $to));
+                            $this->debugOp(sprintf('MOV reg, r/m to=%s from=%s', $to, $from));
 
                             if ($from instanceof AddressInterface && $to instanceof AddressInterface) {
                                 $offset = $to->toInt();
@@ -727,24 +685,19 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: 8c 8d 8e 8f
                     if (!$iw) {
                         // MOV
-
                         $from = $to = $this->getRegisterByNumber(true, $iRm);
 
                         if ($id) {
-                            //$from = $this->getRegisterByNumber(true, $iRm);
                             $to = $this->getSegmentRegisterByNumber($iReg);
                         } else {
                             $from = $this->getSegmentRegisterByNumber($iReg);
-                            //$to = $this->getRegisterByNumber(true, $iRm);
                         }
 
-                        $this->debugOp(sprintf('MOV sreg, r/m %s %s', $to, $from));
-                        //$this->output->writeln(sprintf('FROM %s', $from));
-                        //$this->output->writeln(sprintf('TO   %s', $to));
+                        $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s', $to, $from));
 
                         $to->setData($from->toInt());
 
-                        $this->output->writeln(sprintf('NEW TO %s', $to));
+                        $this->output->writeln(sprintf(' -> to=%s', $to));
                     } elseif (!$id) {
                         // LEA
                         //$segOverrideEn = 1;
@@ -778,7 +731,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $add = $dataByte[0];
                     } else {
                         $add = $dataWord[0];
-                        //throw new NotImplementedException('NOT ID AND NOT IW');
                     }
 
                     $this->debugCsIpRegister();
