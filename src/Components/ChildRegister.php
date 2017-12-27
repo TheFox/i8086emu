@@ -63,12 +63,14 @@ final class ChildRegister extends Register implements ChildRegisterInterface
 
         $data &= 0xFF;
         if ($this->isParentHigh) {
-            $bits = $this->parent->getHalfBits();
             $low = $this->parent->getLowInt();
-            $newData = ($data << $bits) | $low;
+            $bits = $this->parent->getHalfBits();
+            $high = $data << $bits;
         } else {
-            $newData = $this->parent->getEffectiveHighInt() | $data;
+            $low = $data;
+            $high = $this->parent->getEffectiveHighInt();
         }
+        $newData = $high | $low;
 
         $this->parent->setData($newData);
     }

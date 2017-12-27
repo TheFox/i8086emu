@@ -16,11 +16,13 @@ use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
+use TheFox\I8086emu\Blueprint\RegisterInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\ChildRegister;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Register;
 use TheFox\I8086emu\Exception\NotImplementedException;
+use TheFox\I8086emu\Exception\UnknownTypeException;
 
 class Cpu implements CpuInterface, OutputAwareInterface
 {
@@ -786,21 +788,45 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugCsIpRegister();
                     break;
 
-                case 16: // NOP|XCHG AX, regs16 OpCodes: 90 91 92 93 94 95 96 97
-                    //$iw = true;
-                    $this->debugOp(sprintf('NOP'));
-                    //$from = $this->getRegisterByNumber($iw, $iReg4bit);
-                    //$opSource = $from->toInt();
-                    //$opDest = 0xF0000;
-                    //$to = new AbsoluteAddress(4, 0xF0000);
-                    break;
+                case 16: // NOP|XCHG AX, reg OpCodes: 90 91 92 93 94 95 96 97
+                    // For NOP the source and the destination is AX.
+                    // Since AX is mandatory for 'XCHG AX, regs16' (not for 'XCHG reg, r/m'),
+                    // NOP is the same as XCHG AX, AX.
+
+                    $iw = true;
+                    $from = $this->getRegisterByNumber($iw, $iReg4bit);
+                    $to = $this->ax;
+                    $this->debugOp(sprintf('NOP to=%s from=%s', $to, $from));
+                // no break
 
                 case 24: // NOP|XCHG reg, r/m - OpCodes: 86 87
-                    //$this->debugOp(sprintf('XCHG reg=%s r/m=%s', $to,$from));
-                    //$opSource=$from->toInt();
-                    //$opDest=$to->toInt();
+                    $this->debugOp(sprintf('XCHG to=%s from=%s', $to, $from));
+                    if ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
+                        if ('AX' !== $from->getName()) { // Not NOP
+                            // XCHG AX, reg
+                            $this->output->writeln(sprintf(' -> OK REG'));
 
-                    throw new NotImplementedException('XCHG');
+                            $tmp = $from->toInt();
+                            $from->setData($to->toInt());
+                            $to->setData($tmp);
+
+                            $this->output->writeln(sprintf(' -> OK REG to=%s from=%s', $to, $from));
+                        }
+                    } elseif ($from instanceof AbsoluteAddress && $to instanceof RegisterInterface) {
+                        // XCHG reg, r/m
+                        $offset = $from->toInt();
+                        $length = $to->getSize();
+                        $this->output->writeln(sprintf(' -> OK ADDR o=%x l=%d', $offset, $length));
+
+                        $fromData = $this->ram->read($offset, $length);
+                        $this->ram->write($to->getData(), $offset);
+                        $to->setData($fromData);
+
+                        $this->output->writeln(sprintf(' -> OK REG to=%s from=%s', $to, $from));
+                    } else {
+                        throw new UnknownTypeException('Unhandled type for XCHG.');
+                        //$this->output->writeln(sprintf(' -> FAILED %d %d', $from instanceof RegisterInterface, $from instanceof AbsoluteAddress));
+                    }
                     break;
 
                 case 17: // MOVSx|STOSx|LODSx - OpCodes: a4 a5 aa ab ac ad

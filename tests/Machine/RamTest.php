@@ -4,7 +4,6 @@ namespace TheFox\I8086emu\Test\Machine;
 
 use PHPUnit\Framework\TestCase;
 use TheFox\I8086emu\Machine\Ram;
-use TheFox\I8086emu\Machine\Register;
 
 class RamTest extends TestCase
 {
@@ -23,7 +22,7 @@ class RamTest extends TestCase
         return new Ram($size);
     }
 
-    public function testWriteRead()
+    public function testWriteReadArray()
     {
         // Write
         $this->ram->write([1, 2, 3], 0);
@@ -64,56 +63,14 @@ class RamTest extends TestCase
         $this->assertEquals([1, 2, 3, 0, 0, 4, 5, 6, 7, 8, 9, 10], $data);
     }
 
-    //public function testWriteRaw()
-    //{
-    //    $this->ram->writeRaw(1, 0);
-    //    $this->ram->writeRaw(2, 0);
-    //    $this->ram->writeRaw(3, 1);
-    //
-    //    $data = $this->ram->read(0, 2)->toArray();
-    //    $this->assertEquals([2, 3], $data);
-    //}
-
-    //public function testWriteStr()
-    //{
-    //    $this->ram->writeStr("\x00\x01\x02\x03", 0);
-    //
-    //    $data = $this->ram->read(0, 4)->toArray();
-    //    $this->assertEquals([0, 1, 2, 3], $data);
-    //}
-
-    //public function testWriteBigStr()
-    //{
-    //    $allocStr = 'ABCD';
-    //    $size = 0x40000;
-    //
-    //    $this->ram = $this->getNewRam(strlen($allocStr) * $size);
-    //
-    //    $s = str_repeat($allocStr, $size);
-    //    $this->ram->writeStr($s, 0);
-    //
-    //    $data = $this->ram->read(0, 4)->toArray();
-    //    $this->assertEquals([65, 66, 67, 68], $data);
-    //}
-
-    //public function testWriteRegister()
-    //{
-    //    $register = new Register('TT', [1, 2]);
-    //
-    //    $this->ram->writeRegister($register, 0);
-    //
-    //    $data = $this->ram->read(0, 2)->toArray();
-    //    $this->assertEquals([1, 2], $data);
-    //}
-
-    //public function testLoadFromFile()
-    //{
-    //    $file = sprintf('%s/../Resource/data/test1.txt', __DIR__);
-    //    $realFile = realpath($file);
-    //
-    //    $this->ram->loadFromFile($realFile, 2, 3);
-    //
-    //    $data = $this->ram->read(0, 5)->toArray();
-    //    $this->assertEquals([null, null, 65, 66, 67], $data);
-    //}
+    public function testWriteReadInt()
+    {
+        // Write
+        $this->ram->write(0x42, 0);
+        $this->ram->write(0x454443, 1);
+        
+        // Read
+        $data = $this->ram->read(0, 4)->toArray();
+        $this->assertEquals([0x42,0x43,0x44,0x45], $data);
+    }
 }
