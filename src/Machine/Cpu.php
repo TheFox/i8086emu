@@ -404,7 +404,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 --$segOverrideEn;
             }
             if ($repOverrideEn) {
-                --$segOverrideEn;
+                --$repOverrideEn;
             }
 
             $iMod = 0;
