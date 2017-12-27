@@ -17,3 +17,4 @@
 - <https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture>
 - <http://wiki.osdev.org/X86-64_Instruction_Encoding>
 - <https://pdos.csail.mit.edu/6.828/2010/readings/i386/OUT.htm>
+- <https://www.tu-chemnitz.de/informatik/RA/news/stack/kompendium/vortraege_98/grafik/adaptertypen.html>

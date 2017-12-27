@@ -64,10 +64,10 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 	; DEV
-	mov	ss, [cs:int_table]
-	mov	sp, 0xf000
-	mov	ss, sp
-	;lea BX, [cs:int_table]
+
+	lea BX, [biosstr]
+	lea BX, [ds:biosstr]
+	lea BX, [cs:biosstr]
 	;mov AX, 6
 	;xlat
 

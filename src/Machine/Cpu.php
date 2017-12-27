@@ -625,7 +625,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: 8c 8d 8e 8f
                     if (!$iw) {
                         // MOV
-                        $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
+                        //$this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
                         $iw = true;
                         $iReg += 8;
                         [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
@@ -635,7 +635,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $offset = $from->toInt();
                             $fromData = $this->ram->read($offset, $to->getSize());
                             $to->setData($fromData);
-                        } elseif ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
+                        } elseif ($from instanceof AddressInterface && $to instanceof AddressInterface) {
                             $to->setData($from->toInt());
                         } else {
                             throw new UnknownTypeException();
@@ -644,10 +644,24 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $this->output->writeln(sprintf(' -> to=%s', $to));
                     } elseif (!$id) {
                         // LEA
-                        //$segOverrideEn = 1;
-                        //$segOverride = 'ZERO';
-                        $this->debugOp(sprintf('LEA'));
-                        throw new NotImplementedException('LEA');
+                        $segOverrideEn = 1;
+                        $segOverride = 12; // Zero-Register
+
+                        //$this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $to, $from, $rm));
+                        // Since the direction in this case is always false we have to swap $from/$to.
+                        [$rm, $to, $from] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+                        $this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $to, $from, $rm));
+
+                        //$a=$this->ds->toInt() << 4;
+                        //$a=0xF0000;
+                        //$a+= $from->toInt() ;
+                        //$fromData = $this->ram->read($a, 20)->toArray();
+                        //$fromData = array_map('chr', $fromData);
+                        //$fromData = join('', $fromData);
+                        //$this->output->writeln(sprintf(' -> %x "%s"',$a, $fromData));
+
+                        $to->setData($from->toInt());
+                        $this->output->writeln(sprintf(' -> to=%s', $to));
                     } else {
                         // POP
                         $this->debugOp(sprintf('POP'));
@@ -688,7 +702,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     // For NOP the source and the destination is AX.
                     // Since AX is mandatory for 'XCHG AX, regs16' (not for 'XCHG reg, r/m'),
                     // NOP is the same as XCHG AX, AX.
-
                     $iw = true;
                     $from = $this->getRegisterByNumber($iw, $iReg4bit);
                     $to = $this->ax;
