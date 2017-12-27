@@ -429,13 +429,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->output->writeln(sprintf('REG %d %03b', $iReg, $iReg));
                 $this->output->writeln(sprintf('R/M %d %03b', $iRm, $iRm));
 
-                $biosDataTableBaseIndex = 0;
-
                 switch ($iMod) {
                     case 0:
-                        $biosDataTableBaseIndex += 4;
-                    // no break
-
                     case 1:
                     case 2:
                         if (0 === $iMod && 6 === $iRm || 2 === $iMod) {
@@ -449,71 +444,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             //$dataWord[1] = $data[1]; // @todo activate this if needed
                             $debug = 'set $dataWord[1] = $data[1]';
                         }
-
-                        if ($segOverrideEn) {
-                            $defaultSegId = $segOverride;
-                        } else {
-                            /**
-                             * Table 3/7: R/M "default segment" lookup
-                             * @var int $defaultSegId
-                             */
-                            $defaultSegId = $this->biosDataTables[$biosDataTableBaseIndex + 3][$iRm];
-                        }
-
-                        // Table 0/4: R/M "register 1" lookup
-                        $register1Id = $this->biosDataTables[$biosDataTableBaseIndex][$iRm];
-
-                        // Table 1/5: R/M "register 2" lookup
-                        $register2Id = $this->biosDataTables[$biosDataTableBaseIndex + 1][$iRm];
-
-                        // Convert Register IDs to objects.
-                        $defaultSegReg = $this->getRegisterByNumber(true, $defaultSegId);
-                        $register1 = $this->getRegisterByNumber(true, $register1Id);
-                        $register2 = $this->getRegisterByNumber(true, $register2Id);
-
-                        // Table 2/6: R/M "DISP multiplier" lookup
-                        $dispMultiplier = $this->biosDataTables[$biosDataTableBaseIndex + 2][$iRm];
-
-                        $addr1 =
-                            $register1->toInt()
-                            + $register2->toInt()
-                            + $dataWord[1] * $dispMultiplier;
-
-                        $addr2 =
-                            ($defaultSegReg->toInt() << 4)
-                            + (0xFFFF & $addr1); // cast to "unsigned short".
-
-                        $rm = new AbsoluteAddress(self::SIZE_BYTE << 1, $addr2);
-
-                        $this->output->writeln(sprintf('DEF  %s %d', $defaultSegReg, $defaultSegId));
-                        $this->output->writeln(sprintf('REG1 %s %d', $register1, $register1Id));
-                        $this->output->writeln(sprintf('REG2 %s %d', $register2, $register2Id));
-                        $this->output->writeln(sprintf('ADDR1 %x', $addr1));
-                        $this->output->writeln(sprintf('ADDR2 %x', $addr2));
-                        break;
-
                     case 3:
-                        // if mod = 11 then r/m is treated as a REG field
-                        $rm = $this->getRegisterByNumber($iw, $iRm);
                         $dataWord[2] = $dataWord[1];
                         $dataByte[2] = $dataWord[2] & 0xFF;
-                        //$debug = 'set $dataWord[2] = $dataWord[1]';
                         break;
 
                     default:
                         throw new NotImplementedException(sprintf('Unhandled mode: %d', $iMod));
-                } // switch $iMod
-
-                if (!isset($rm)) {
-                    throw new \RuntimeException('rm variable has not been set yet.');
                 }
 
-                $from = $to = $this->getRegisterByNumber($iw, $iReg);
-                if ($id) {
-                    $from = $rm;
-                } else {
-                    $to = $rm;
-                }
+                [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
 
                 $this->output->writeln(sprintf('<info>FROM %s</info>', $from));
                 $this->output->writeln(sprintf('<info>TO   %s</info>', $to));
@@ -979,6 +919,81 @@ class Cpu implements CpuInterface, OutputAwareInterface
         } // while $opcodeRaw
     } // run()
 
+    private function decodeRegisterMemory(bool $isWord, bool $id, int $iMod, int $segOverrideEn, int $segOverride, int $iRm, int $iReg, int $data)
+    {
+        $biosDataTableBaseIndex = 0;
+        switch ($iMod) {
+            case 0:
+                $biosDataTableBaseIndex += 4;
+            // no break
+
+            case 1:
+            case 2:
+                if ($segOverrideEn) {
+                    $defaultSegId = $segOverride;
+                } else {
+                    /**
+                     * Table 3/7: R/M "default segment" lookup
+                     * @var int $defaultSegId
+                     */
+                    $defaultSegId = $this->biosDataTables[$biosDataTableBaseIndex + 3][$iRm];
+                }
+
+                // Table 0/4: R/M "register 1" lookup
+                $register1Id = $this->biosDataTables[$biosDataTableBaseIndex][$iRm];
+
+                // Table 1/5: R/M "register 2" lookup
+                $register2Id = $this->biosDataTables[$biosDataTableBaseIndex + 1][$iRm];
+
+                // Convert Register IDs to objects.
+                $defaultSegReg = $this->getRegisterByNumber(true, $defaultSegId);
+                $register1 = $this->getRegisterByNumber(true, $register1Id);
+                $register2 = $this->getRegisterByNumber(true, $register2Id);
+
+                // Table 2/6: R/M "DISP multiplier" lookup
+                $dispMultiplier = $this->biosDataTables[$biosDataTableBaseIndex + 2][$iRm];
+
+                $addr1 =
+                    $register1->toInt()
+                    + $register2->toInt()
+                    + $data * $dispMultiplier;
+
+                $addr2 =
+                    ($defaultSegReg->toInt() << 4)
+                    + (0xFFFF & $addr1); // cast to "unsigned short".
+
+                $rm = new AbsoluteAddress(self::SIZE_BYTE << 1, $addr2);
+
+                $this->output->writeln(sprintf('DEF  %s %d', $defaultSegReg, $defaultSegId));
+                $this->output->writeln(sprintf('REG1 %s %d', $register1, $register1Id));
+                $this->output->writeln(sprintf('REG2 %s %d', $register2, $register2Id));
+                $this->output->writeln(sprintf('ADDR1 %x', $addr1));
+                $this->output->writeln(sprintf('ADDR2 %x', $addr2));
+                break;
+
+            case 3:
+                // if mod = 11 then r/m is treated as a REG field
+                $rm = $this->getRegisterByNumber($isWord, $iRm);
+                break;
+
+            default:
+                throw new NotImplementedException(sprintf('Unhandled mode: %d', $iMod));
+        } // switch $iMod
+
+        if (!isset($rm)) {
+            throw new \RuntimeException('rm variable has not been set yet.');
+        }
+
+        $from = $to = $this->getRegisterByNumber($isWord, $iReg);
+        if ($id) {
+            $from = $rm;
+        } else {
+            $to = $rm;
+        }
+
+        return [$rm, $from, $to];
+    }
+
     private function interrupt(int $code)
     {
         // @todo
@@ -996,8 +1011,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private function getRegisterByNumber(bool $isWord, int $regId, int $loop = 0): Register
     {
         if ($isWord) {
-            $register = $this->registers[$regId];
-            return $register;
+            return $this->registers[$regId];
         }
         if ($loop >= 2) {
             throw new \RuntimeException('Unhandled recursive call detected.');
@@ -1015,8 +1029,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     private function getSegmentRegisterByNumber(int $regId): Register
     {
-        $register = $this->segmentRegisters[$regId];
-        return $register;
+        return $this->segmentRegisters[$regId];
     }
 
     /**
@@ -1026,8 +1039,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
      */
     private function getEffectiveStackPointerAddress(): int
     {
-        $ea = ($this->ss->toInt() << 4) + $this->sp->toInt();
-        return $ea;
+        return ($this->ss->toInt() << 4) + $this->sp->toInt();
     }
 
     /**
@@ -1037,8 +1049,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
      */
     private function getEffectiveInstructionPointerAddress(): int
     {
-        $ea = ($this->cs->toInt() << 4) + $this->ip->toInt();
-        return $ea;
+        return ($this->cs->toInt() << 4) + $this->ip->toInt();
     }
 
     /**
