@@ -70,7 +70,7 @@ bios_entry:
 	;lea BX, [cs:int_table]
 	;mov AX, 6
 	;xlat
-	
+
 	hlt
 
 	; Set up initial stack to F000:F000
@@ -88,10 +88,13 @@ bios_entry:
 	; space is uninitialised, we need to be sure these values are zero before doing anything
 	; else. The instructions we need to use to set them must not rely on look-up operations.
 	; So e.g. MOV to memory is out but string operations are fine.
+
 	cld
+
 	xor	ax, ax
 	mov	di, 24		; REG_ZERO 12
 	stosw			; Set ZS = 0
+
 	mov	di, 49		; FLAG_XF 49
 	stosb			; Set XF = 0
 
@@ -189,7 +192,7 @@ calc_heads:
 	mov	ax, [cs:hd_max_track]
 	cmp	ax, 1024
 	ja	track_overflow
-	
+
 	jmp	calc_end
 
 track_overflow:
@@ -213,7 +216,7 @@ calc_end:
 
 	dec	word [cs:hd_max_track]
 	dec	word [cs:hd_max_head]
-	
+
 ; Main BIOS entry point. Zero the flags, and set up registers.
 
 boot:
@@ -226,7 +229,7 @@ boot:
 	pop	ds
 	pop	ss
 	mov	sp, 0xf000
-	
+
 ; Set up the IVT. First we zero out the table
 
 	cld
@@ -516,7 +519,7 @@ int7:	; Whenever the user presses a key, INT 7 is called by the emulator.
 
 	cmp	ax, 0x111 ; SDL cursor keys
 	jb	sdl_process_key ; No special handling for other keys yet
-	
+
 	sub	ax, 0x111
 	mov	bx, unix_cursor_xlt
 	xlat	; Convert SDL cursor keys to scancode
@@ -553,12 +556,12 @@ int7:	; Whenever the user presses a key, INT 7 is called by the emulator.
   sdl_key_down:
 
 	mov	[es:this_keystroke-bios_data], al
-		
+
   sdl_not_in_buf:
 
 	mov	al, bh
 	call	io_key_available
-	jmp	i2_dne	
+	jmp	i2_dne
 
   check_linux_bksp:
 
@@ -620,7 +623,7 @@ int7:	; Whenever the user presses a key, INT 7 is called by the emulator.
 	jne	i2_sf
 
 	; Stuff an ESC character
-	
+
 	mov	byte [es:this_keystroke-bios_data], 0x1b
 
 	mov	al, 0x01
@@ -642,7 +645,7 @@ int7:	; Whenever the user presses a key, INT 7 is called by the emulator.
 	je	i2_esc
 
 	; It isn't, so stuff an ESC character plus this key
-	
+
 	mov	byte [es:this_keystroke-bios_data], 0x1b
 
 	mov	al, 0x01
@@ -675,7 +678,7 @@ int7:	; Whenever the user presses a key, INT 7 is called by the emulator.
 
 	mov	byte [es:this_keystroke-bios_data], 0
 	jmp	after_translate
-	
+
   i2_regular_key:
 
 	mov	byte [es:notranslate_flg-bios_data], 0
@@ -744,9 +747,9 @@ int7:	; Whenever the user presses a key, INT 7 is called by the emulator.
 	cmp	byte [es:this_keystroke-bios_data], 1 ; Ctrl+F then Ctrl+A outputs code for Ctrl+A
 	je	after_translate
 
-	cmp	byte [es:this_keystroke-bios_data], 6 ; Ctrl+F then Ctrl+F outputs code for Ctrl+F  
+	cmp	byte [es:this_keystroke-bios_data], 6 ; Ctrl+F then Ctrl+F outputs code for Ctrl+F
 	je	after_translate
-	
+
 	mov	byte [es:this_keystroke-bios_data], 0	; Fxx key, so zero out ASCII code
 	add	al, 0x39
 
@@ -888,7 +891,7 @@ inta:
 	pop	es
 	mov	bx, timetable
 	extended_get_rtc
-	
+
 	mov	ax, [cs:tm_msec]
 	sub	ax, [cs:last_int8_msec]
 
@@ -959,7 +962,7 @@ skip_timer_increment:
 	; See if we have a waiting ESC flag
 	cmp	byte [es:escape_flag-bios_data], 1
 	jne	i8_end
-	
+
 	; Did we have one last two cycles as well?
 	cmp	byte [es:escape_flag_last-bios_data], 1
 	je	i8_stuff_esc
@@ -987,7 +990,7 @@ i8_stuff_esc:
 	mov	al, 0x01
 	call	keypress_release
 
-i8_end:	
+i8_end:
 
 	; A Hercules graphics adapter flips bit 7 of I/O port 3BA on refresh
 	mov	dx, 0x3BA
@@ -999,7 +1002,7 @@ i8_end:
 	pop	ds
 	pop	di
 	pop	cx
-	
+
 	pop	es
 	pop	bp
 	pop	dx
@@ -1094,7 +1097,7 @@ int10:
   int10_switch_to_cga_gfx:
 
 	; Switch to CGA-like graphics mode (with Hercules CRTC set for 640 x 400)
-	
+
 	mov	dx, 0x40
 	mov	es, dx
 
@@ -1118,7 +1121,7 @@ int10:
 	mov	al, 0x8a
 	out	dx, al
 
-	mov	bh, 7	
+	mov	bh, 7
 	call	clear_screen
 
 	mov	ax, 0x30
@@ -1213,7 +1216,7 @@ int10:
 	; If cursor is moved off the screen, then hide it
 	call	ansi_hide_cursor
 	jmp	skip_set_cur_ansi
-	
+
     skip_set_cur_row_max:
 
      	cmp	dl, 79
@@ -1222,7 +1225,7 @@ int10:
 	; If cursor is moved off the screen, then hide it
 	call	ansi_hide_cursor
 	jmp	skip_set_cur_ansi
-	
+
     skip_set_cur_col_max:
 
 	mov	al, 0x1B	; ANSI
@@ -1480,7 +1483,7 @@ vmem_scroll_up_copy_next_row:
 	pop	cx
 
 	dec	bl		; Scroll whole text block another line
-	jmp	cls_vmem_scroll_up_next_line	
+	jmp	cls_vmem_scroll_up_next_line
 
     cls_vmem_scroll_up_done:
 
@@ -1504,7 +1507,7 @@ vmem_scroll_up_copy_next_row:
 	pop	bx
 
 	iret
-	
+
   int10_scrolldown:
 
 	push	bx
@@ -1718,7 +1721,7 @@ int10_scroll_down_vmem_update:
 	pop	cx
 
 	dec	bl		; Scroll whole text block another line
-	jmp	cls_vmem_scroll_down_next_line	
+	jmp	cls_vmem_scroll_down_next_line
 
     cls_vmem_scroll_down_done:
 
@@ -1821,7 +1824,7 @@ int10_scroll_down_vmem_update:
 	add	bx, ax
 
 	mov	[bx], cx
-	
+
 	pop	ax
 	push	ax
 
@@ -1914,7 +1917,7 @@ cpu	8086
 	call	puts_decimal_al
 	mov	al, 'm'		; Set cursor position command
 	extended_putchar_al
-	
+
 	pop	cx
 	pop	ax
 	push	ax
@@ -2032,13 +2035,13 @@ cpu	8086
 
 ; ************************* INT 11h - get equipment list
 
-int11:	
+int11:
 	mov	ax, [cs:equip]
 	iret
 
 ; ************************* INT 12h - return memory size
 
-int12:	
+int12:
 	mov	ax, 0x280 ; 640K conventional memory
 	iret
 
@@ -2135,7 +2138,7 @@ int13:
 
 	mov	dl, 0		; Hard disk file handle is stored at j[0] in emulator
 
-    i_rd: 
+    i_rd:
 
 	push	si
 	push	bp
@@ -2239,7 +2242,7 @@ int13:
 	call	chs_to_abs
 
 	; Signal an error if we are trying to write beyond the end of the disk
-	
+
 	cmp	dl, 0 ; Hard disk?
 	jne	wr_fine ; No - no need for disk sector valid check - NOTE: original submission was JNAE which caused write problems on floppy disk
 
@@ -2464,7 +2467,7 @@ int16:
 	iret
 
   kb_getkey:
-	
+
 	push	es
 	push	bx
 	push	cx
@@ -2496,7 +2499,7 @@ int16:
 	pop	dx
 	pop	cx
 	pop	bx
-	pop	es	
+	pop	es
 
 	iret
 
@@ -2624,7 +2627,7 @@ int1a:
 	mov	ax, 1092 ; Clock ticks in a minute
 	mul	word [tm_min] ; AX now contains clock ticks in minutes counter
 	mov	[tm_min], ax
-	
+
 	mov	ax, 65520 ; Clock ticks in an hour
 	mul	word [tm_hour] ; DX:AX now contains clock ticks in hours counter
 
@@ -2856,14 +2859,14 @@ hex_to_bcd:
 	add	ax, 0x0060
 
 	; Then the low nibble of AH
-  c2:	
+  c2:
 	mov	bh, ah
 	and	bh, 0x0f
 	cmp	bh, 0x0a
 	jne	c3
 	add	ax, 0x0600
 
-  c3:	
+  c3:
 	loop	h2bloop
   h2bfin:
 	pop	bx
@@ -2874,10 +2877,10 @@ hex_to_bcd:
 puts_decimal_al:
 
 	push	ax
-	
+
 	aam
 	add	ax, 0x3030	; '00'
-	
+
 	cmp	ah, 0x30
 	je	pda_2nd		; First digit is zero, so print only 2nd digit
 
@@ -2908,7 +2911,7 @@ kb_adjust_buf:
 	jnge	kb_adjust_tail
 
 	mov	bx, [es:kbbuf_start_ptr-bios_data]
-	mov	[es:kbbuf_head-bios_data], bx	
+	mov	[es:kbbuf_head-bios_data], bx
 
   kb_adjust_tail:
 
@@ -2920,7 +2923,7 @@ kb_adjust_buf:
 	jnge	kb_adjust_done
 
 	mov	bx, [es:kbbuf_start_ptr-bios_data]
-	mov	[es:kbbuf_tail-bios_data], bx	
+	mov	[es:kbbuf_tail-bios_data], bx
 
   kb_adjust_done:
 
@@ -2935,7 +2938,7 @@ kb_adjust_buf:
 
 chs_to_abs:
 
-	push	ax	
+	push	ax
 	push	bx
 	push	cx
 	push	dx
@@ -3204,7 +3207,7 @@ reach_stack_carry:
 ; them.
 
 vmem_driver_entry:
-	
+
 	cmp	byte [cs:in_update], 1
 	je	just_finish		; If we are already in the middle of an update, skip. Needed for re-entrancy
 
@@ -3214,7 +3217,7 @@ vmem_driver_entry:
 
 gmode_test:
 
-	mov	byte [cs:int8_ctr], 0	
+	mov	byte [cs:int8_ctr], 0
 	mov	dx, 0x3b8		; Do not update if in Hercules graphics mode
 	in	al, dx
 	test	al, 2
@@ -3225,7 +3228,7 @@ just_finish:
 	ret
 
 vram_zero_check:			; Check if video memory is blank - if so, do nothing
-	
+
 	mov	byte [cs:in_update], 1
 
 	sti
@@ -3263,7 +3266,7 @@ vram_zero_check:			; Check if video memory is blank - if so, do nothing
 	mov	ds, bx
 	mov	bh, [crt_curpos_y-bios_data]
 	mov	bl, [crt_curpos_x-bios_data]
-	
+
 	cmp	bh, [cs:crt_curpos_y_last]
 	jne	restore_cursor ; Cursor position changed (but nothing else) so update just that
 	cmp	bl, [cs:crt_curpos_x_last]
@@ -3531,7 +3534,7 @@ restore_cursor:
 	mov	bl, [crt_curpos_x-bios_data]
 	mov	[cs:crt_curpos_y_last], bh
 	mov	[cs:crt_curpos_x_last], bl
-		
+
 	cmp	bh, 24
 	ja	vmem_end_hidden_cursor
 	cmp	bl, 79
