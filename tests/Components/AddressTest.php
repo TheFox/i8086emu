@@ -20,6 +20,9 @@ class AddressTest extends TestCase
             [2, 0xFF0A, null, [65290, 0xA, 0xFF, 0xFF00]],
             [4, 0x1234ABCD, null, [0x1234ABCD, 0xABCD, 0x1234, 0x12340000]],
 
+            [2, 0x1234AB, null, [0x34AB, null, null, null]],
+            [2, [255, 255, 255], null, [0xFFFF, null, null, null]],
+
             [2, 0xF00A, 0x0F00, [0xFF0A, 0xA, 0xFF, 0xFF00]],
             [4, 0xF000, 0xF000, [0x1E000, 0xE000, 1, 0x10000]],
         ];
@@ -37,9 +40,9 @@ class AddressTest extends TestCase
     {
         /**
          * @var int $expectedInt
-         * @var int $expectedLowInt
-         * @var int $expectedHighInt
-         * @var int $expectedEffectiveHighInt
+         * @var int|null $expectedLowInt
+         * @var int|null $expectedHighInt
+         * @var int|null $expectedEffectiveHighInt
          */
         [
             $expectedInt,
@@ -56,12 +59,18 @@ class AddressTest extends TestCase
         }
 
         $this->assertEquals($expectedInt, $address->toInt());
-        $this->assertEquals($expectedLowInt, $address->getLowInt());
-        $this->assertEquals($expectedHighInt, $address->getHighInt());
-        $this->assertEquals($expectedEffectiveHighInt, $address->getEffectiveHighInt());
+        if (null !== $expectedLowInt) {
+            $this->assertEquals($expectedLowInt, $address->getLowInt());
+        }
+        if (null !== $expectedHighInt) {
+            $this->assertEquals($expectedHighInt, $address->getHighInt());
+        }
+        if (null !== $expectedEffectiveHighInt) {
+            $this->assertEquals($expectedEffectiveHighInt, $address->getEffectiveHighInt());
+        }
     }
 
-    public function testSetLowHigh()
+    public function testSetLowHighBit16()
     {
         $address = new Address();
         $address->setSize(2);
@@ -76,22 +85,27 @@ class AddressTest extends TestCase
         $address->setHighInt(4);
         $data = $address->getData()->toArray();
         $this->assertEquals([3, 4], $data);
+
+        $address->setLowInt(0x1234);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([0x34, 4], $data);
     }
 
-    /**
-     * @expectedException \TheFox\I8086emu\Exception\ValueExceedException
-     */
-    public function testValueExceedException1()
+    public function testSetLowHighBit48()
     {
-        new Address(2, [1, 2, 3]);
-    }
+        $address = new Address();
+        $address->setSize(6);
+        $address->setData([0, 1, 2, 3, 4, 5]);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([0, 1, 2, 3, 4, 5], $data);
 
-    /**
-     * @expectedException \TheFox\I8086emu\Exception\ValueExceedException
-     */
-    public function testValueExceedException2()
-    {
-        new Address(1, 256);
+        $address->setLowInt(3);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([3, 0, 0, 3, 4, 5], $data);
+
+        $address->setLowInt(0x123456);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([0x56, 0x34, 0x12, 3, 4, 5], $data);
     }
 
     /**

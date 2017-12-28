@@ -6,7 +6,7 @@ interface AddressInterface
 {
     public function toInt(): int;
 
-    public function setData($data): void;
+    public function setData($data, bool $reset = true): void;
 
     public function getData(): \SplFixedArray;
 

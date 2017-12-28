@@ -358,6 +358,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $segOverrideEn = 0; // Segment Override
         //$repOverride = 0;
         $repOverrideEn = 0; // Repeat
+        $repMode = null;
 
         $cycle = 0;
         while ($opcodeRaw = $this->getOpcode()) {
@@ -734,43 +735,63 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
                     break;
 
-                case 17: // MOVSx|STOSx|LODSx - OpCodes: a4 a5 aa ab ac ad
+                case 17: // MOVSx (extra=0)|STOSx (extra=1)|LODSx (extra=2) - OpCodes: a4 a5 aa ab ac ad
                     if ($segOverrideEn) {
-                        throw new NotImplementedException('SEG REG Override');
+                        $defaultSeg = $this->getSegmentRegisterByNumber($segOverride);
+                    } else {
+                        $defaultSeg = $this->ds;
                     }
                     if ($repOverrideEn) {
-                        throw new NotImplementedException('REP Override');
+                        $j = $this->cx->toInt();
+                    } else {
+                        $j = 1;
                     }
-                    switch ($extra) {
-                        case 0: // MOVSx
-                            $this->debugOp(sprintf('MOVSx'));
-                            throw new NotImplementedException('MOVSx');
-                            break;
 
-                        case 1: // STOSx
-                            $this->debugOp(sprintf('STOSx %d %d %b', $iw, $extra, $extra));
-                            $this->output->writeln(sprintf(' -> REG %s', $this->di));
+                    $ax = $this->getRegisterByNumber($iw, 0);
+                    $add = (2 * $this->flags->getByName('DF') - 1) * ($iw + 1); // direction flag
 
-                            $from = $this->getRegisterByNumber($iw, 0); // AL/AX
-                            $this->output->writeln(sprintf(' -> FROM %s', $from));
+                    $this->debugOp(sprintf('MOVSx|STOSx|LODSx w=%d e=%b a=%d', $iw, $extra, $add));
 
-                            $ea = $this->getEffectiveEsDiAddress();
-                            $this->output->writeln(sprintf(' -> EA %04x [%016b]', $ea, $ea));
+                    for ($i = $j; $i > 0; --$i) {
+                        if (1 == $extra) {
+                            // Extra 1: AL/AX
+                            $from = $ax;
+                            //$this->output->writeln(sprintf(' -> FROM %s', $from));
+                        } else {
+                            // Extra 0, 2: SEG:SI
+                            $from = ($defaultSeg->toInt() << 4) + $this->si->toInt();
+                            //$this->output->writeln(sprintf(' -> FROM %08x', $from));
+                        }
 
-                            $data = $from->getData();
-                            $this->ram->write($data, $ea);
+                        if ($extra < 2) {
+                            // Extra 0, 1: ES:DI
+                            $to = $this->getEffectiveEsDiAddress();
+                            //$this->output->writeln(sprintf(' -> TO %08x', $to));
+                        } else {
+                            // Extra 2: AL/AX
+                            $to = $ax;
+                            //$this->output->writeln(sprintf(' -> TO %s', $to));
+                        }
 
-                            $add = (2 * $this->flags->getByName('DF') - 1) * ($iw + 1); // direction flag
+                        if ($from instanceof AddressInterface && is_numeric($to)) {
+                            $fromData = $from->getData();
+                            $this->ram->write($fromData, $to);
+                        } elseif (is_numeric($from) && $to instanceof AddressInterface) {
+                            $fromData = $this->ram->read($from, $iwSize);
+                            $to->setData($fromData, true);
+                        }
+
+                        if (1 !== $extra) {
+                            $this->si->add(-$add);
+                        }
+                        if (2 !== $extra) {
                             $this->di->add(-$add);
-
-                            $this->output->writeln(sprintf(' -> REG %s (%d)', $this->di, $add));
-                            break;
-
-                        case 2: // LODSx
-                            $this->debugOp(sprintf('LODSx'));
-                            throw new NotImplementedException('LODSx');
-                            break;
+                        }
+                        //$this->output->writeln(sprintf(' -> REG %s (%d)', $this->si, $add));
+                        //$this->output->writeln(sprintf(' -> REG %s (%d)', $this->di, $add));
                     }
+
+                    // Reset CX on repeat mode.
                     if ($repOverrideEn) {
                         $this->cx->setData(0);
                     }
@@ -808,6 +829,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     // handle CRT cursor position
                     break;
 
+                case 23: // REPxx - OpCodes: f2 f3
+                    $repOverrideEn = 2;
+                    $repMode = $iw;
+                    if ($segOverrideEn) {
+                        ++$segOverride;
+                    }
+                    $this->debugOp(sprintf('REP %d', $repMode));
+                    break;
+
                 case 25: // PUSH sreg - OpCodes: 06 0e 16 1e
                     $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
                     $register = $this->getSegmentRegisterByNumber($iReg);
@@ -834,7 +864,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         ++$repOverrideEn;
                     }
                     $iReg = ($opcodeRaw >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
-                    $this->debugOp(sprintf('SEG override %d %02b', $iReg, $iReg));
+                    $this->debugOp(sprintf('SEG override %d %d', $iReg, $extra));
                     break;
 
                 case 33: // PUSHF - OpCodes: 9c

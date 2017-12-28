@@ -50,7 +50,7 @@ final class ChildRegister extends Register implements ChildRegisterInterface
         $this->isParentHigh = $isParentHigh;
     }
 
-    public function setData($data): void
+    public function setData($data, bool $reset = true): void
     {
         if (null === $this->parent) {
             // Skip setData while __construct().

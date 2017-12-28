@@ -30,7 +30,6 @@
 org	100h				; BIOS loads at offset 0x0100
 
 main:
-
 	jmp	bios_entry
 
 ; Here go pointers to the different data tables used for instruction decoding
@@ -214,7 +213,6 @@ boot:
 	mov	ax, 0
 	push	ax
 	popf
-	pushf
 
 	push	cs
 	push	cs

@@ -4,7 +4,7 @@ namespace TheFox\I8086emu\Components;
 
 use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Exception\NegativeValueException;
-use TheFox\I8086emu\Exception\ValueExceedException;
+use TheFox\I8086emu\Exception\ValueExceededException;
 
 class Address implements AddressInterface
 {
@@ -86,6 +86,10 @@ class Address implements AddressInterface
 
     public function setSize(int $size = 2): void
     {
+        if ($size > PHP_INT_SIZE) {
+            throw new ValueExceededException(sprintf('Size cannot exceed PHP_INT_SIZE. (%d)', PHP_INT_SIZE));
+        }
+
         $this->size = $size;
         $this->halfSize = $this->size >> 1;
         if ($this->halfSize < 1) {
@@ -160,53 +164,43 @@ class Address implements AddressInterface
     }
 
     /**
+     * Overwrite all fields.
+     *
      * @param iterable|int $data
+     * @param bool $reset Keeps the original data of the fields that has not been touched when false.
      */
-    public function setData($data): void
+    public function setData($data, bool $reset = true): void
     {
-        if (is_iterable($data)) {
-            $this->dataInt = 0;
+        $this->dataInt = 0;
+        if ($reset) {
             $this->dataBytes = new \SplFixedArray($this->size);
+        }
 
-            if (count($data) > $this->size) {
-                throw new ValueExceedException();
-            }
-
+        if (is_iterable($data)) {
             $bits = 0;
             $i = 0; // Index
-            foreach ($data as $c) {
+            while ($i < $this->size) {
+                $c = $data[$i];
                 $this->dataInt += $c << $bits;
                 $this->dataBytes[$i] = $c;
 
-                $bits += 8;
                 ++$i;
+                $bits += 8;
             }
         } elseif (is_numeric($data)) {
             if ($data < 0) {
                 throw new NegativeValueException();
             }
-            if ($data > $this->maxValue) {
-                // Reset internal data.
-                $this->dataInt = 0;
-                $this->dataBytes = new \SplFixedArray($this->size);
 
-                throw new ValueExceedException();
-            }
-
-            $this->dataInt = $data;
-            $this->dataBytes = new \SplFixedArray($this->size);
+            $this->dataInt = $data & $this->maxValue;
 
             $i = 0; // Index
             while (0 !== $data && $i < $this->size) {
                 $this->dataBytes[$i] = $data & 0xFF;
-                //$this->dataInt += $this->dataBytes[$i];
 
                 $data >>= 8;
                 ++$i;
             }
-        } else {
-            $this->dataInt = 0;
-            $this->dataBytes = new \SplFixedArray($this->size);
         }
 
         $this->dataLowInt = $this->dataInt & $this->lowMask;

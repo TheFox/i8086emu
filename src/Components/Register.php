@@ -24,7 +24,7 @@ class Register extends Address implements RegisterInterface
 
     public function __toString(): string
     {
-        $format = sprintf('%s[%%0%dx]', $this->getName(), $this->getSize()<<1);
+        $format = sprintf('%s[%%0%dx]', $this->getName(), $this->getSize() << 1);
         $s = sprintf($format, $this->toInt());
         return $s;
     }
