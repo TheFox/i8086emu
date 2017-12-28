@@ -214,6 +214,7 @@ boot:
 	mov	ax, 0
 	push	ax
 	popf
+	pushf
 
 	push	cs
 	push	cs

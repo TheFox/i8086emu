@@ -837,6 +837,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('SEG override %d %02b', $iReg, $iReg));
                     break;
 
+                case 33: // PUSHF - OpCodes: 9c
+                    $this->debugOp(sprintf('PUSHF %s', $this->flags));
+                    $this->pushDataToStack($this->flags->getData());
+                    break;
+
                 case 34: // POPF - OpCodes: 9d
                     $stackData = $this->popFromStack(self::SIZE_BYTE);
                     $this->flags->setIntData(($stackData[1] << 8) | $stackData[0]);

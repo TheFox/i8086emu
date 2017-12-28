@@ -13,4 +13,6 @@ interface FlagsInterface
     public function getByName(string $name): bool;
 
     public function getName(int $flagId);
+
+    public function getData(): \SplFixedArray;
 }

@@ -10,6 +10,7 @@ use TheFox\I8086emu\Blueprint\FlagsInterface;
 
 class Flags implements FlagsInterface
 {
+    private const SIZE = 2;
     public const NAMES = [
         'CF' => 0, // carry flag
         'R1' => 1, // 1 reserved
@@ -104,5 +105,20 @@ class Flags implements FlagsInterface
             $this->set($i, $data & 1);
             $data >>= 1;
         }
+    }
+
+    public function getData(): \SplFixedArray
+    {
+        $data = new \SplFixedArray(self::SIZE);
+
+        for ($j = 0; $j < 2; ++$j) {
+            $data[$j] = 0;
+            for ($i = 0; $i < 8; ++$i) {
+                $n = $this->data[$j * 8 + $i] << $i;
+                $data[$j] |= $n;
+            }
+        }
+
+        return $data;
     }
 }
