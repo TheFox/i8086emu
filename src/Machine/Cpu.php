@@ -23,6 +23,7 @@ use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Register;
 use TheFox\I8086emu\Exception\NotImplementedException;
 use TheFox\I8086emu\Exception\UnknownTypeException;
+use TheFox\I8086emu\Helper\DataHelper;
 
 class Cpu implements CpuInterface, OutputAwareInterface
 {
@@ -529,6 +530,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 2: // INC|DEC reg - OpCodes: 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
                     $iw = true;
+                    $iwSize <<= 1; // * 2
                     $id = false;
                     [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
 
@@ -536,6 +538,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
                     if ($iReg < 2) { // INC|DEC
+                        //$opDest=$this->ram->read(,$iwSize)
                     } elseif ($iReg != 6) { // JMP|CALL
                     } else { // PUSH
                     }
@@ -610,11 +613,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $opSource = $from;
 
                                 $data = $this->ram->read($to->toInt(), $iwSize);
-                                $opDest = 0;
-                                foreach ($data as $i => $c) {
-                                    $opDest += $c << ($i << 3);
-                                }
-
+                                $opDest = DataHelper::arrayToInt($data);
                                 $opResult = $opDest - $opSource;
                             } else {
                                 throw new NotImplementedException(sprintf('CMP else'));
@@ -648,6 +647,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         // MOV
                         //$this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
                         $iw = true;
+                        //$iwSize <<= 1; // * 2
                         $iReg += 8;
                         [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
                         $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
@@ -715,6 +715,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     // Since AX is mandatory for 'XCHG AX, regs16' (not for 'XCHG reg, r/m'),
                     // NOP is the same as XCHG AX, AX.
                     $iw = true;
+                    //$iwSize <<= 1; // * 2
                     $from = $this->getRegisterByNumber($iw, $iReg4bit);
                     $to = $this->ax;
                     $this->debugOp(sprintf('NOP to=%s from=%s', $to, $from));
@@ -985,31 +986,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
             // Update Instruction counter.
             ++$cycle;
 
-            $int8 = false;
-            if (0 === $cycle % self::KEYBOARD_TIMER_UPDATE_DELAY) {
-                $int8 = true;
-            }
-
-            if (0 === $cycle % self::GRAPHICS_UPDATE_DELAY) {
-                $this->updateGraphics();
-            }
-
-            if ($trapFlag) {
-                $this->interrupt(1);
-            }
-            $trapFlag = $this->flags->getByName('TF');
+            //$int8 = false;
+            //if (0 === $cycle % self::KEYBOARD_TIMER_UPDATE_DELAY) {
+            //    $int8 = true;
+            //}
+            //
+            //if (0 === $cycle % self::GRAPHICS_UPDATE_DELAY) {
+            //    $this->updateGraphics();
+            //}
+            //
+            //if ($trapFlag) {
+            //    $this->interrupt(1);
+            //}
+            //$trapFlag = $this->flags->getByName('TF');
 
             // @todo interrupt 8
-
-            // Debug
-            //$l = $this->ip->getLow();
-            //$o = ord($l);
-            //$this->ip->setLow(chr($o + self::SIZE_BYTE));
-
-            if ($cycle > 5000) {
-                // @todo remove this. just dev
-                break;
-            }
         } // while $opcodeRaw
     } // run()
 
