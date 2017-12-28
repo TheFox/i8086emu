@@ -527,6 +527,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('MOV reg, imm (reg=%s)', $register));
                     break;
 
+                case 2: // INC|DEC reg - OpCodes: 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+                    $iw = true;
+                    $id = false;
+                    [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+
+                    $this->debugOp(sprintf('INC|DEC reg rm=%s f=%s t=%s', $rm, $from, $to));
+
+                case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
+                    if ($iReg < 2) { // INC|DEC
+                    } elseif ($iReg != 6) { // JMP|CALL
+                    } else { // PUSH
+                    }
+                    throw new NotImplementedException();
+                    break;
+
                 case 3: // PUSH reg - OpCodes: 50 51 52 53 54 55 56 57
                     $register = $this->getRegisterByNumber(true, $iReg4bit);
                     $this->debugOp(sprintf('PUSH %s', $register));
