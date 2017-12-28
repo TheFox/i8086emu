@@ -541,18 +541,22 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
                     $this->debugOp(sprintf('CMP mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
-                    $this->output->writeln(sprintf('data2 %x %x', $dataWord[2], $dataByte[2]));
+                    $this->output->writeln(sprintf(' -> data2 %x %x = %x', $dataWord[2], $dataWord[2] & 0xFF, $dataByte[2]));
 
                     $id |= !$iw;
 
                     // I don't know what's this good for.
                     if ($id) {
                         $from = $dataWord[2] & 0xFF;
+                        $from2 = $dataByte[2];
+                        if ($from !== $from2) {
+                            throw new \RuntimeException(); // @todo remove this
+                        }
                     } else {
                         $from = $dataWord[2];
                     }
 
-                    $this->output->writeln(sprintf('FROM %s', $from));
+                    $this->output->writeln(sprintf(' -> from %s', $from));
 
                     $this->ip->add(!$id + 1);
 
@@ -560,7 +564,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $opcodeRaw = 0x8 * $iReg;
                     $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
 
-                    $this->output->writeln(sprintf('CMP %02x mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $opcodeRaw, $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
+                    $this->output->writeln(sprintf(' -> CMP %02x mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $opcodeRaw, $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
                 // no break
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
@@ -589,11 +593,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 //$op2 = $this->ram->read($from->toInt(), $length);
                                 $opSource = $from;
 
-                                $to = $this->ram->read($to->toInt(), $iwSize);
-                                if ($iwSize == 2) {
-                                    $opDest = ($to[1] << 8) | $to[0];
-                                } else {
-                                    $opDest = $to[0];
+                                $data = $this->ram->read($to->toInt(), $iwSize);
+                                $opDest = 0;
+                                foreach ($data as $i => $c) {
+                                    $opDest += $c << ($i << 3);
                                 }
 
                                 $opResult = $opDest - $opSource;
@@ -604,7 +607,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $cf = $opResult > $opDest;
                             $this->flags->setByName('CF', $cf);
 
-                            $this->debugOp(sprintf('CMP %b %b => %b CF=%d', $opDest, $opSource, $opResult, $cf));
+                            $this->debugOp(sprintf('CMP %b %b => %d CF=%d', $opDest, $opSource, $opResult, $cf));
                             break;
 
                         case 8: // MOV
@@ -914,8 +917,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult]);
 
                 if ($setFlagsType & 2) { // FLAGS_UPDATE_AO_ARITH
-                    //throw new NotImplementedException(sprintf('FLAGS TYPE: %d [%04b]', $setFlagsType, $setFlagsType));
-                    $this->setAfOfArith($opSource, $opDest, $opResult, $iw);
+                    $this->setAuxiliaryFlagArith($opSource, $opDest, $ucOpResult);
+                    $this->setOverflowFlagArith($opSource, $opDest, $ucOpResult, $iw);
                 }
                 if ($setFlagsType & 4) { // FLAGS_UPDATE_OC_LOGIC
                     $this->flags->setByName('CF', false);
@@ -1193,20 +1196,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
         return $data;
     }
 
-    private function setAfOfArith(int $src, int $dest, int $result, bool $isWord)
+    private function setAuxiliaryFlagArith(int $src, int $dest, int $result)
     {
-        $topBit = $isWord ? 15 : 7;
-
         $x = $dest ^ $result;
         $src ^= $x;
         $af = $src & 0x10;
         $this->flags->setByName('AF', $af);
+    }
 
-        $cf = $this->flags->getByName('CF');
-
+    private function setOverflowFlagArith(int $src, int $dest, int $result, bool $isWord)
+    {
         if ($result === $dest) {
             $of = 0;
         } else {
+            $cf = $this->flags->getByName('CF');
+            $topBit = $isWord ? 15 : 7;
             $of = ($cf ^ $src >> $topBit) & 1;
         }
         $this->flags->setByName('OF', $of);

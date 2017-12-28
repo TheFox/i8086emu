@@ -90,13 +90,6 @@ bios_entry:
 
 	; Now we can do whatever we want! DL starts off being the boot disk.
 
-	; DEV
-	lea BX, [biosstr]
-	mov AL, 0x0
-	xlat
-
-	hlt
-
 	mov	[cs:boot_device], dl
 
 	; Set up Hercules graphics support. We start with the adapter in text mode
