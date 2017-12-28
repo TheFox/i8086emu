@@ -532,9 +532,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 4: // POP reg - OpCodes: 58 59 5a 5b 5c 5d 5e 5f
                     $register = $this->getRegisterByNumber(true, $iReg4bit);
-                    $this->debugOp(sprintf('POP %s', $register));
                     $stackData = $this->popFromStack(self::SIZE_BYTE);
                     $register->setData($stackData);
+                    $this->debugOp(sprintf('POP %s', $register));
                     break;
 
                 case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
@@ -647,18 +647,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $segOverrideEn = 1;
                         $segOverride = 12; // Zero-Register
 
-                        //$this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $to, $from, $rm));
                         // Since the direction in this case is always false we have to swap $from/$to.
                         [$rm, $to, $from] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
                         $this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $to, $from, $rm));
-
-                        //$a=$this->ds->toInt() << 4;
-                        //$a=0xF0000;
-                        //$a+= $from->toInt() ;
-                        //$fromData = $this->ram->read($a, 20)->toArray();
-                        //$fromData = array_map('chr', $fromData);
-                        //$fromData = join('', $fromData);
-                        //$this->output->writeln(sprintf(' -> %x "%s"',$a, $fromData));
 
                         $to->setData($from->toInt());
                         $this->output->writeln(sprintf(' -> to=%s', $to));
@@ -821,10 +812,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 26: // POP sreg - OpCodes: 07 17 1f
                     $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
+                    if (($iReg + 8) !== $extra) {
+                        throw new \RuntimeException(sprintf('In 8086tiny extra is used. %d != %d', $iReg, $extra));
+                    }
                     $register = $this->getSegmentRegisterByNumber($iReg);
-                    $this->debugOp(sprintf('POP %s', $register));
-                    $stackData = $this->popFromStack(self::SIZE_BYTE);
+                    //$register = $this->getRegisterByNumber($iw, $extra);
+                    $stackData = $this->popFromStack($register->getSize());
                     $register->setData($stackData);
+                    $this->debugOp(sprintf('POP %s %d %d', $register, $iReg, $extra));
                     break;
 
                 case 27: // xS: segment overrides - OpCodes: 26 2e 36 3e
@@ -835,6 +830,27 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
                     $iReg = ($opcodeRaw >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
                     $this->debugOp(sprintf('SEG override %d %02b', $iReg, $iReg));
+                    break;
+
+                case 44: // XLAT - OpCodes: d7
+                    if ($segOverrideEn) {
+                        $defaultSeg = $this->getSegmentRegisterByNumber($segOverride);
+                    } else {
+                        $defaultSeg = $this->ds;
+                    }
+
+                    $offset = ($defaultSeg->toInt() << 4) + $this->bx->toInt() + $this->ax->getLowInt();
+
+                    $data = $this->ram->read($offset, 1); // Read only one byte.
+
+                    $this->debugOp(sprintf('XLAT seg=%s ax=%s offset=%x', $defaultSeg, $this->ax, $offset));
+                    //$this->output->writeln(sprintf(' -> seg1: %x', $defaultSeg->toInt()));
+                    //$this->output->writeln(sprintf(' -> seg2: %x', $defaultSeg->toInt() << 4));
+                    //$this->output->writeln(sprintf(' -> AL: %x', $this->ax->getLowInt()));
+                    //$this->output->writeln(sprintf(' -> AH: %x', $this->ax->getHighInt()));
+                    $this->ax->setLowInt((int)$data[0]);
+                    $this->output->writeln(sprintf(' -> AL: %x', $this->ax->getLowInt()));
+                    //$this->output->writeln(sprintf(' -> AH: %x', $this->ax->getHighInt()));
                     break;
 
                 case 46: // CLC|STC|CLI|STI|CLD|STD - OpCodes: f8 f9 fa fb fc fd
@@ -1078,6 +1094,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
     {
         $ea = ($this->es->toInt() << 4) + $this->di->toInt();
         return $ea;
+    }
+
+    /**
+     * EA of DS:BX
+     *
+     * @return int
+     */
+    private function getEffectiveDsBxAddress(): int
+    {
+        return ($this->ds->toInt() << 4) + $this->bx->toInt();
     }
 
     /**

@@ -128,9 +128,25 @@ class Address implements AddressInterface
         return $this->dataInt;
     }
 
+    public function setLowInt(int $low): void
+    {
+        $l = $low & $this->lowMask;
+        $h = $this->dataEffectiveHighInt;
+        $n = $h | $l;
+        $this->setData($n);
+    }
+
     public function getLowInt(): int
     {
         return $this->dataLowInt;
+    }
+
+    public function setHighInt(int $high): void
+    {
+        $l = $this->dataLowInt;
+        $h = ($high << $this->halfBits) & $this->effectiveHighMask;
+        $n = $h | $l;
+        $this->setData($n);
     }
 
     public function getHighInt(): int

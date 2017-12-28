@@ -63,16 +63,6 @@ biosstr	db	'8086tiny BIOS Revision 1.61!', 0, 0		; Why not?
 mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
-	; DEV
-
-	lea BX, [biosstr]
-	lea BX, [ds:biosstr]
-	lea BX, [cs:biosstr]
-	;mov AX, 6
-	;xlat
-
-	hlt
-
 	; Set up initial stack to F000:F000
 	mov	sp, 0xf000
 	mov	ss, sp
@@ -99,6 +89,13 @@ bios_entry:
 	stosb			; Set XF = 0
 
 	; Now we can do whatever we want! DL starts off being the boot disk.
+
+	; DEV
+	lea BX, [biosstr]
+	mov AL, 0x0
+	xlat
+
+	hlt
 
 	mov	[cs:boot_device], dl
 

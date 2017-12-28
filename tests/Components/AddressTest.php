@@ -48,7 +48,9 @@ class AddressTest extends TestCase
             $expectedEffectiveHighInt,
         ] = $expected;
 
-        $address = new Address($size, $data);
+        $address = new Address();
+        $address->setSize($size);
+        $address->setData($data);
         if (null !== $add) {
             $address->add($add);
         }
@@ -57,6 +59,23 @@ class AddressTest extends TestCase
         $this->assertEquals($expectedLowInt, $address->getLowInt());
         $this->assertEquals($expectedHighInt, $address->getHighInt());
         $this->assertEquals($expectedEffectiveHighInt, $address->getEffectiveHighInt());
+    }
+
+    public function testSetLowHigh()
+    {
+        $address = new Address();
+        $address->setSize(2);
+        $address->setData([1, 2]);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([1, 2], $data);
+
+        $address->setLowInt(3);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([3, 2], $data);
+
+        $address->setHighInt(4);
+        $data = $address->getData()->toArray();
+        $this->assertEquals([3, 4], $data);
     }
 
     /**
