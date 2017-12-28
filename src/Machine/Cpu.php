@@ -837,6 +837,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('SEG override %d %02b', $iReg, $iReg));
                     break;
 
+                case 34: // POPF - OpCodes: 9d
+                    $stackData = $this->popFromStack(self::SIZE_BYTE);
+                    $this->flags->setIntData(($stackData[1] << 8) | $stackData[0]);
+                    $this->debugOp(sprintf('POPF %s', $this->flags));
+                    break;
+
                 case 44: // XLAT - OpCodes: d7
                     if ($segOverrideEn) {
                         $defaultSeg = $this->getSegmentRegisterByNumber($segOverride);
@@ -1226,8 +1232,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private function debugCsIpRegister()
     {
         $ea = $this->getEffectiveInstructionPointerAddress();
-        $data = $this->ram->read($ea, self::SIZE_BYTE);
-        $this->output->writeln(sprintf('%s %s -> %04x [%020b] -> %08b %08b', $this->cs, $this->ip, $ea, $ea, $data[0], $data[1]));
+        //$data = $this->ram->read($ea, self::SIZE_BYTE);
+        $this->output->writeln(sprintf('%s %s', $this->cs, $this->ip));
     }
 
     private function debugInfo(string $text)

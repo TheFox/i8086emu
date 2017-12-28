@@ -63,6 +63,16 @@ class Flags implements FlagsInterface
         $this->flippedNames = array_flip(self::NAMES);
     }
 
+    public function __toString(): string
+    {
+        $n = array_map(function ($f) {
+            return $f ? '1' : '0';
+        }, $this->data->toArray());
+        $s = join('', $n);
+        $s = sprintf('FLAGS[%s]', $s);
+        return $s;
+    }
+
     public function set(int $flagId, bool $val)
     {
         $this->data[$flagId] = $val;
@@ -86,5 +96,13 @@ class Flags implements FlagsInterface
     public function getName(int $flagId)
     {
         return $this->flippedNames[$flagId];
+    }
+
+    public function setIntData(int $data)
+    {
+        foreach ($this->data as $i => $f) {
+            $this->set($i, $data & 1);
+            $data >>= 1;
+        }
     }
 }

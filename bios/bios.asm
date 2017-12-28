@@ -210,6 +210,7 @@ calc_end:
 ; Main BIOS entry point. Zero the flags, and set up registers.
 
 boot:
+	; Clear all flags.
 	mov	ax, 0
 	push	ax
 	popf

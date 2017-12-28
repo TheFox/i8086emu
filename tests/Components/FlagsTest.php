@@ -37,4 +37,30 @@ class FlagsTest extends TestCase
         $flags = new Flags();
         $flags->get('INVALID');
     }
+
+    public function testSetIntData()
+    {
+        $flags = new Flags();
+        $flags->setIntData(0xFFAA); // 1111 1111 1010 1010
+
+        $this->assertFalse($flags->get(0));
+        $this->assertTrue($flags->get(1));
+        $this->assertFalse($flags->get(2));
+        $this->assertTrue($flags->get(3));
+
+        $this->assertFalse($flags->get(4));
+        $this->assertTrue($flags->get(5));
+        $this->assertFalse($flags->get(6));
+        $this->assertTrue($flags->get(7));
+
+        $this->assertTrue($flags->get(8));
+        $this->assertTrue($flags->get(9));
+        $this->assertTrue($flags->get(10));
+        $this->assertTrue($flags->get(11));
+
+        $this->assertTrue($flags->get(12));
+        $this->assertTrue($flags->get(13));
+        $this->assertTrue($flags->get(14));
+        $this->assertTrue($flags->get(15));
+    }
 }
