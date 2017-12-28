@@ -444,6 +444,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             //$dataWord[1] = $data[1]; // @todo activate this if needed
                             $debug = 'set $dataWord[1] = $data[1]';
                         }
+                        break;
+
                     case 3:
                         $dataWord[2] = $dataWord[1];
                         $dataByte[2] = $dataWord[2] & 0xFF;
