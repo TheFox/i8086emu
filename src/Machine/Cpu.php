@@ -50,6 +50,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
         18 => 8,
         19 => 10,
     ];
+    public const FLAGS_UPDATE_SZP = 1;
+    public const FLAGS_UPDATE_AO_ARITH = 2;
+    public const FLAGS_UPDATE_OC_LOGIC = 4;
 
     /**
      * Debug
@@ -529,16 +532,36 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 2: // INC|DEC reg - OpCodes: 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+                    $id = ($opcodeRaw >> 3) & 1; // xxxx1xxx
                     $iw = true;
-                    $iwSize <<= 1; // * 2
-                    $id = false;
-                    [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+                    $iwSize = 2;
+                    $register = $this->getRegisterByNumber($iw, $iReg4bit);
 
-                    $this->debugOp(sprintf('INC|DEC reg rm=%s f=%s t=%s', $rm, $from, $to));
+                    $this->debugOp(sprintf('%s reg=%d (%s) e=%d f=%s t=%s d=%d w=%d ', $id ? 'DEC' : 'INC', $iReg4bit, $register, $extra, $from, $to, $id, $iw));
+
+                    $add = 1 - $id << 1;
+                    $register->add($add);
+
+                    $opSource = 1;
+                    $opDest = $opResult = $register->toInt();
+
+                    $this->output->writeln(sprintf(' -> ADD %d', $add));
+                    $this->output->writeln(sprintf(' -> DEST %d', $opDest));
+                    $this->output->writeln(sprintf(' -> RES  %d', $opResult));
+
+                    $this->setAuxiliaryFlagArith($opSource, $opDest, $opResult);
+
+                    $x = $opDest + 1 - $id;
+                    $y = 1 << (($iwSize << 3) - 1);
+                    $of = $x === $y;
+                    $this->flags->setByName('OF', $of);
+
+                    $this->output->writeln(sprintf(' -> REG %s a=%d OF=%d x=%x y=%x', $register, $add, $of, $x, $y));
+                    break;
 
                 case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
+                    $this->debugOp(sprintf('INC|DEC|JMP|CALL|PUSH reg=%d d1=%b', $iReg, $dataWord[1]));
                     if ($iReg < 2) { // INC|DEC
-                        //$opDest=$this->ram->read(,$iwSize)
                     } elseif ($iReg != 6) { // JMP|CALL
                     } else { // PUSH
                     }
@@ -958,7 +981,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
             $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
-            if ($setFlagsType & 1) {
+            if ($setFlagsType & self::FLAGS_UPDATE_SZP) {
                 if (null === $opResult) {
                     throw new NotImplementedException('$opResult has not been set, but maybe it needs to be.');
                 }
@@ -973,11 +996,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $this->flags->setByName('ZF', !$opResult);
                 $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult]);
 
-                if ($setFlagsType & 2) { // FLAGS_UPDATE_AO_ARITH
+                if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($opSource, $opDest, $ucOpResult);
-                    $this->setOverflowFlagArith($opSource, $opDest, $ucOpResult, $iw);
+                    $this->setOverflowFlagArith($opSource, $opDest, $opResult, $iw);
                 }
-                if ($setFlagsType & 4) { // FLAGS_UPDATE_OC_LOGIC
+                if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
                     $this->flags->setByName('OF', false);
                 }
@@ -1247,8 +1270,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
     {
         $x = $dest ^ $result;
         $src ^= $x;
-        $af = $src & 0x10;
+        $af = ($src >> 4) & 0x1;
         $this->flags->setByName('AF', $af);
+        $this->output->writeln(sprintf(' -> AF %d', $af));
     }
 
     private function setOverflowFlagArith(int $src, int $dest, int $result, bool $isWord)
@@ -1258,9 +1282,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
         } else {
             $cf = $this->flags->getByName('CF');
             $topBit = $isWord ? 15 : 7;
-            $of = ($cf ^ $src >> $topBit) & 1;
+            $of = ($cf ^ ($src >> $topBit)) & 1;
         }
         $this->flags->setByName('OF', $of);
+        $this->output->writeln(sprintf(' -> OF %d', $of));
     }
 
     private function debugSsSpRegister()

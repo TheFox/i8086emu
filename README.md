@@ -19,3 +19,4 @@
 - <https://pdos.csail.mit.edu/6.828/2010/readings/i386/OUT.htm>
 - <https://www.tu-chemnitz.de/informatik/RA/news/stack/kompendium/vortraege_98/grafik/adaptertypen.html>
 - <http://www.i8086.de/asm/8086-88-asm.html>
+- <http://ref.x86asm.net/coder32.html>

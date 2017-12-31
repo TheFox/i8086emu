@@ -65,10 +65,21 @@ bios_entry:
 	; DEV
 	;cmp AX, 0x1234
 	;cmp AX, 0x56
+
 	mov AX, 1
-	inc AX
-	inc byte [biosstr]
-	inc word [biosstr]
+	mov CX, 2
+	mov BX, 3
+	mov DX, 0x7FFF
+
+	inc DX
+	dec DX
+	;inc BX
+	;inc CX
+	;inc AX
+
+	;inc byte [biosstr]
+	;inc word [biosstr]
+
 	hlt
 
 	; Set up initial stack to F000:F000
