@@ -588,26 +588,26 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('POP %s', $register));
                     break;
 
-                case 8: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP reg, immed OpCodes: 80 81 82 83
-                    $this->debugOp(sprintf('CMP mod=%b reg=%b r/m=%s s=%b w=%d/%d e=%b ip=%s', $iMod, $iReg, $rm, $id, $iw, !$iw, $extra, $this->ip));
-                    $this->output->writeln(sprintf(' -> data2 %x %x = %x', $dataWord[2], $dataWord[2] & 0xFF, $dataByte[2]));
+                case 8: // CMP reg, imm OpCodes: 80 81 82 83
+                    $to = $rm;
+                    $this->debugOp(sprintf('CMP f=%s t=%s', $from, $to));
 
+                    $this->output->writeln(sprintf(' -> d 1 = %02b', $id));
                     $id |= !$iw;
+                    $this->output->writeln(sprintf(' -> d 2 = %02b', $id));
 
-                    // I don't know what's this good for.
                     if ($id) {
-                        $from = $dataWord[2] & 0xFF;
-                        $from2 = $dataByte[2];
-                        if ($from !== $from2) {
-                            throw new \RuntimeException(); // @todo remove this
-                        }
+                        $from = $dataByte[2];
                     } else {
                         $from = $dataWord[2];
                     }
 
                     $this->output->writeln(sprintf(' -> from %s', $from));
 
-                    $this->ip->add(!$id + 1);
+                    $add = !$id + 1;
+                    $this->output->writeln(sprintf(' -> add %d', $add));
+                    $this->ip->add($add);
+                    $this->output->writeln(sprintf(' -> %s', $this->ip));
 
                     // Decode
                     $opcodeRaw = 0x8 * $iReg;
@@ -625,29 +625,28 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                         case 6: // XOR
                             $this->debugOp(sprintf('XOR reg, r/m %s %s', $to, $from));
-                            //$this->output->writeln(sprintf(' -> FROM %s', $from));
-                            //$this->output->writeln(sprintf(' -> TO   %s', $to));
-                            if ($from instanceof AddressInterface && $to instanceof AddressInterface) {
+                            if ($from instanceof Register && $to instanceof Register) {
                                 $opResult = $from->toInt() ^ $to->toInt();
                                 $to->setData($opResult);
                             } else {
-                                throw new NotImplementedException(sprintf('XOR else'));
+                                throw new NotImplementedException();
                             }
                             break;
 
-                        case 7: // CMP
-                            $this->debugOp(sprintf('CMP'));
+                        case 7: // CMP reg, imm
+                            $this->debugOp(sprintf('CMP %s %s', $to, $from));
 
-                            if (is_numeric($from) && $to instanceof AddressInterface) {
-                                //$op2 = $this->ram->read($from->toInt(), $length);
+                            if ($from instanceof Register && $to instanceof Register) {
+                                $opSource = $from->toInt();
+                                $opDest = $to->toInt();
+                            } elseif (is_numeric($from) && $to instanceof Register) {
                                 $opSource = $from;
-
-                                $data = $this->ram->read($to->toInt(), $iwSize);
-                                $opDest = DataHelper::arrayToInt($data);
-                                $opResult = $opDest - $opSource;
+                                $opDest = $to->toInt();
                             } else {
-                                throw new NotImplementedException(sprintf('CMP else'));
+                                throw new NotImplementedException();
                             }
+
+                            $opResult = $opDest - $opSource;
 
                             $cf = $opResult > $opDest;
                             $this->flags->setByName('CF', $cf);

@@ -66,6 +66,16 @@ bios_entry:
 	;cmp AX, 0x1234
 	;cmp AX, 0x56
 
+	;xor ax, ax
+	cmp dx, 0x10
+	cmp bx, 0x20
+	cmp cx, 0x30
+	cmp ax, 0x40
+	;cmp ax, 0xABCD
+	hlt
+
+	cmp ax, ax
+
 	mov ax, 0x1234
 	mov [biosstr], ax
 
