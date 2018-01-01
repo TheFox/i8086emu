@@ -63,15 +63,10 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 	; DEV
-	;cmp AX, 0x1234
-	;cmp AX, 0x56
-
-	;xor ax, ax
-	cmp dx, 0x10
-	cmp bx, 0x20
-	cmp cx, 0x30
-	cmp ax, 0x40
-	;cmp ax, 0xABCD
+	mov bx, 3
+	mov dx, 7
+	
+	cmp bx, dx
 	hlt
 
 	cmp ax, ax

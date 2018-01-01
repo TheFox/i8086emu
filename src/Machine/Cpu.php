@@ -588,7 +588,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('POP %s', $register));
                     break;
 
-                case 8: // CMP reg, imm OpCodes: 80 81 82 83
+                case 7: // CMP reg, imm - OpCodes: 04 05 0c 0d 14 15 1c 1d 24 25 2c 2d 34 35 3c 3d
+                    $rm = $this->ax;
+                    $dataByte[2] = $dataByte[0];
+                    $dataWord[2] = $dataWord[0];
+                    $iReg = $extra; // Will later be switched back.
+                    $this->ip->add(-1);
+
+                case 8: // CMP reg, imm - OpCodes: 80 81 82 83
                     $to = $rm;
                     $this->debugOp(sprintf('CMP f=%s t=%s', $from, $to));
 
@@ -1299,7 +1306,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $src ^= $x;
         $af = ($src >> 4) & 0x1;
         $this->flags->setByName('AF', $af);
-        $this->output->writeln(sprintf(' -> AF %d', $af));
+        //$this->output->writeln(sprintf(' -> AF %d', $af));
     }
 
     private function setOverflowFlagArith(int $src, int $dest, int $result, bool $isWord)
@@ -1312,7 +1319,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $of = ($cf ^ ($src >> $topBit)) & 1;
         }
         $this->flags->setByName('OF', $of);
-        $this->output->writeln(sprintf(' -> OF %d', $of));
+        //$this->output->writeln(sprintf(' -> OF %d', $of));
     }
 
     private function debugSsSpRegister()
