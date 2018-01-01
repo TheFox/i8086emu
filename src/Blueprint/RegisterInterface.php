@@ -9,4 +9,10 @@ interface RegisterInterface
     public function getName(): string;
 
     public function setName(string $name): void;
+
+    public function getLowRegister(): Register;
+
+    public function getHighRegister(): Register;
+
+    public function getChildRegister(bool $isHigh = false): Register;
 }

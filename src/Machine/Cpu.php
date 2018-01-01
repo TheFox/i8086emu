@@ -519,16 +519,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
                     $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
-
+                    $data = $iw ? $dataWord[0] : $dataByte[0];
                     $register = $this->getRegisterByNumber($iw, $iReg4bit);
 
-                    if ($iw) {
-                        $register->setData($dataWord[0]);
-                    } else {
-                        $register->setData($dataByte[0]);
-                    }
+                    $this->debugOp(sprintf('MOV reg=%s imm=%x', $register, $data));
 
-                    $this->debugOp(sprintf('MOV reg, imm (reg=%s)', $register));
+                    $register->setData($data);
+                    $this->output->writeln(sprintf(' -> REG %s', $register));
                     break;
 
                 case 2: // INC|DEC reg - OpCodes: 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
@@ -539,7 +536,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                     $this->debugOp(sprintf('%s reg=%d (%s) e=%d f=%s t=%s d=%d w=%d ', $id ? 'DEC' : 'INC', $iReg4bit, $register, $extra, $from, $to, $id, $iw));
 
-                    $opDest =$register->toInt();
+                    $opDest = $register->toInt();
                     $add = 1 - ($id << 1);
                     $register->add($add);
 
@@ -705,6 +702,32 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         // POP
                         $this->debugOp(sprintf('POP'));
                         throw new NotImplementedException('POP');
+                    }
+                    break;
+
+                case 11: // MOV AL/AX, [loc] - OpCodes: a0 a1 a2 a3
+                    //$iMod = $iReg = 0;
+                    $address = $dataWord[0];
+                    if ($iw) {
+                        $register = $this->ax;
+                    } else {
+                        $register = $this->ax->getLowRegister();
+                    }
+                    //[$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $data);
+
+                    $this->debugOp(sprintf('MOV reg=%s addr=%x', $register, $address));
+                    if ($id) {
+                        // Accumulator to Memory.
+                        $data = $register->getData();
+                        $this->ram->write($data, $address);
+                    } else {
+                        // Memory to Accumulator.
+                        $data = $this->ram->read($address, $iwSize);
+
+                        if ($register instanceof ChildRegister) {
+                            $data = $data[0];
+                        }
+                        $register->setData($data);
                     }
                     break;
 
@@ -977,11 +1000,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 ) * $iModeSize
                 + $instSize
                 + $iwSize;
-            $this->debugCsIpRegister();
+            //$this->debugCsIpRegister();
             if ($add) {
                 $this->ip->add($add);
             }
-            $this->debugCsIpRegister();
+            //$this->debugCsIpRegister();
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
             $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
@@ -1133,10 +1156,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $register = $this->getRegisterByNumber(true, $effectiveRegId, 1 + $loop);
 
         $isHigh = $regId & 4; // 1xx
-        $name = sprintf('%s%s', $register->getName()[0], $isHigh ? 'H' : 'L');
-
-        $childRegister = new ChildRegister($register, $isHigh, $name);
-        return $childRegister;
+        return $register->getChildRegister($isHigh);
     }
 
     private function getSegmentRegisterByNumber(int $regId): Register

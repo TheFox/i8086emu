@@ -36,7 +36,7 @@ class Ram implements RamInterface
 
         if (is_iterable($data)) {
             foreach ($data as $c) {
-                $this->data[$pos] = $c & 0xFF;
+                $this->data[$pos] = intval($c) & 0xFF;
                 ++$pos;
             }
         } elseif (is_numeric($data)) {

@@ -7,8 +7,13 @@ class DataHelper
     public static function arrayToInt(iterable $data)
     {
         $i = 0;
-        foreach ($data as $i => $c) {
-            $i += $c << ($i << 3);
+        foreach ($data as $index => $char) {
+            $char=intval($char);
+            $bits=$index<<3;
+            //printf("i = %d\n", $index);
+            //printf("c = %d\n", $char);
+            //printf("b = %d\n\n", $bits);
+            $i += $char << $bits;
         }
         return $i;
     }
