@@ -687,6 +687,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $data = $this->ram->read($offset, $to->getSize());
                                 $to->setData($data);
                                 $this->output->writeln(sprintf(' -> %s', $to));
+                            } elseif ($from instanceof Register && $to instanceof AbsoluteAddress) {
+                                $offset = $to->toInt();
+                                $data = $from->getData();
+                                $this->ram->write($data, $offset, $from->getSize());
+                                $this->output->writeln(sprintf(' -> %s', $to));
                             } elseif ($from instanceof Register && $to instanceof Register) {
                                 $to->setData($from->getData());
                                 $this->output->writeln(sprintf(' -> %s', $to));
