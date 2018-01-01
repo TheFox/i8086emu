@@ -1000,8 +1000,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 34: // POPF - OpCodes: 9d
-                    $stackData = $this->popFromStack(self::SIZE_BYTE);
-                    $this->flags->setIntData(($stackData[1] << 8) | $stackData[0]);
+                    $data = $this->popFromStack(self::SIZE_BYTE);
+                    $i = DataHelper::arrayToInt($data);
+                    $this->flags->setIntData($i);
                     $this->debugOp(sprintf('POPF %s', $this->flags));
                     break;
 
