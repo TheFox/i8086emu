@@ -400,10 +400,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw, $opcodeRaw, $opcodeRaw,
                 $xlatId, $xlatId, $xlatId
             ));
-            $this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
-            foreach ($dataWord as $n => $tmpWord) {
-                $this->output->writeln(sprintf('data%d word: %x', $n, $tmpWord));
-            }
+            //$this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
+            //foreach ($dataWord as $n => $tmpWord) {
+            //    $this->output->writeln(sprintf('data%d word: %x', $n, $tmpWord));
+            //}
 
             if ($segOverrideEn) {
                 --$segOverrideEn;
@@ -539,21 +539,25 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                     $this->debugOp(sprintf('%s reg=%d (%s) e=%d f=%s t=%s d=%d w=%d ', $id ? 'DEC' : 'INC', $iReg4bit, $register, $extra, $from, $to, $id, $iw));
 
-                    $add = 1 - $id << 1;
+                    $opDest =$register->toInt();
+                    $add = 1 - ($id << 1);
                     $register->add($add);
 
                     $opSource = 1;
-                    $opDest = $opResult = $register->toInt();
+                    //$opDest =$register->toInt();
+                    $opResult = $register->toInt();
 
-                    $this->output->writeln(sprintf(' -> ADD %d', $add));
-                    $this->output->writeln(sprintf(' -> DEST %d', $opDest));
-                    $this->output->writeln(sprintf(' -> RES  %d', $opResult));
+                    //$this->output->writeln(sprintf(' -> ADD  %x', $add));
+                    //$this->output->writeln(sprintf(' -> DEST %x', $opDest));
+                    //$this->output->writeln(sprintf(' -> RES  %x', $opResult));
 
                     $this->setAuxiliaryFlagArith($opSource, $opDest, $opResult);
 
                     $x = $opDest + 1 - $id;
+                    //$x = $opDest;
                     $y = 1 << (($iwSize << 3) - 1);
                     $of = $x === $y;
+                    //$of = $opDest === $y;
                     $this->flags->setByName('OF', $of);
 
                     $this->output->writeln(sprintf(' -> REG %s a=%d OF=%d x=%x y=%x', $register, $add, $of, $x, $y));

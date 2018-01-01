@@ -72,6 +72,8 @@ bios_entry:
 	mov DX, 0x7FFF
 
 	inc DX
+	inc DX
+	dec DX
 	dec DX
 	;inc BX
 	;inc CX
