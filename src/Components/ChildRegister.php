@@ -3,12 +3,11 @@
 namespace TheFox\I8086emu\Components;
 
 use TheFox\I8086emu\Blueprint\ChildRegisterInterface;
-use TheFox\I8086emu\Exception\NotImplementedException;
 
 final class ChildRegister extends Register implements ChildRegisterInterface
 {
     /**
-     * @var null|Register
+     * @var Register
      */
     private $parent;
 
@@ -102,5 +101,16 @@ final class ChildRegister extends Register implements ChildRegisterInterface
         }
 
         return $this->parent->getLowInt();
+    }
+
+    public function add(int $i): int
+    {
+        $endVal = $this->toInt() + $i;
+
+        if ($this->isParentHigh) {
+            return $this->parent->setHighInt($endVal);
+        }
+
+        return $this->parent->setLowInt($endVal);
     }
 }

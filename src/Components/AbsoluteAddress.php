@@ -13,4 +13,10 @@ class AbsoluteAddress extends Address
     {
         parent::__construct($size, $data);
     }
+
+    public function __toString(): string
+    {
+        $s = sprintf('ABS_%s', parent::__toString());
+        return $s;
+    }
 }

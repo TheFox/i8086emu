@@ -25,6 +25,9 @@ class AddressTest extends TestCase
 
             [2, 0xF00A, 0x0F00, [0xFF0A, 0xA, 0xFF, 0xFF00]],
             [4, 0xF000, 0xF000, [0x1E000, 0xE000, 1, 0x10000]],
+
+            // Minus
+            [2, 0x01, -3, [0xFFFe, null, null, null]],
         ];
         return $data;
     }
@@ -55,10 +58,14 @@ class AddressTest extends TestCase
         $address->setSize($size);
         $address->setData($data);
         if (null !== $add) {
-            $address->add($add);
+            $addRes = $address->add($add);
         }
 
         $this->assertEquals($expectedInt, $address->toInt());
+        if (isset($addRes)) {
+            $this->assertEquals($expectedInt, $addRes);
+        }
+
         if (null !== $expectedLowInt) {
             $this->assertEquals($expectedLowInt, $address->getLowInt());
         }
@@ -106,13 +113,5 @@ class AddressTest extends TestCase
         $address->setLowInt(0x123456);
         $data = $address->getData()->toArray();
         $this->assertEquals([0x56, 0x34, 0x12, 3, 4, 5], $data);
-    }
-
-    /**
-     * @expectedException \TheFox\I8086emu\Exception\NegativeValueException
-     */
-    public function testNegativeValueException1()
-    {
-        new Address(1, -1);
     }
 }

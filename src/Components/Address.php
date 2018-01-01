@@ -132,12 +132,14 @@ class Address implements AddressInterface
         return $this->dataInt;
     }
 
-    public function setLowInt(int $low): void
+    public function setLowInt(int $low): int
     {
         $l = $low & $this->lowMask;
         $h = $this->dataEffectiveHighInt;
         $n = $h | $l;
         $this->setData($n);
+
+        return $n;
     }
 
     public function getLowInt(): int
@@ -145,12 +147,14 @@ class Address implements AddressInterface
         return $this->dataLowInt;
     }
 
-    public function setHighInt(int $high): void
+    public function setHighInt(int $high): int
     {
         $l = $this->dataLowInt;
         $h = ($high << $this->halfBits) & $this->effectiveHighMask;
         $n = $h | $l;
         $this->setData($n);
+
+        return $n;
     }
 
     public function getHighInt(): int
@@ -177,29 +181,31 @@ class Address implements AddressInterface
         }
 
         if (is_iterable($data)) {
+            $length = count($data);
             $bits = 0;
-            $i = 0; // Index
-            while ($i < $this->size) {
-                $c = $data[$i];
+            $offset = 0;
+            while ($offset < $this->size && $offset < $length) {
+                $c = $data[$offset];
                 $this->dataInt += $c << $bits;
-                $this->dataBytes[$i] = $c;
+                $this->dataBytes[$offset] = $c;
 
-                ++$i;
+                ++$offset;
                 $bits += 8;
             }
         } elseif (is_numeric($data)) {
-            if ($data < 0) {
-                throw new NegativeValueException();
-            }
+            //if ($data < 0) {
+            //    throw new NegativeValueException();
+            //}
 
             $this->dataInt = $data & $this->maxValue;
+            //$debug=sprintf("data int: %08x\n", $this->dataInt);
 
-            $i = 0; // Index
-            while (0 !== $data && $i < $this->size) {
-                $this->dataBytes[$i] = $data & 0xFF;
+            $offset = 0;
+            while (0 !== $data && $offset < $this->size) {
+                $this->dataBytes[$offset] = $data & 0xFF;
 
                 $data >>= 8;
-                ++$i;
+                ++$offset;
             }
         }
 
@@ -216,9 +222,11 @@ class Address implements AddressInterface
         return $this->dataBytes;
     }
 
-    public function add(int $i): void
+    public function add(int $i): int
     {
         $endVal = $this->dataInt + $i;
         $this->setData($endVal);
+
+        return $this->dataInt;
     }
 }

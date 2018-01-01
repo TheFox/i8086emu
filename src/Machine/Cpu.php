@@ -534,33 +534,57 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $iwSize = 2;
                     $register = $this->getRegisterByNumber($iw, $iReg4bit);
 
-                    $this->debugOp(sprintf('%s reg=%d (%s) e=%d f=%s t=%s d=%d w=%d ', $id ? 'DEC' : 'INC', $iReg4bit, $register, $extra, $from, $to, $id, $iw));
+                    $this->debugOp(sprintf('%s %s', $id ? 'DEC' : 'INC', $register));
 
                     $opDest = $register->toInt();
                     $add = 1 - ($id << 1);
                     $register->add($add);
 
-                    $opSource = 1;
                     $opResult = $register->toInt();
 
-                    $this->setAuxiliaryFlagArith($opSource, $opDest, $opResult);
+                    $this->setAuxiliaryFlagArith(1, $opDest, $opResult);
 
                     $x = $opDest + 1 - $id;
                     $y = 1 << (($iwSize << 3) - 1);
                     $of = $x === $y;
                     $this->flags->setByName('OF', $of);
 
-                    $this->output->writeln(sprintf(' -> REG %s a=%d OF=%d x=%x y=%x', $register, $add, $of, $x, $y));
+                    $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $this->flags->getByName('AF'), $of));
                     break;
 
                 case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
-                    $this->debugOp(sprintf('INC|DEC|JMP|CALL|PUSH reg=%d', $iReg));
+                    /** @var AbsoluteAddress $from */
+                    $this->debugOp(sprintf('INC|DEC|JMP|CALL|PUSH reg=%d f=%s d=%b', $iReg, $from, $dataByte[0]));
                     switch ($iReg) {
                         case 0:
                         case 1: // INC|DEC [loc]
                             $id = (bool)$iReg;
-                            $this->debugOp(sprintf('INC|DEC reg=%d d=%d d0=%08b', $iReg, $id, $dataByte[0]));
-                            //throw new NotImplementedException();
+                            $add = 1 - ($id << 1);
+
+                            if ($from instanceof Register) {
+                                $opDest = $from->toInt();
+                                $opResult = $from->add($add);
+                                $this->output->writeln(sprintf(' -> %s', $from));
+                            } elseif ($from instanceof AbsoluteAddress) {
+                                $offset = $from->toInt();
+                                $data = $this->ram->read($offset, $iwSize);
+                                $opDest = DataHelper::arrayToInt($data);
+                                $opResult = $opDest + $add;
+                                $this->ram->write($opResult, $offset, $iwSize);
+                                $this->output->writeln(sprintf(' -> RES %04x', $opResult));
+                            }
+
+                            $this->setAuxiliaryFlagArith(1, $opDest, $opResult);
+
+                            $x = $opDest + 1 - $id;
+                            $y = 1 << (($iwSize << 3) - 1);
+                            $of = $x === $y;
+                            $this->flags->setByName('OF', $of);
+
+                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d AF=%d OF=%d 0x%x', $id ? 'DEC' : 'INC', $iReg, $id, $dataByte[0], $iw, $this->flags->getByName('AF'), $of, $opResult));
+
+                            // Decode like ADC.
+                            $opcodeRaw = 0x10;
                             break;
 
                         default:
@@ -662,10 +686,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 8: // MOV
-                            $this->debugOp(sprintf('MOV reg, r/m to=%s from=%s', $to, $from));
+                            $this->debugOp(sprintf('MOV %s %s', $to, $from));
 
                             if ($from instanceof AbsoluteAddress && $to instanceof Register) {
-                                $data = $this->ram->read($from->toInt(), $to->getSize());
+                                $offset = $from->toInt();
+                                $data = $this->ram->read($offset, $to->getSize());
                                 $to->setData($data);
                                 $this->output->writeln(sprintf(' -> REG %s', $to));
                             } else {
@@ -877,8 +902,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $data = $iw ? $dataWord[2] : $dataByte[2];
 
                     // $id is always true (1100011x) so take $from here.
-                    $this->debugOp(sprintf('MOV r/m, immed %s %x', $from, $data));
-                    $this->ram->write($data, $from->toInt());
+                    $this->debugOp(sprintf('MOV %s %x', $from, $data));
+                    $this->ram->write($data, $from->toInt(), $iwSize);
                     break;
 
                 case 22: // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
@@ -986,6 +1011,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 53: // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
                     $this->debugOp('HLT');
+                    $this->debugAll();
                     break 2;
 
                 //case 55: // OpCodes: 68 69 6a 6b
@@ -1346,5 +1372,21 @@ class Cpu implements CpuInterface, OutputAwareInterface
     {
         $text = sprintf('<bg=red;fg=white>%s</>', $text);
         $this->output->writeln($text);
+    }
+
+    private function debugAll()
+    {
+        $this->output->writeln(sprintf(' -> %s %s %s %s', $this->ax, $this->cx, $this->bx, $this->dx));
+
+        //$this->output->writeln(sprintf(' -> %s',  $this->bp));
+        $this->output->writeln(sprintf(' -> %s %s', $this->ss, $this->sp));
+        $this->output->writeln(sprintf(' -> %s %s', $this->si, $this->di));
+
+        $this->output->writeln(sprintf(' -> %s %s', $this->cs, $this->ip));
+        //$this->output->writeln(sprintf(' -> %s', $this->es));
+        //$this->output->writeln(sprintf(' -> %s', ));
+        //$this->output->writeln(sprintf(' -> %s', $this->ds));
+
+        $this->output->writeln(sprintf(' -> %s', $this->flags));
     }
 }
