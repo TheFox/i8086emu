@@ -519,13 +519,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
                     $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
-                    $data = $iw ? $dataWord[0] : $dataByte[0];
-                    $register = $this->getRegisterByNumber($iw, $iReg4bit);
+                    $from = $iw ? $dataWord[0] : $dataByte[0];
+                    $to = $this->getRegisterByNumber($iw, $iReg4bit);
 
-                    $this->debugOp(sprintf('MOV reg=%s imm=%x', $register, $data));
+                    $this->debugOp(sprintf('MOV %s %x', $to, $from));
 
-                    $register->setData($data);
-                    $this->output->writeln(sprintf(' -> REG %s', $register));
+                    $to->setData($from);
+                    $this->output->writeln(sprintf(' -> REG %s', $to));
                     break;
 
                 case 2: // INC|DEC reg - OpCodes: 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
@@ -693,8 +693,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $data = $this->ram->read($offset, $to->getSize());
                                 $to->setData($data);
                                 $this->output->writeln(sprintf(' -> REG %s', $to));
+                            } elseif ($from instanceof Register && $to instanceof Register) {
+                                $to->setData($from->getData());
+                                $this->output->writeln(sprintf(' -> REG %s', $to));
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
                             break;
 
@@ -706,23 +709,28 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 10: // MOV sreg, r/m | POP r/m | LEA reg, r/m - OpCodes: 8c 8d 8e 8f
                     if (!$iw) {
                         // MOV
-                        //$this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
                         $iw = true;
                         $iReg += 8;
                         [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
-                        $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
+                        $this->debugOp(sprintf('MOV %s %s', $to, $from));
 
-                        if ($from instanceof AbsoluteAddress && $to instanceof RegisterInterface) {
+                        if ($from instanceof AbsoluteAddress && $to instanceof Register) {
                             $offset = $from->toInt();
-                            $fromData = $this->ram->read($offset, $to->getSize());
-                            $to->setData($fromData);
-                        } elseif ($from instanceof AddressInterface && $to instanceof AddressInterface) {
+                            $data = $this->ram->read($offset, $to->getSize());
+                            $to->setData($data);
+                            $this->output->writeln(sprintf(' -> %s', $to));
+                        } elseif ($from instanceof Register && $to instanceof AbsoluteAddress) {
+                            $offset = $to->toInt();
+                            $data = $from->getData();
+                            $this->ram->write($data, $offset, $from->getSize());
+                            $this->output->writeln(sprintf(' -> %s', $to));
+                        } elseif ($from instanceof Register && $to instanceof Register) {
                             $to->setData($from->toInt());
+                            $this->output->writeln(sprintf(' -> REG %s', $to));
                         } else {
                             throw new UnknownTypeException();
                         }
-
-                        $this->output->writeln(sprintf(' -> to=%s', $to));
+                        //$this->output->writeln(sprintf(' -> to=%s', $to));
                     } elseif (!$id) {
                         // LEA
                         $segOverrideEn = 1;
@@ -751,7 +759,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     }
                     //[$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $data);
 
-                    $this->debugOp(sprintf('MOV reg=%s addr=%x', $register, $address));
+                    $this->debugOp(sprintf('MOV %s %x', $register, $address));
                     if ($id) {
                         // Accumulator to Memory.
                         $data = $register->getData();

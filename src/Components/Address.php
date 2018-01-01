@@ -3,7 +3,6 @@
 namespace TheFox\I8086emu\Components;
 
 use TheFox\I8086emu\Blueprint\AddressInterface;
-use TheFox\I8086emu\Exception\NegativeValueException;
 use TheFox\I8086emu\Exception\ValueExceededException;
 
 class Address implements AddressInterface

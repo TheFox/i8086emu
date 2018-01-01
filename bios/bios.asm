@@ -63,23 +63,13 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 	; DEV
-	mov word [biosstr], 0x3456
-	mov bx, 0x0201
-
-	inc word [biosstr]
-	inc bh
-	inc bl
-	inc bx
-	dec bh
-	dec bh
-	dec bh
-	dec bh
-	dec bl
-	dec bl
-	dec bl
-	dec bl
-	inc bx
-	dec bx
+	mov	sp, [biosstr]
+	mov	sp, 1
+	mov	sp, ax
+	mov	sp, sp
+	mov	ss, sp
+	mov	ss, [biosstr]
+	mov	[biosstr],ss
 	hlt
 
 	; Set up initial stack to F000:F000
