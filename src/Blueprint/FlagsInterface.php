@@ -4,6 +4,8 @@ namespace TheFox\I8086emu\Blueprint;
 
 interface FlagsInterface
 {
+    public function getSize(): int;
+
     public function set(int $flagId, bool $val);
 
     public function setByName(string $name, bool $val);

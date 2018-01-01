@@ -8,14 +8,14 @@ use TheFox\I8086emu\Components\Register;
 
 class ChildRegisterTest extends TestCase
 {
-    /**
-     * @expectedException \RuntimeException
-     */
     public function testSetData()
     {
         $parent = new Register();
         $child = new ChildRegister($parent);
         $child->setData([1, 2]);
+
+        $i = $parent->toInt();
+        $this->assertEquals(1, $i);
     }
 
     public function addDataProvider()
@@ -38,7 +38,7 @@ class ChildRegisterTest extends TestCase
     {
         $parent = new Register(2, $bi, 'PR');
         $child = new ChildRegister($parent, $isHigh, 'CR');
-        $ni1=$child->add($add);
+        $ni1 = $child->add($add);
 
         $ni2 = $parent->toInt();
         $this->assertEquals($expected, $ni1);

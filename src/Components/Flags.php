@@ -74,6 +74,11 @@ class Flags implements FlagsInterface
         return $s;
     }
 
+    public function getSize(): int
+    {
+        return self::SIZE;
+    }
+
     public function set(int $flagId, bool $val)
     {
         $this->data[$flagId] = $val;

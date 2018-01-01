@@ -56,9 +56,13 @@ final class ChildRegister extends Register implements ChildRegisterInterface
             return;
         }
 
-        if (!is_numeric($data)) {
-            throw new \RuntimeException('Only numeric supported.');
+        if (is_iterable($data)) {
+            $data = $data[0];
         }
+        //if (!is_numeric($data)) {
+        //    throw new \RuntimeException('Only numeric supported.');
+        //}
+        $data = intval($data);
 
         $data &= 0xFF;
         if ($this->isParentHigh) {

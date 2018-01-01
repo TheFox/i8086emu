@@ -12,11 +12,9 @@ namespace TheFox\I8086emu\Machine;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
-use TheFox\I8086emu\Blueprint\AddressInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
-use TheFox\I8086emu\Blueprint\RegisterInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\ChildRegister;
 use TheFox\I8086emu\Components\Flags;
@@ -226,9 +224,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->flags = new Flags();
     }
 
-    /**
-     * @param RamInterface $ram
-     */
     public function setRam(RamInterface $ram)
     {
         $this->ram = $ram;
@@ -457,7 +452,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         break;
 
                     default:
-                        throw new NotImplementedException(sprintf('Unhandled mode: %d', $iMod));
+                        throw new UnknownTypeException();
                 }
 
                 [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
@@ -553,7 +548,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
-                    /** @var AbsoluteAddress $from */
                     $this->debugOp(sprintf('INC|DEC|JMP|CALL|PUSH reg=%d f=%s d=%b', $iReg, $from, $dataByte[0]));
                     switch ($iReg) {
                         case 0:
@@ -655,7 +649,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             break;
 
                         case 6: // XOR
-                            $this->debugOp(sprintf('XOR reg, r/m %s %s', $to, $from));
+                            $this->debugOp(sprintf('XOR %s %s', $to, $from));
                             if ($from instanceof Register && $to instanceof Register) {
                                 $opResult = $from->toInt() ^ $to->toInt();
                                 $to->setData($opResult);
@@ -692,10 +686,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $offset = $from->toInt();
                                 $data = $this->ram->read($offset, $to->getSize());
                                 $to->setData($data);
-                                $this->output->writeln(sprintf(' -> REG %s', $to));
+                                $this->output->writeln(sprintf(' -> %s', $to));
                             } elseif ($from instanceof Register && $to instanceof Register) {
                                 $to->setData($from->getData());
-                                $this->output->writeln(sprintf(' -> REG %s', $to));
+                                $this->output->writeln(sprintf(' -> %s', $to));
                             } else {
                                 throw new UnknownTypeException();
                             }
@@ -769,7 +763,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $data = $this->ram->read($address, $iwSize);
 
                         if ($register instanceof ChildRegister) {
-                            $data = $data[0];
+                            //$data = $data[0];
+                            $x = 1;
                         }
                         $register->setData($data);
                     }
@@ -811,36 +806,35 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $iw = true;
                     $from = $this->getRegisterByNumber($iw, $iReg4bit);
                     $to = $this->ax;
-                    $this->debugOp(sprintf('NOP to=%s from=%s', $to, $from));
+                    $this->debugOp(sprintf('NOP %s %s', $to, $from));
                 // no break
 
                 case 24: // NOP|XCHG reg, r/m - OpCodes: 86 87
                     $this->debugOp(sprintf('XCHG to=%s from=%s', $to, $from));
-                    if ($from instanceof RegisterInterface && $to instanceof RegisterInterface) {
+                    if ($from instanceof Register && $to instanceof Register) {
                         if ('AX' !== $from->getName()) { // Not NOP
                             // XCHG AX, reg
                             $this->output->writeln(sprintf(' -> OK REG'));
 
-                            $tmp = $from->toInt();
-                            $from->setData($to->toInt());
+                            $tmp = $from->getData();
+                            $from->setData($to->getData());
                             $to->setData($tmp);
 
                             $this->output->writeln(sprintf(' -> OK REG to=%s from=%s', $to, $from));
                         }
-                    } elseif ($from instanceof AbsoluteAddress && $to instanceof RegisterInterface) {
+                    } elseif ($from instanceof AbsoluteAddress && $to instanceof Register) {
                         // XCHG reg, r/m
                         $offset = $from->toInt();
                         $length = $to->getSize();
                         $this->output->writeln(sprintf(' -> OK ADDR o=%x l=%d', $offset, $length));
 
-                        $fromData = $this->ram->read($offset, $length);
-                        $this->ram->write($to->getData(), $offset);
-                        $to->setData($fromData);
+                        $data = $this->ram->read($offset, $length);
+                        $this->ram->write($to->getData(), $offset, $length);
+                        $to->setData($data);
 
                         $this->output->writeln(sprintf(' -> OK REG to=%s from=%s', $to, $from));
                     } else {
-                        throw new UnknownTypeException('Unhandled type for XCHG.');
-                        //$this->output->writeln(sprintf(' -> FAILED %d %d', $from instanceof RegisterInterface, $from instanceof AbsoluteAddress));
+                        throw new UnknownTypeException();
                     }
                     break;
 
@@ -882,12 +876,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             //$this->output->writeln(sprintf(' -> TO %s', $to));
                         }
 
-                        if ($from instanceof AddressInterface && is_numeric($to)) {
-                            $fromData = $from->getData();
-                            $this->ram->write($fromData, $to);
-                        } elseif (is_numeric($from) && $to instanceof AddressInterface) {
-                            $fromData = $this->ram->read($from, $iwSize);
-                            $to->setData($fromData, true);
+                        if ($from instanceof Register && is_numeric($to)) {
+                            $data = $from->getData();
+                            $this->ram->write($data, $to, $from->getSize());
+                        } elseif (is_numeric($from) && $to instanceof Register) {
+                            $data = $this->ram->read($from, $iwSize);
+                            $to->setData($data, true);
                         }
 
                         if (1 !== $extra) {
@@ -896,8 +890,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         if (2 !== $extra) {
                             $this->di->add(-$add);
                         }
-                        //$this->output->writeln(sprintf(' -> REG %s (%d)', $this->si, $add));
-                        //$this->output->writeln(sprintf(' -> REG %s (%d)', $this->di, $add));
                     }
 
                     // Reset CX on repeat mode.
@@ -978,7 +970,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 33: // PUSHF - OpCodes: 9c
                     $this->debugOp(sprintf('PUSHF %s', $this->flags));
-                    $this->pushDataToStack($this->flags->getData());
+                    $this->pushDataToStack($this->flags->getData(), $this->flags->getSize());
                     break;
 
                 case 34: // POPF - OpCodes: 9d
@@ -1098,7 +1090,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         } // while $opcodeRaw
     } // run()
 
-    private function decodeRegisterMemory(bool $isWord, bool $id, int $iMod, int $segOverrideEn, int $segOverride, int $iRm, int $iReg, int $data)
+    private function decodeRegisterMemory(bool $isWord, bool $id, int $iMod, int $segOverrideEn, int $segOverride, int $iRm, int $iReg, int $data): iterable
     {
         $biosDataTableBaseIndex = 0;
         switch ($iMod) {
@@ -1301,15 +1293,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
         return $ea;
     }
 
-    private function pushDataToStack(iterable $data)
+    private function pushDataToStack(iterable $data, int $size)
     {
         $this->debugSsSpRegister();
 
-        $size = count($data);
+        #$size = count($data);
         $this->sp->add(-$size);
 
         $ea = $this->getEffectiveStackPointerAddress();
-        $this->ram->write($data, $ea);
+        $this->ram->write($data, $ea, $size);
 
         $this->debugSsSpRegister();
     }
@@ -1321,7 +1313,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             throw new \RangeException(sprintf('Wrong size. Register is %d bytes, data is %d bytes.', $register->getSize(), self::SIZE_BYTE));
         }
 
-        $this->pushDataToStack($register->getData());
+        $this->pushDataToStack($register->getData(), $size);
     }
 
     private function popFromStack(int $size): \SplFixedArray
