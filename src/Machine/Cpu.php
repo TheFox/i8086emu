@@ -617,7 +617,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 8: // CMP reg, imm - OpCodes: 80 81 82 83
                     $to = $rm;
-                    $this->debugOp(sprintf('CMP f=%s t=%s', $from, $to));
+                    $this->debugOp(sprintf('CMP f=%s t=%s s=%d', $from, $to, $iwSize));
 
                     $this->output->writeln(sprintf(' -> d 1 = %02b', $id));
                     $id |= !$iw;
@@ -669,6 +669,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             } elseif (is_numeric($from) && $to instanceof Register) {
                                 $opSource = $from;
                                 $opDest = $to->toInt();
+                            } elseif (is_numeric($from) && $to instanceof AbsoluteAddress) {
+                                $opSource = $from;
+
+                                $offset = $to->toInt();
+                                $data = $this->ram->read($offset, $iwSize);
+                                $opDest = DataHelper::arrayToInt($data);
                             } else {
                                 throw new NotImplementedException();
                             }
@@ -678,7 +684,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $cf = $opResult > $opDest;
                             $this->flags->setByName('CF', $cf);
 
-                            $this->debugOp(sprintf('CMP %b %b => %d CF=%d', $opDest, $opSource, $opResult, $cf));
+                            $this->output->writeln(sprintf(' -> %b %b => %d CF=%d', $opDest, $opSource, $opResult, $cf));
                             break;
 
                         case 8: // MOV
