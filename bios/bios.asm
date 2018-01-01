@@ -67,17 +67,11 @@ bios_entry:
 	;cmp AX, 0x56
 
 	mov ax, 0x1234
-	mov ah, 0x56
-	mov al, 0x78
-
 	mov [biosstr], ax
-	mov [biosstr], ah
-	mov [biosstr], al
-	mov ax, [biosstr]
-	mov ah, [biosstr]
-	mov al, [biosstr]
 
-	;inc byte [biosstr]
+	inc bx
+	inc byte [biosstr]
+	dec byte [biosstr]
 	;inc word [biosstr]
 
 	hlt

@@ -541,32 +541,38 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $register->add($add);
 
                     $opSource = 1;
-                    //$opDest =$register->toInt();
                     $opResult = $register->toInt();
-
-                    //$this->output->writeln(sprintf(' -> ADD  %x', $add));
-                    //$this->output->writeln(sprintf(' -> DEST %x', $opDest));
-                    //$this->output->writeln(sprintf(' -> RES  %x', $opResult));
 
                     $this->setAuxiliaryFlagArith($opSource, $opDest, $opResult);
 
                     $x = $opDest + 1 - $id;
-                    //$x = $opDest;
                     $y = 1 << (($iwSize << 3) - 1);
                     $of = $x === $y;
-                    //$of = $opDest === $y;
                     $this->flags->setByName('OF', $of);
 
                     $this->output->writeln(sprintf(' -> REG %s a=%d OF=%d x=%x y=%x', $register, $add, $of, $x, $y));
                     break;
 
                 case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
-                    $this->debugOp(sprintf('INC|DEC|JMP|CALL|PUSH reg=%d d1=%b', $iReg, $dataWord[1]));
-                    if ($iReg < 2) { // INC|DEC
-                    } elseif ($iReg != 6) { // JMP|CALL
-                    } else { // PUSH
+                    $this->debugOp(sprintf('INC|DEC|JMP|CALL|PUSH reg=%d', $iReg));
+                    switch ($iReg) {
+                        case 0:
+                        case 1: // INC|DEC [loc]
+                            $id = (bool)$iReg;
+                            $this->debugOp(sprintf('INC|DEC reg=%d d=%d d0=%08b', $iReg, $id, $dataByte[0]));
+                            //throw new NotImplementedException();
+                            break;
+
+                        default:
+                            throw new NotImplementedException(sprintf('REG %d', $iReg));
+                            break;
                     }
-                    throw new NotImplementedException();
+
+                    //if ($iReg < 2) {
+                    //} elseif ($iReg != 6) { // JMP|CALL
+                    //} else { // PUSH
+                    //}
+                    //throw new NotImplementedException();
                     break;
 
                 case 3: // PUSH reg - OpCodes: 50 51 52 53 54 55 56 57
