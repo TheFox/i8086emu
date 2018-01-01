@@ -244,7 +244,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
      */
     private function getOpcode(): ?int
     {
-        $offset = $this->getEffectiveInstructionPointerAddress();
+        $address = $this->getEffectiveInstructionPointerAddress();
+        $offset = $address->toInt();
 
         /** @var int[] $opcodes */
         $opcodes = $this->ram->read($offset, 1);
@@ -376,9 +377,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
             // Instruction Direction
             $id = (bool)($iReg4bit & 2); // xxxxx1x
 
-            $offset = $this->getEffectiveInstructionPointerAddress();
+            $ipAddress = $this->getEffectiveInstructionPointerAddress();
+            $ipOffset = $ipAddress->toInt();
 
-            $dataByte = $this->ram->read($offset + 1, 5);
+            $dataByte = $this->ram->read($ipOffset + 1, 5);
             $dataWord = [
                 ($dataByte[1] << 8) | $dataByte[0],
                 ($dataByte[2] << 8) | $dataByte[1],
@@ -864,29 +866,39 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         if (1 == $extra) {
                             // Extra 1: AL/AX
                             $from = $ax;
-                            //$this->output->writeln(sprintf(' -> FROM %s', $from));
                         } else {
                             // Extra 0, 2: SEG:SI
-                            $from = ($defaultSeg->toInt() << 4) + $this->si->toInt();
-                            //$this->output->writeln(sprintf(' -> FROM %08x', $from));
+                            $offset = ($defaultSeg->toInt() << 4) + $this->si->toInt();
+                            $from = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
                         }
 
                         if ($extra < 2) {
                             // Extra 0, 1: ES:DI
                             $to = $this->getEffectiveEsDiAddress();
-                            //$this->output->writeln(sprintf(' -> TO %08x', $to));
                         } else {
                             // Extra 2: AL/AX
                             $to = $ax;
-                            //$this->output->writeln(sprintf(' -> TO %s', $to));
                         }
 
-                        if ($from instanceof Register && is_numeric($to)) {
+                        $this->output->writeln(sprintf(' -> FROM %s', $from));
+                        $this->output->writeln(sprintf(' -> TO   %s', $to));
+
+                        if ($from instanceof Register && $to instanceof AbsoluteAddress) {
                             $data = $from->getData();
-                            $this->ram->write($data, $to, $from->getSize());
-                        } elseif (is_numeric($from) && $to instanceof Register) {
-                            $data = $this->ram->read($from, $iwSize);
+                            $offset = $to->toInt();
+                            $this->ram->write($data, $offset, $from->getSize());
+                        } elseif ($from instanceof AbsoluteAddress && $to instanceof Register) {
+                            $offset = $from->toInt();
+                            $data = $this->ram->read($offset, $to->getSize());
                             $to->setData($data, true);
+                        } elseif ($from instanceof AbsoluteAddress && $to instanceof AbsoluteAddress) {
+                            $offset = $from->toInt();
+                            $data = $this->ram->read($offset, $iwSize);
+
+                            $offset = $to->toInt();
+                            $this->ram->write($data, $offset, $iwSize);
+                        } else {
+                            throw new  UnknownTypeException();
                         }
 
                         if (1 !== $extra) {
@@ -908,7 +920,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                     // $id is always true (1100011x) so take $from here.
                     $this->debugOp(sprintf('MOV %s %x', $from, $data));
-                    $this->ram->write($data, $from->toInt(), $iwSize);
+                    $offset = $from->toInt();
+                    $this->ram->write($data, $offset, $iwSize);
                     break;
 
                 case 22: // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
@@ -975,7 +988,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 33: // PUSHF - OpCodes: 9c
                     $this->debugOp(sprintf('PUSHF %s', $this->flags));
-                    $this->pushDataToStack($this->flags->getData(), $this->flags->getSize());
+                    $data = $this->flags->getData();
+                    $size = $this->flags->getSize();
+                    $this->pushDataToStack($data, $size);
                     break;
 
                 case 34: // POPF - OpCodes: 9d
@@ -1011,7 +1026,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $realFlagId = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$flagId];
                     $flagName = $this->flags->getName($realFlagId);
                     $this->debugOp(sprintf('CLx %02x (=%d [%08b]) ID=%d/%d v=%d F=%s', $extra, $extra, $extra, $flagId, $realFlagId, $val, $flagName));
-                    $this->flags->set($realFlagId, (bool)$val);
+                    $this->flags->set($realFlagId, $val);
                     break;
 
                 case 53: // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
@@ -1207,43 +1222,42 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     /**
      * EA of SS:SP
-     *
-     * @return int
      */
-    private function getEffectiveStackPointerAddress(): int
+    private function getEffectiveStackPointerAddress(): AbsoluteAddress
     {
-        return ($this->ss->toInt() << 4) + $this->sp->toInt();
+        $offset = ($this->ss->toInt() << 4) + $this->sp->toInt();
+        $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
+        return $address;
     }
 
     /**
      * EA of CS:IP
-     *
-     * @return int
      */
-    private function getEffectiveInstructionPointerAddress(): int
+    private function getEffectiveInstructionPointerAddress(): AbsoluteAddress
     {
-        return ($this->cs->toInt() << 4) + $this->ip->toInt();
+        $offset = ($this->cs->toInt() << 4) + $this->ip->toInt();
+        $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
+        return $address;
     }
 
     /**
      * EA of ES:DI
-     *
-     * @return int
      */
-    private function getEffectiveEsDiAddress(): int
+    private function getEffectiveEsDiAddress(): AbsoluteAddress
     {
-        $ea = ($this->es->toInt() << 4) + $this->di->toInt();
-        return $ea;
+        $offset = ($this->es->toInt() << 4) + $this->di->toInt();
+        $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
+        return $address;
     }
 
     /**
      * EA of DS:BX
-     *
-     * @return int
      */
-    private function getEffectiveDsBxAddress(): int
+    private function getEffectiveDsBxAddress(): AbsoluteAddress
     {
-        return ($this->ds->toInt() << 4) + $this->bx->toInt();
+        $offset = ($this->ds->toInt() << 4) + $this->bx->toInt();
+        $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
+        return $address;
     }
 
     /**
@@ -1252,61 +1266,61 @@ class Cpu implements CpuInterface, OutputAwareInterface
      *
      * @param int $rm
      * @param int $disp
-     * @return int
      */
-    private function getEffectiveRegisterMemoryAddress(int $rm, int $disp): int
+    private function getEffectiveRegisterMemoryAddress(int $rm, int $disp): AbsoluteAddress
     {
         switch ($rm) {
             case 0: // 000 EA = (BX) + (SI) + DISP
-                $ea = $this->bx->toInt() + $this->si->toInt() + $disp;
+                $offset = $this->bx->toInt() + $this->si->toInt() + $disp;
                 break;
 
             case 1: // 001 EA = (BX) + (DI) + DISP
-                $ea = $this->bx->toInt() + $this->di->toInt() + $disp;
+                $offset = $this->bx->toInt() + $this->di->toInt() + $disp;
                 break;
 
             case 2: // 010 EA = (BP) + (SI) + DISP
-                $ea = $this->bp->toInt() + $this->si->toInt() + $disp;
+                $offset = $this->bp->toInt() + $this->si->toInt() + $disp;
                 break;
 
             case 3: // 011 EA = (BP) + (DI) + DISP
-                $ea = $this->bp->toInt() + $this->di->toInt() + $disp;
+                $offset = $this->bp->toInt() + $this->di->toInt() + $disp;
                 break;
 
             case 4: // 100 EA = (SI) + DISP
-                $ea = $this->si->toInt() + $disp;
+                $offset = $this->si->toInt() + $disp;
                 break;
 
             case 5: // 101 EA = (DI) + DISP
-                $ea = $this->di->toInt() + $disp;
+                $offset = $this->di->toInt() + $disp;
                 break;
 
             case 6: // 110 EA = (BP) + DISP
                 // except if mod = 00 and r/m = 110 then EA = disp-high; disp-low
                 // @todo What needs to be done for the comment above?
 
-                $ea = $this->bp->toInt() + $disp;
+                $offset = $this->bp->toInt() + $disp;
                 break;
 
             case 7: // 111 EA = (BX) + DISP
-                $ea = $this->bx->toInt() + $disp;
+                $offset = $this->bx->toInt() + $disp;
                 break;
 
             default:
                 throw new \RuntimeException(sprintf('getEffectiveRegisterMemoryAddress invalid: %d %b', $rm, $rm));
         }
-        return $ea;
+        $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
+        return $address;
     }
 
     private function pushDataToStack(iterable $data, int $size)
     {
         $this->debugSsSpRegister();
 
-        #$size = count($data);
         $this->sp->add(-$size);
 
-        $ea = $this->getEffectiveStackPointerAddress();
-        $this->ram->write($data, $ea, $size);
+        $address = $this->getEffectiveStackPointerAddress();
+        $offset = $address->toInt();
+        $this->ram->write($data, $offset, $size);
 
         $this->debugSsSpRegister();
     }
@@ -1323,8 +1337,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     private function popFromStack(int $size): \SplFixedArray
     {
-        $ea = $this->getEffectiveStackPointerAddress();
-        $data = $this->ram->read($ea, $size);
+        $address = $this->getEffectiveStackPointerAddress();
+        $offset = $address->toInt();
+        $data = $this->ram->read($offset, $size);
 
         $this->sp->add($size);
 
@@ -1355,16 +1370,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     private function debugSsSpRegister()
     {
-        $ea = $this->getEffectiveStackPointerAddress();
-        $data = $this->ram->read($ea, self::SIZE_BYTE);
-        $this->output->writeln(sprintf('%s %s -> %04x [%020b] -> %08b %08b', $this->ss, $this->sp, $ea, $ea, $data[0], $data[1]));
+        $address = $this->getEffectiveStackPointerAddress();
+        $offset = $address->toInt();
+        $data = $this->ram->read($offset, self::SIZE_BYTE);
+        $this->output->writeln(sprintf(' -> %s %s -> %04x [%020b] -> %08b %08b', $this->ss, $this->sp, $offset, $offset, $data[0], $data[1]));
     }
 
     private function debugCsIpRegister()
     {
-        $ea = $this->getEffectiveInstructionPointerAddress();
-        //$data = $this->ram->read($ea, self::SIZE_BYTE);
-        $this->output->writeln(sprintf('%s %s', $this->cs, $this->ip));
+        $this->output->writeln(sprintf(' -> %s %s', $this->cs, $this->ip));
     }
 
     private function debugInfo(string $text)
