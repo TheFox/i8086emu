@@ -117,6 +117,6 @@ class Machine implements MachineInterface, OutputAwareInterface
         $content = file_get_contents($path, false, null, 0, $length);
         $data = str_split($content);
         $data = array_map('ord', $data);
-        $this->ram->write($data, $offset);
+        $this->ram->write($data, $offset, $length);
     }
 }

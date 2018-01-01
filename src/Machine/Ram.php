@@ -29,18 +29,24 @@ class Ram implements RamInterface
     /**
      * @param iterable|int $data
      * @param int $offset
+     * @param int $length
      */
-    public function write($data, int $offset)
+    public function write($data, int $offset, int $length)
     {
         $pos = $offset;
+        $maxPos = $pos + $length;
 
         if (is_iterable($data)) {
             foreach ($data as $c) {
                 $this->data[$pos] = intval($c) & 0xFF;
+
                 ++$pos;
+                if ($pos === $maxPos) {
+                    break;
+                }
             }
         } elseif (is_numeric($data)) {
-            for ($i = 0; $i < 16 && $data > 0; ++$pos, ++$i, $data >>= 8) {
+            for (; $data > 0 && $pos < $maxPos; ++$pos, $data >>= 8) {
                 $this->data[$pos] = $data & 0xFF;
             }
         }

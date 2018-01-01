@@ -8,11 +8,8 @@ class DataHelper
     {
         $i = 0;
         foreach ($data as $index => $char) {
-            $char=intval($char);
-            $bits=$index<<3;
-            //printf("i = %d\n", $index);
-            //printf("c = %d\n", $char);
-            //printf("b = %d\n\n", $bits);
+            $char = intval($char);
+            $bits = $index << 3;
             $i += $char << $bits;
         }
         return $i;

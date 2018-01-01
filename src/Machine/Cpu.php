@@ -658,12 +658,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         case 8: // MOV
                             $this->debugOp(sprintf('MOV reg, r/m to=%s from=%s', $to, $from));
 
-                            if ($from instanceof AddressInterface && $to instanceof AddressInterface) {
-                                $offset = $to->toInt();
-                                $data = $from->getData();
-                                $this->ram->write($data, $offset);
+                            if ($from instanceof AbsoluteAddress && $to instanceof Register) {
+                                $data = $this->ram->read($from->toInt(), $to->getSize());
+                                $to->setData($data);
+                                $this->output->writeln(sprintf(' -> REG %s', $to));
                             } else {
-                                throw new NotImplementedException('ELSE');
+                                throw new NotImplementedException();
                             }
                             break;
 
@@ -677,7 +677,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         // MOV
                         //$this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
                         $iw = true;
-                        //$iwSize <<= 1; // * 2
                         $iReg += 8;
                         [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
                         $this->debugOp(sprintf('MOV sreg, r/m to=%s from=%s rm=%s', $to, $from, $rm));
@@ -725,7 +724,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if ($id) {
                         // Accumulator to Memory.
                         $data = $register->getData();
-                        $this->ram->write($data, $address);
+                        $this->ram->write($data, $address, $iwSize);
                     } else {
                         // Memory to Accumulator.
                         $data = $this->ram->read($address, $iwSize);
@@ -771,7 +770,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     // Since AX is mandatory for 'XCHG AX, regs16' (not for 'XCHG reg, r/m'),
                     // NOP is the same as XCHG AX, AX.
                     $iw = true;
-                    //$iwSize <<= 1; // * 2
                     $from = $this->getRegisterByNumber($iw, $iReg4bit);
                     $to = $this->ax;
                     $this->debugOp(sprintf('NOP to=%s from=%s', $to, $from));
@@ -1006,11 +1004,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 ) * $iModeSize
                 + $instSize
                 + $iwSize;
-            //$this->debugCsIpRegister();
+            $this->debugCsIpRegister();
             if ($add) {
                 $this->ip->add($add);
             }
-            //$this->debugCsIpRegister();
+            $this->debugCsIpRegister();
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
             $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];

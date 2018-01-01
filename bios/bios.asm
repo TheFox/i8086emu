@@ -69,10 +69,13 @@ bios_entry:
 	mov ax, 0x1234
 	mov [biosstr], ax
 
-	inc bx
 	inc byte [biosstr]
 	dec byte [biosstr]
-	;inc word [biosstr]
+
+	inc word [biosstr]
+	dec word [biosstr]
+
+	mov bx, [biosstr]
 
 	hlt
 

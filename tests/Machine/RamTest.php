@@ -25,7 +25,7 @@ class RamTest extends TestCase
     public function testWriteReadArray()
     {
         // Write
-        $this->ram->write([1, 2, 3], 0);
+        $this->ram->write([1, 2, 3], 0,3);
 
         $data = $this->ram->read(0, 1)->toArray();
         $this->assertEquals([1], $data);
@@ -51,13 +51,13 @@ class RamTest extends TestCase
         $this->assertEquals([3, 0], $data);
 
         // Write Offset > 0
-        $this->ram->write([4, 5, 6, 7], 5);
+        $this->ram->write([4, 5, 6, 7], 5,4);
 
         $data = $this->ram->read(2, 5)->toArray();
         $this->assertEquals([3, 0, 0, 4, 5], $data);
 
         // Continue writing
-        $this->ram->write([8, 9, 10], 9);
+        $this->ram->write([8, 9, 10], 9,3);
 
         $data = $this->ram->read(0, 12)->toArray();
         $this->assertEquals([1, 2, 3, 0, 0, 4, 5, 6, 7, 8, 9, 10], $data);
@@ -66,9 +66,9 @@ class RamTest extends TestCase
     public function testWriteReadInt()
     {
         // Write
-        $this->ram->write(0x42, 0);
-        $this->ram->write(0x454443, 1);
-        
+        $this->ram->write(0x42, 0,1);
+        $this->ram->write(0x454443, 1,3);
+
         // Read
         $data = $this->ram->read(0, 4)->toArray();
         $this->assertEquals([0x42,0x43,0x44,0x45], $data);
