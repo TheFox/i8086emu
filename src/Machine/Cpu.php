@@ -26,6 +26,7 @@ use TheFox\I8086emu\Helper\DataHelper;
 class Cpu implements CpuInterface, OutputAwareInterface
 {
     public const SIZE_BYTE = 2;
+    public const UNSIGNED_INT_MASK = 0xFFFF;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
     public const GRAPHICS_UPDATE_DELAY = 360000;
     // Lookup tables in the BIOS binary.
@@ -528,6 +529,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                     $opResult = $register->toInt();
 
+                    // @todo unsigned int
                     $this->setAuxiliaryFlagArith(1, $opDest, $opResult);
 
                     $x = $opDest + 1 - $id;
@@ -559,6 +561,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $this->output->writeln(sprintf(' -> RES %04x', $opResult));
                             }
 
+                            // @todo unsigned int
                             $this->setAuxiliaryFlagArith(1, $opDest, $opResult);
 
                             $x = $opDest + 1 - $id;
@@ -670,7 +673,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             }
 
                             $opResult = $opDest - $opSource;
-                            $uiOpResult = $opResult & 0xFF;
+                            $uiOpResult = $opResult & self::UNSIGNED_INT_MASK;
 
                             $cf = $uiOpResult > $opDest;
                             $this->flags->setByName('CF', $cf);
@@ -1089,14 +1092,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 // unsigned int. For example, int -42 = unsigned char 214
                 // Since we deal with Integer values < 256 we only need a 0xFF-mask.
-                $uiOpResult = $opResult & 0xFF;
+                // @todo This needs to be >=0 and <= 255 also for numbers > 0xFF.
+                $ucOpResult = $opResult & 0xFF;
 
                 $this->flags->setByName('SF', $sign);
                 $this->flags->setByName('ZF', $opResult == 0);
-                $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$uiOpResult]);
+                $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult]);
 
                 if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
-                    $this->setAuxiliaryFlagArith($opSource, $opDest, $uiOpResult);
+                    $this->setAuxiliaryFlagArith($opSource, $opDest, $opResult);
                     $this->setOverflowFlagArith($opSource, $opDest, $opResult, $iw);
                 }
                 if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
