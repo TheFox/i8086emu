@@ -351,7 +351,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             // Is Word Instruction, means 2 Byte long.
             $iw = (bool)($iReg4bit & 1); // xxxxxx1
-            $iwSize = $iw << 1;
+            $iwSize = $iw ? 2 : 1;
 
             // Instruction Direction
             $id = (bool)($iReg4bit & 2); // xxxxx1x
@@ -504,7 +504,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
                     $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
-                    $iwSize = $iw << 1;
+                    $iwSize = $iw ? 2 : 1;
                     $from = $iw ? $dataWord[0] : $dataByte[0];
                     $to = $this->getRegisterByNumber($iw, $iReg4bit);
 
