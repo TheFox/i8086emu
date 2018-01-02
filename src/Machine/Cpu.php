@@ -332,14 +332,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
-        $trapFlag = false;
+        //$trapFlag = false;
         $segOverride = 0;
         $segOverrideEn = 0; // Segment Override
         //$repOverride = 0;
         $repOverrideEn = 0; // Repeat
         $repMode = null;
 
-        $cycle = 0;
+        $loop = 0;
         while ($opcodeRaw = $this->getOpcode()) {
             // Decode
             $xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
@@ -351,7 +351,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             // Is Word Instruction, means 2 Byte long.
             $iw = (bool)($iReg4bit & 1); // xxxxxx1
-            $iwSize = $iw ? 2 : 1;
+            $iwSize = $iw << 1;
 
             // Instruction Direction
             $id = (bool)($iReg4bit & 2); // xxxxx1x
@@ -370,7 +370,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $this->debugInfo(sprintf(
                 '[%s] run %d %04x:%04x -> OP x%02x %d [%08b] -> XLAT x%02x %d',
                 'CPU',
-                $cycle,
+                $loop,
                 $this->cs->toInt(),
                 $this->ip->toInt(),
                 $opcodeRaw,
@@ -504,6 +504,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
                     $iw = (bool)($opcodeRaw & 8); // xxxx1xxx
+                    $iwSize = $iw << 1;
                     $from = $iw ? $dataWord[0] : $dataByte[0];
                     $to = $this->getRegisterByNumber($iw, $iReg4bit);
 
@@ -706,6 +707,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if (!$iw) {
                         // MOV
                         $iw = true;
+                        $iwSize = 2;
                         $iReg += 8;
                         [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
                         $this->debugOp(sprintf('MOV %s %s', $to, $from));
@@ -806,6 +808,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     // Since AX is mandatory for 'XCHG AX, regs16' (not for 'XCHG reg, r/m'),
                     // NOP is the same as XCHG AX, AX.
                     $iw = true;
+                    $iwSize = 2;
                     $from = $this->getRegisterByNumber($iw, $iReg4bit);
                     $to = $this->ax;
                     $this->debugOp(sprintf('NOP %s %s', $to, $from));
@@ -1055,14 +1058,19 @@ class Cpu implements CpuInterface, OutputAwareInterface
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
             $instSize = $this->biosDataTables[self::TABLE_BASE_INST_SIZE][$opcodeRaw];
-            $iwSize = $this->biosDataTables[self::TABLE_I_W_SIZE][$opcodeRaw] * ($iw + 1);
+            if ($this->biosDataTables[self::TABLE_I_W_SIZE][$opcodeRaw]) {
+                $iwAdder = $iwSize;
+            } else {
+                $iwAdder = 0;
+            }
+
             $add =
                 (
                     $iMod * (3 !== $iMod)
                     + 2 * (!$iMod && 6 === $iRm)
                 ) * $iModeSize
                 + $instSize
-                + $iwSize;
+                + $iwAdder;
             $this->debugCsIpRegister();
             if ($add) {
                 $this->ip->add($add);
@@ -1100,7 +1108,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $this->output->writeln(sprintf(' -> %s', $this->flags));
 
             // Update Instruction counter.
-            ++$cycle;
+            ++$loop;
 
             //$int8 = false;
             //if (0 === $cycle % self::KEYBOARD_TIMER_UPDATE_DELAY) {
