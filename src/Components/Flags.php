@@ -44,21 +44,21 @@ class Flags implements FlagsInterface
     {
         $this->data = \SplFixedArray::fromArray([
             false, // carry flag
-            false, // 1 reserved
+            null, // 1 reserved
             false, // parity flag
-            false, // 3 reserved
+            null, // 3 reserved
             false, // auxiliary carry flag
-            false, // 5 reserved
+            null, // 5 reserved
             false, // zero flag
             false, // sign flag
             false, // trap flag
             false, // interrupt enable flag
             false, // direction flag
             false, // overflow flag
-            false, // 12 reserved
-            false, // 13 reserved
-            false, // 14 reserved
-            false, // 15 reserved
+            null, // 12 reserved
+            null, // 13 reserved
+            null, // 14 reserved
+            null, // 15 reserved
         ]);
 
         $this->flippedNames = array_flip(self::NAMES);
@@ -66,9 +66,11 @@ class Flags implements FlagsInterface
 
     public function __toString(): string
     {
+        $a = $this->data->toArray();
+        $a = array_reverse($a);
         $n = array_map(function ($f) {
-            return $f ? '1' : '0';
-        }, $this->data->toArray());
+            return $f ? '1' : (null === $f ? 'x' : '0');
+        }, $a);
         $s = join('', $n);
         $s = sprintf('FLAGS[%s]', $s);
         return $s;
@@ -79,19 +81,20 @@ class Flags implements FlagsInterface
         return self::SIZE;
     }
 
-    public function set(int $flagId, bool $val)
+    public function set(int $flagId, bool $val): void
     {
         $this->data[$flagId] = $val;
     }
 
-    public function setByName(string $name, bool $val)
+    public function setByName(string $name, bool $val): void
     {
         $this->set(self::NAMES[$name], $val);
     }
 
     public function get(int $flagId): bool
     {
-        return $this->data[$flagId];
+        $f = (bool)$this->data[$flagId];
+        return $f;
     }
 
     public function getByName(string $name): bool
@@ -99,7 +102,7 @@ class Flags implements FlagsInterface
         return $this->get(self::NAMES[$name]);
     }
 
-    public function getName(int $flagId)
+    public function getName(int $flagId): string
     {
         return $this->flippedNames[$flagId];
     }
@@ -107,6 +110,11 @@ class Flags implements FlagsInterface
     public function setIntData(int $data)
     {
         foreach ($this->data as $i => $f) {
+            if (1 === $i || 3 === $i || 5 === $i || $i >= 12) {
+                $c = null;
+            } else {
+                $c = $data & 1;
+            }
             $this->set($i, $data & 1);
             $data >>= 1;
         }

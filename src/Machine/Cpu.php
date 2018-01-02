@@ -15,6 +15,7 @@ use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
+use TheFox\I8086emu\Components\Address;
 use TheFox\I8086emu\Components\ChildRegister;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Register;
@@ -367,7 +368,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             ];
 
             $this->debugInfo(sprintf(
-                '[%s] run %d @%04x:%04x -> OP 0x%02x %d [%08b] XLAT 0x%02x %d [%08b]',
+                '[%s] run %d %04x:%04x -> OP x%02x %d [%08b] -> XLAT x%02x %d',
                 'CPU',
                 $cycle,
                 $this->cs->toInt(),
@@ -375,7 +376,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $opcodeRaw,
                 $opcodeRaw,
                 $opcodeRaw,
-                $xlatId,
                 $xlatId,
                 $xlatId
             ));
@@ -392,12 +392,17 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 --$repOverrideEn;
             }
 
-            $iMod = 0;
-            $iRm = 0; // Is Register/Memory?
-            $iReg = 0;
-            //$disp = 0;
+            $iMod = 0; // Mode
+            $iRm = 0; // Register/Memory
+            $iReg = 0; // Register
+
+            /** @var AbsoluteAddress|Address|Register $rm */
+            $rm = null;
+            /** @var AbsoluteAddress|Address|Register $from */
             $from = null;
+            /** @var AbsoluteAddress|Address|Register $to */
             $to = null;
+
             $opSource = null;
             $opDest = null;
             $opResult = null; // Needs to be null for development.
@@ -410,9 +415,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $iReg = $dataByte[0] >> 3 & 7; // xx111xxx
                 $iRm = $dataByte[0] & 7;       // xxxxx111
 
-                $this->output->writeln(sprintf('MOD %d  %02b', $iMod, $iMod));
-                $this->output->writeln(sprintf('REG %d %03b', $iReg, $iReg));
-                $this->output->writeln(sprintf('R/M %d %03b', $iRm, $iRm));
+                $this->output->writeln(sprintf(' -> MOD %d  %02b', $iMod, $iMod));
+                $this->output->writeln(sprintf(' -> REG %d %03b', $iReg, $iReg));
+                $this->output->writeln(sprintf(' -> R/M %d %03b', $iRm, $iRm));
 
                 switch ($iMod) {
                     case 0:
@@ -442,9 +447,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
 
-                $this->output->writeln(sprintf('<info>FROM %s</info>', $from));
-                $this->output->writeln(sprintf('<info>TO   %s</info>', $to));
-                $this->output->writeln('---');
+                $this->output->writeln(sprintf(' -> <info>FROM %s</info>', $from));
+                $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $to));
+                //$this->output->writeln('---');
             }
 
             switch ($xlatId) {
@@ -490,7 +495,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $flagsVal2 = $flagsVal1 ^ $iw;
                     $add = $dataByte[0] * $flagsVal2;
 
-                    $this->debugCsIpRegister();
+                    //$this->debugCsIpRegister();
                     if ($add) {
                         $this->ip->add($add);
                     }
@@ -917,8 +922,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 case 22: // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
                     // @link https://pdos.csail.mit.edu/6.828/2010/readings/i386/OUT.htm
 
-                    //$this->output->writeln('<error>OUT DX/imm8, AL/AX</error>');
-                    $ahReg = $this->getRegisterByNumber($iw, 0);
+                    // AL/AX
+                    $ax = $this->getRegisterByNumber($iw, 0);
 
                     if ($extra) {
                         $scratch = $this->dx->toInt();
@@ -930,7 +935,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         'OUT word=%d extra=%d AL/AH=%s DX=%s v=%x',
                         $iw,
                         $extra,
-                        $ahReg,
+                        $ax,
                         $this->dx,
                         $scratch
                     ));
@@ -954,14 +959,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 25: // PUSH sreg - OpCodes: 06 0e 16 1e
-                    $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
+                    $iReg = ($opcodeRaw >> 3) & 3; // xxx11xxx
                     $register = $this->getSegmentRegisterByNumber($iReg);
                     $this->debugOp(sprintf('PUSH %s', $register));
                     $this->pushRegisterToStack($register);
                     break;
 
                 case 26: // POP sreg - OpCodes: 07 17 1f
-                    $iReg = $opcodeRaw >> 3 & 3; // xxx11xxx
+                    $iReg = ($opcodeRaw >> 3) & 3; // xxx11xxx
                     if (($iReg + 8) !== $extra) {
                         throw new \RuntimeException(sprintf('In 8086tiny extra is used. %d != %d', $iReg, $extra));
                     }
@@ -1091,6 +1096,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 }
             }
 
+            // Debug Flags
+            $this->output->writeln(sprintf(' -> %s', $this->flags));
+
             // Update Instruction counter.
             ++$cycle;
 
@@ -1157,11 +1165,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 $rm = new AbsoluteAddress(self::SIZE_BYTE << 1, $addr2);
 
-                $this->output->writeln(sprintf('DEF  %s %d', $defaultSegReg, $defaultSegId));
-                $this->output->writeln(sprintf('REG1 %s %d', $register1, $register1Id));
-                $this->output->writeln(sprintf('REG2 %s %d', $register2, $register2Id));
-                $this->output->writeln(sprintf('ADDR1 %x', $addr1));
-                $this->output->writeln(sprintf('ADDR2 %x', $addr2));
+                $this->output->writeln(sprintf(' -> DEF  %s %d', $defaultSegReg, $defaultSegId));
+                $this->output->writeln(sprintf(' -> REG1 %s %d', $register1, $register1Id));
+                $this->output->writeln(sprintf(' -> REG2 %s %d', $register2, $register2Id));
+                $this->output->writeln(sprintf(' -> ADDR1 %x', $addr1));
+                $this->output->writeln(sprintf(' -> ADDR2 %x', $addr2));
                 break;
 
             case 3:
