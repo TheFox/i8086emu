@@ -670,11 +670,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             }
 
                             $opResult = $opDest - $opSource;
+                            $uiOpResult = $opResult & 0xFF;
 
-                            $cf = $opResult > $opDest;
+                            $cf = $uiOpResult > $opDest;
                             $this->flags->setByName('CF', $cf);
 
-                            $this->output->writeln(sprintf(' -> %b %b => %d CF=%d', $opDest, $opSource, $opResult, $cf));
+                            $this->output->writeln(sprintf(' -> %b %b => %x/%x CF=%d', $opDest, $opSource, $opResult, $uiOpResult, $cf));
                             break;
 
                         case 8: // MOV
@@ -1086,16 +1087,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 $sign = $opResult < 0;
 
-                // unsigned char. For example, int -42 = unsigned char 214
+                // unsigned int. For example, int -42 = unsigned char 214
                 // Since we deal with Integer values < 256 we only need a 0xFF-mask.
-                $ucOpResult = $opResult & 0xFF;
+                $uiOpResult = $opResult & 0xFF;
 
                 $this->flags->setByName('SF', $sign);
-                $this->flags->setByName('ZF', !$opResult);
-                $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult]);
+                $this->flags->setByName('ZF', $opResult == 0);
+                $this->flags->setByName('PF', $this->biosDataTables[self::TABLE_PARITY_FLAG][$uiOpResult]);
 
                 if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
-                    $this->setAuxiliaryFlagArith($opSource, $opDest, $ucOpResult);
+                    $this->setAuxiliaryFlagArith($opSource, $opDest, $uiOpResult);
                     $this->setOverflowFlagArith($opSource, $opDest, $opResult, $iw);
                 }
                 if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
@@ -1105,7 +1106,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
 
             // Debug Flags
-            $this->output->writeln(sprintf(' -> %s', $this->flags));
+            $this->output->writeln(sprintf(' -> %s set=%b', $this->flags, $setFlagsType));
 
             // Update Instruction counter.
             ++$loop;
@@ -1378,6 +1379,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
         if ($result === $dest) {
             $of = 0;
         } else {
+            $x = $dest ^ $result;
+            $src ^= $x;
+
             $cf = $this->flags->getByName('CF');
             $topBit = $isWord ? 15 : 7;
             $of = ($cf ^ ($src >> $topBit)) & 1;
