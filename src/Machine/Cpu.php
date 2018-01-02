@@ -379,7 +379,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $xlatId,
                 $xlatId
             ));
-            //$this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
+            //$this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x',
+            //$dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
             //foreach ($dataWord as $n => $tmpWord) {
             //    $this->output->writeln(sprintf('data%d word: %x', $n, $tmpWord));
             //}
@@ -596,6 +597,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $dataWord[2] = $dataWord[0];
                     $iReg = $extra; // Will later be switched back.
                     $this->ip->add(-1);
+                // no break
 
                 case 8: // CMP reg, imm - OpCodes: 80 81 82 83
                     $to = $rm;

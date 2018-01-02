@@ -1,5 +1,6 @@
 before_script:
     - apt-get update -yqq
+    - apt-get install composer
     - composer install --prefer-source --no-interaction
 
 stages:
