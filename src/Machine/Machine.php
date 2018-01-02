@@ -68,9 +68,8 @@ class Machine implements MachineInterface, OutputAwareInterface
         if (!$this->biosFilePath) {
             throw new NoBiosException();
         }
-        if ($this->hardDiskFilePath) {
-            throw new \RuntimeException('HDD file not implemented');
-        }
+        //if ($this->hardDiskFilePath) {
+        //}
 
         // Load BIOS into RAM.
         $biosOffset = (0xF000 << 4) + 0x0100; // @todo
@@ -95,11 +94,19 @@ class Machine implements MachineInterface, OutputAwareInterface
     }
 
     /**
-     * @param string $floppyDiskFilePath
+     * @param string $filePath
      */
-    public function setFloppyDiskFilePath(string $floppyDiskFilePath)
+    public function setFloppyDiskFilePath(string $filePath)
     {
-        $this->floppyDiskFilePath = $floppyDiskFilePath;
+        $this->floppyDiskFilePath = $filePath;
+    }
+
+    /**
+     * @param string $filePath
+     */
+    public function setHardDiskFilePath(string $filePath)
+    {
+        $this->hardDiskFilePath = $filePath;
     }
 
     /**
