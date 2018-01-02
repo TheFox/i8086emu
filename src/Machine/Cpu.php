@@ -390,8 +390,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
             if ($segOverrideEn) {
                 --$segOverrideEn;
                 $defaultSegmentRegister = $this->getRegisterByNumber(true, $segOverride);
-            //} else {
-                //$defaultSegmentRegister = $this->ds;
+            } else {
+                $defaultSegmentRegister = $this->ds;
             }
             if ($repOverrideEn) {
                 --$repOverrideEn;
@@ -533,15 +533,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                     $opResult = $register->toInt();
 
-                    // @todo unsigned int
                     $this->setAuxiliaryFlagArith(1, $opDest, $opResult);
+                    $af = $this->flags->getByName('AF');
 
                     $x = $opDest + 1 - $id;
                     $y = 1 << (($iwSize << 3) - 1);
                     $of = $x === $y;
                     $this->flags->setByName('OF', $of);
 
-                    $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $this->flags->getByName('AF'), $of));
+                    $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $af, $of));
                     break;
 
                 case 5: // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
@@ -565,15 +565,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $this->output->writeln(sprintf(' -> RES %04x', $opResult));
                             }
 
-                            // @todo unsigned int
                             $this->setAuxiliaryFlagArith(1, $opDest, $opResult);
+                            $af = $this->flags->getByName('AF');
 
                             $x = $opDest + 1 - $id;
                             $y = 1 << (($iwSize << 3) - 1);
                             $of = $x === $y;
                             $this->flags->setByName('OF', $of);
 
-                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d AF=%d OF=%d 0x%x', $id ? 'DEC' : 'INC', $iReg, $id, $dataByte[0], $iw, $this->flags->getByName('AF'), $of, $opResult));
+                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d AF=%d OF=%d 0x%x', $id ? 'DEC' : 'INC', $iReg, $id, $dataByte[0], $iw, $af, $of, $opResult));
 
                             // Decode like ADC.
                             $opcodeRaw = 0x10;
@@ -775,13 +775,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $register = $this->ax->getLowRegister();
                     }
 
-                    $this->debugOp(sprintf('MOV %s %x', $register, $offset));
                     if ($id) {
                         // Accumulator to Memory.
+                        $this->debugOp(sprintf('MOV %x %s', $offset, $register));
                         $data = $register->getData();
                         $this->ram->write($data, $offset, $iwSize);
                     } else {
                         // Memory to Accumulator.
+                        $this->debugOp(sprintf('MOV %s %x', $register, $offset));
                         $data = $this->ram->read($offset, $iwSize);
                         $register->setData($data);
                         $this->output->writeln(sprintf(' -> %s', $register));
@@ -859,12 +860,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     break;
 
                 case 17: // MOVSx (extra=0)|STOSx (extra=1)|LODSx (extra=2) - OpCodes: a4 a5 aa ab ac ad
-
-                    //if ($segOverrideEn) {
-                    //    $defaultSeg = $this->getSegmentRegisterByNumber($segOverride);
-                    //} else {
-                    //    $defaultSeg = $this->ds;
-                    //}
                     if ($repOverrideEn) {
                         $j = $this->cx->toInt();
                     } else {
@@ -894,8 +889,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $to = $ax;
                         }
 
-                        //$this->output->writeln(sprintf(' -> FROM %s', $from));
-                        //$this->output->writeln(sprintf(' -> TO   %s', $to));
+                        $this->output->writeln(sprintf(' -> INDEX %d', $i));
+                        $this->output->writeln(sprintf(' -> FROM %s', $from));
+                        $this->output->writeln(sprintf(' -> TO   %s', $to));
+                        $this->output->writeln('');
 
                         if ($from instanceof Register && $to instanceof AbsoluteAddress) {
                             $data = $from->getData();
@@ -1100,7 +1097,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 // unsigned int. For example, int -42 = unsigned char 214
                 // Since we deal with Integer values < 256 we only need a 0xFF-mask.
-                // @todo This needs to be >=0 and <= 255 also for numbers > 0xFF.
                 $ucOpResult = $opResult & 0xFF;
 
                 if ($ucOpResult < 0 || $ucOpResult > 255) {

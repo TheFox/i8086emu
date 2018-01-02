@@ -113,9 +113,9 @@ class Flags implements FlagsInterface
             if (1 === $i || 3 === $i || 5 === $i || $i >= 12) {
                 $c = null;
             } else {
-                $c = $data & 1;
+                $c = (bool)($data & 1);
             }
-            $this->set($i, $data & 1);
+            $this->data[$i] = $c;
             $data >>= 1;
         }
     }
