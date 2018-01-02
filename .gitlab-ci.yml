@@ -1,0 +1,12 @@
+before_script:
+    - apt-get update -yqq
+
+stages:
+    - test
+
+test:
+    image: php:7.2-cli
+    stage: test
+    environment: test
+    script:
+        - ./bin/test.sh
