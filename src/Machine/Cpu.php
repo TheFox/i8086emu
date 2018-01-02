@@ -372,8 +372,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $cycle,
                 $this->cs->toInt(),
                 $this->ip->toInt(),
-                $opcodeRaw, $opcodeRaw, $opcodeRaw,
-                $xlatId, $xlatId, $xlatId
+                $opcodeRaw,
+                $opcodeRaw,
+                $opcodeRaw,
+                $xlatId,
+                $xlatId,
+                $xlatId
             ));
             //$this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x', $dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
             //foreach ($dataWord as $n => $tmpWord) {
@@ -920,8 +924,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $scratch = $dataByte[0];
                     }
 
-                    $this->debugOp(sprintf('OUT word=%d extra=%d AL/AH=%s DX=%s v=%x',
-                        $iw, $extra, $ahReg, $this->dx, $scratch));
+                    $this->debugOp(sprintf(
+                        'OUT word=%d extra=%d AL/AH=%s DX=%s v=%x',
+                        $iw,
+                        $extra,
+                        $ahReg,
+                        $this->dx,
+                        $scratch
+                    ));
 
                     // @todo create class to handle shit below
                     // handle Speaker control here
@@ -1024,9 +1034,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 //    break;
 
                 default:
-                    throw new NotImplementedException(sprintf('OP 0x%02x (=%d [%08b]) xLatID 0x%02x (=%d [%08b])',
-                        $opcodeRaw, $opcodeRaw, $opcodeRaw,
-                        $xlatId, $xlatId, $xlatId
+                    throw new NotImplementedException(sprintf(
+                        'OP 0x%02x (=%d [%08b]) xLatID 0x%02x (=%d [%08b])',
+                        $opcodeRaw,
+                        $opcodeRaw,
+                        $opcodeRaw,
+                        $xlatId,
+                        $xlatId,
+                        $xlatId
                     ));
             } // switch $xlatId
 
