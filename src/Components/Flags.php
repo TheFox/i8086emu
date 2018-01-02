@@ -69,7 +69,7 @@ class Flags implements FlagsInterface
         $a = $this->data->toArray();
         $a = array_reverse($a);
         $n = array_map(function ($f) {
-            return $f ? '1' : (null === $f ? 'x' : '0');
+            return $f ? '1' : (null === $f ? '_' : '0');
         }, $a);
         $s = join('', $n);
         $s = sprintf('FLAGS[%s]', $s);
