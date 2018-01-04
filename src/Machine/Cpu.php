@@ -23,6 +23,7 @@ use TheFox\I8086emu\Exception\NotImplementedException;
 use TheFox\I8086emu\Exception\UnknownTypeException;
 use TheFox\I8086emu\Exception\ValueExceededException;
 use TheFox\I8086emu\Helper\DataHelper;
+use TheFox\I8086emu\Helper\NumberHelper;
 
 class Cpu implements CpuInterface, OutputAwareInterface
 {
@@ -361,12 +362,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
             $ipOffset = $ipAddress->toInt();
 
             $dataByte = $this->ram->read($ipOffset + 1, 5);
-            $dataWord = [
+            $dataWord = \SplFixedArray::fromArray([
                 ($dataByte[1] << 8) | $dataByte[0],
                 ($dataByte[2] << 8) | $dataByte[1],
                 ($dataByte[3] << 8) | $dataByte[2],
                 ($dataByte[4] << 8) | $dataByte[3],
-            ];
+            ]);
 
             $this->debugInfo(sprintf(
                 '[%s] run %d %04x:%04x -> OP x%02x %d [%08b] -> XLAT x%02x %d',
@@ -380,8 +381,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $xlatId,
                 $xlatId
             ));
+
             //$this->output->writeln(sprintf('data byte: 0=%02x 1=%02x 2=%02x 3=%02x 4=%02x',
-            //$dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
+            //    $dataByte[0], $dataByte[1], $dataByte[2], $dataByte[3], $dataByte[4]));
             //foreach ($dataWord as $n => $tmpWord) {
             //    $this->output->writeln(sprintf('data%d word: %x', $n, $tmpWord));
             //}
@@ -459,10 +461,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
             switch ($xlatId) {
                 case 0: // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
+
                     // $iw is the invert Flag.
                     // For example, $iw == 0 means JAE, $iw == 1 means JNAE
 
-                    $this->debugOp(sprintf('JMP %x', $dataByte[0]));
+                    $this->debugOp(sprintf('JMP %d/%x %d/%x',
+                        $dataByte[0], $dataByte[0],
+                        $dataWord[0], $dataWord[0]));
 
                     $flagId = ($opcodeRaw >> 1) & 7; // xxxx111x
 
@@ -481,30 +486,35 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $flagC = $this->flags->get($realFlagIdC);
                     $flagD = $this->flags->get($realFlagIdD);
 
-                    $this->debugOp(sprintf('JMP w=%d e=%b f=%d d0=%d', $iw, $extra, $flagId, $dataByte[0]));
+                    //$this->debugOp(sprintf('JMP w=%d e=%b f=%d d0=%d/%x', $iw, $extra, $flagId,
+                    //    $dataByte[0], $dataByte[0]));
+                    //
+                    //$this->output->writeln(sprintf(' -> A org: %d', $condDecodeA));
+                    //$this->output->writeln(sprintf(' -> B org: %d', $condDecodeB));
+                    //$this->output->writeln(sprintf(' -> C org: %d', $condDecodeC));
+                    //$this->output->writeln(sprintf(' -> D org: %d', $condDecodeD));
+                    //
+                    //$this->output->writeln(sprintf(' -> Flag A: %2d %d', $realFlagIdA, $flagA));
+                    //$this->output->writeln(sprintf(' -> Flag B: %2d %d', $realFlagIdB, $flagB));
+                    //$this->output->writeln(sprintf(' -> Flag C: %2d %d', $realFlagIdC, $flagC));
+                    //$this->output->writeln(sprintf(' -> Flag D: %2d %d', $realFlagIdD, $flagD));
 
-                    $this->output->writeln(sprintf(' -> A org: %d', $condDecodeA));
-                    $this->output->writeln(sprintf(' -> B org: %d', $condDecodeB));
-                    $this->output->writeln(sprintf(' -> C org: %d', $condDecodeC));
-                    $this->output->writeln(sprintf(' -> D org: %d', $condDecodeD));
-
-                    $this->output->writeln(sprintf(' -> Flag A: %s %d', $realFlagIdA, $flagA));
-                    $this->output->writeln(sprintf(' -> Flag B: %s %d', $realFlagIdB, $flagB));
-                    $this->output->writeln(sprintf(' -> Flag C: %s %d', $realFlagIdC, $flagC));
-                    $this->output->writeln(sprintf(' -> Flag D: %s %d', $realFlagIdD, $flagD));
+                    $data = NumberHelper::unsignedIntToChar($dataByte[0]);
 
                     $flagsVal1 =
                         $flagA
                         || $flagB
                         || $flagC ^ $flagD;
                     $flagsVal2 = $flagsVal1 ^ $iw;
-                    $add = $dataByte[0] * $flagsVal2;
+                    $add = $data * $flagsVal2;
+
+                    $this->output->writeln(sprintf(' -> ADD %d %x', $add, $add));
 
                     //$this->debugCsIpRegister();
                     if ($add) {
                         $this->ip->add($add);
                     }
-                    $this->debugCsIpRegister();
+                    //$this->debugCsIpRegister();
                     break;
 
                 case 1: // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
@@ -616,9 +626,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $to = $rm;
                     $this->debugOp(sprintf('CMP f=%s t=%s s=%d', $from, $to, $iwSize));
 
-                    $this->output->writeln(sprintf(' -> d 1 = %02b', $id));
+                    //$this->output->writeln(sprintf(' -> d 1 = %02b', $id));
                     $id |= !$iw;
-                    $this->output->writeln(sprintf(' -> d 2 = %02b', $id));
+                    //$this->output->writeln(sprintf(' -> d 2 = %02b', $id));
 
                     if ($id) {
                         $from = $dataByte[2];
@@ -626,25 +636,25 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $from = $dataWord[2];
                     }
 
-                    $this->output->writeln(sprintf(' -> from %s', $from));
+                    //$this->output->writeln(sprintf(' -> from %s', $from));
 
                     $add = !$id + 1;
-                    $this->output->writeln(sprintf(' -> add %d', $add));
+                    //$this->output->writeln(sprintf(' -> add %d', $add));
                     $this->ip->add($add);
-                    $this->output->writeln(sprintf(' -> %s', $this->ip));
+                    //$this->output->writeln(sprintf(' -> %s', $this->ip));
 
                     // Decode
                     $opcodeRaw = 0x8 * $iReg;
                     $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
 
-                    $this->output->writeln(sprintf(' -> CMP %02x %s from=%x', $opcodeRaw, $this->ip, $from));
+                    //$this->output->writeln(sprintf(' -> CMP %02x %s from=%x', $opcodeRaw, $this->ip, $from));
                 // no break
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
                     switch ($extra) {
                         case 0: // ADD
                             $this->debugOp(sprintf('ADD'));
-                            throw new NotImplementedException(sprintf('ADD'));
+                            throw new NotImplementedException();
                             break;
 
                         case 6: // XOR
@@ -889,10 +899,10 @@ class Cpu implements CpuInterface, OutputAwareInterface
                             $to = $ax;
                         }
 
-                        $this->output->writeln(sprintf(' -> INDEX %d', $i));
-                        $this->output->writeln(sprintf(' -> FROM %s', $from));
-                        $this->output->writeln(sprintf(' -> TO   %s', $to));
-                        $this->output->writeln('');
+                        //$this->output->writeln(sprintf(' -> INDEX %d', $i));
+                        //$this->output->writeln(sprintf(' -> FROM %s', $from));
+                        //$this->output->writeln(sprintf(' -> TO   %s', $to));
+                        //$this->output->writeln('');
 
                         if ($from instanceof Register && $to instanceof AbsoluteAddress) {
                             $data = $from->getData();
@@ -1191,11 +1201,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 $rm = new AbsoluteAddress(self::SIZE_BYTE << 1, $addr2);
 
-                $this->output->writeln(sprintf(' -> DEF  %s %d', $defaultSegReg, $defaultSegId));
-                $this->output->writeln(sprintf(' -> REG1 %s %d', $register1, $register1Id));
-                $this->output->writeln(sprintf(' -> REG2 %s %d', $register2, $register2Id));
-                $this->output->writeln(sprintf(' -> ADDR1 %x', $addr1));
-                $this->output->writeln(sprintf(' -> ADDR2 %x', $addr2));
+                //$this->output->writeln(sprintf(' -> DEF  %s %d', $defaultSegReg, $defaultSegId));
+                //$this->output->writeln(sprintf(' -> REG1 %s %d', $register1, $register1Id));
+                //$this->output->writeln(sprintf(' -> REG2 %s %d', $register2, $register2Id));
+                //$this->output->writeln(sprintf(' -> ADDR1 %x', $addr1));
+                //$this->output->writeln(sprintf(' -> ADDR2 %x', $addr2));
                 break;
 
             case 3:

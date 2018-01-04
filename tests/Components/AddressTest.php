@@ -14,6 +14,7 @@ class AddressTest extends TestCase
             [2, 1, null, [1, 1, 0, 0]],
             [2, 255, null, [255, 255, 0, 0]],
             [2, 257, null, [257, 1, 1, 0x100]],
+            [2, 0x0302, 0xffd9, [0x2db, null, null, null]],
             [2, [0xA, 0xB], null, [2826, 0xA, 0xB, 0xB00]],
             [2, [255, 255], null, [0xFFFF, 0xFF, 0xFF, 0xFF00]],
             [4, [255, 255, 255], null, [0xFFFFFF, 0xFFFF, 0xFF, 0xFF0000]],
