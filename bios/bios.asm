@@ -61,25 +61,19 @@ main:
 biosstr	db	'8086tiny BIOS Revision 1.61!', 0, 0		; Why not?
 mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
-shutdown:
+test1:
     mov ax, 0x1000
-    mov ax, ss
-    mov sp, 0xf000
-    mov ax, 0x5307
-    mov bx, 0x0001
-    mov cx, 0x0003
-    int 0x15
+    ret
+
+test2:
+    mov ax, 0x2000
+    ret
 
 bios_entry:
 	; DEV
-	;call shutdown
-	;mov ax, 0x1f
-	;mov bx, 7
-	;xor ax, bx
-
-	;mov word [cs:num_disks], 1
-	;mov ax, [cs:num_disks]
-	;hlt
+	call test1
+	call test2
+	hlt
 
 	; Set up initial stack to F000:F000
 	mov	sp, 0xf000
@@ -3878,3 +3872,7 @@ tm_wday		equ $+24
 tm_yday		equ $+28
 tm_dst		equ $+32
 tm_msec		equ $+36
+
+test1f:
+    mov ax, 0x3000
+    ret

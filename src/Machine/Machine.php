@@ -75,8 +75,8 @@ class Machine implements MachineInterface, OutputAwareInterface
         $biosOffset = (0xF000 << 4) + 0x0100; // @todo
         $biosLen = 0xFF00;
         $this->writeRamFromFile($this->biosFilePath, $biosOffset, $biosLen);
-        printf("bios start %08x\n", $biosOffset);
-        printf("bios end   %08x\n", $biosOffset + $biosLen);
+        $this->output->writeln(sprintf("bios start %08x\n", $biosOffset));
+        $this->output->writeln(sprintf("bios end   %08x\n", $biosOffset + $biosLen));
 
         // Setup CPU.
         $this->cpu->setRam($this->ram);

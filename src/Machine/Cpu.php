@@ -422,9 +422,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 $iReg = $dataByte[0] >> 3 & 7; // xx111xxx
                 $iRm = $dataByte[0] & 7;       // xxxxx111
 
-                $this->output->writeln(sprintf(' -> MOD %d  %02b', $iMod, $iMod));
-                $this->output->writeln(sprintf(' -> REG %d %03b', $iReg, $iReg));
-                $this->output->writeln(sprintf(' -> R/M %d %03b', $iRm, $iRm));
+                //$this->output->writeln(sprintf(' -> MOD %d  %02b', $iMod, $iMod));
+                //$this->output->writeln(sprintf(' -> REG %d %03b', $iReg, $iReg));
+                //$this->output->writeln(sprintf(' -> R/M %d %03b', $iRm, $iRm));
 
                 switch ($iMod) {
                     case 0:
@@ -624,7 +624,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 8: // CMP reg, imm - OpCodes: 80 81 82 83
                     $to = $rm;
-                    $this->debugOp(sprintf('CMP f=%s t=%s s=%d', $from, $to, $iwSize));
+                    //$this->debugOp(sprintf('CMP f=%s t=%s s=%d', $from, $to, $iwSize));
 
                     //$this->output->writeln(sprintf(' -> d 1 = %02b', $id));
                     $id |= !$iw;
@@ -647,7 +647,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $opcodeRaw = 0x8 * $iReg;
                     $extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
 
-                    //$this->output->writeln(sprintf(' -> CMP %02x %s from=%x', $opcodeRaw, $this->ip, $from));
+                //$this->output->writeln(sprintf(' -> CMP %02x %s from=%x', $opcodeRaw, $this->ip, $from));
                 // no break
 
                 case 9: // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m - OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
@@ -693,14 +693,14 @@ class Cpu implements CpuInterface, OutputAwareInterface
                                 $uiOpResult = $opResult & 0xFF;
                             }
 
-                            $this->output->writeln(sprintf(' -> %b %b => %d/%x (%d/%x)', $opDest, $opSource,
-                                $opResult, $opResult,
-                                $uiOpResult, $uiOpResult));
+                            //$this->output->writeln(sprintf(' -> %b %b => %d/%x (%d/%x)', $opDest, $opSource,
+                            //    $opResult, $opResult,
+                            //    $uiOpResult, $uiOpResult));
 
                             //$cf = $opResult > $opDest;
                             //$this->output->writeln(sprintf(' ->  s CF=%d', $cf));
                             $cf = $uiOpResult > $opDest;
-                            $this->output->writeln(sprintf(' -> us CF=%d', $cf));
+                            //$this->output->writeln(sprintf(' -> us CF=%d', $cf));
 
                             $this->flags->setByName('CF', $cf);
                             break;
@@ -811,7 +811,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         } else {
                             // CALL
                             $this->debugOp(sprintf('CALL'));
-                            throw new NotImplementedException('CALL');
+                            $this->debugOp(sprintf(' -> %s', $this->ip));
+                            $this->pushRegisterToStack($this->ip);
                         }
                     }
 
@@ -934,6 +935,27 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     if ($repOverrideEn) {
                         $this->cx->setData(0);
                     }
+                    break;
+
+                case 19: // RET|RETF|IRET - OpCodes: c2 c3 ca cb cf
+                    $this->debugOp(sprintf('RET %b %s', $extra, $this->ip));
+                    $data = $this->popFromStack($this->ip->getSize());
+                    $this->ip->setData($data);
+                    $this->debugOp(sprintf(' -> %s', $this->ip));
+
+                    if ($extra) { // IRET|RETF|RETF imm16
+                        $data = $this->popFromStack($this->cs->getSize());
+                        $this->cs->setData($data);
+                        $this->debugOp(sprintf(' -> %s', $this->cs));
+                    }
+
+                    if ($extra & 2) { // IRET
+                        //$this->sp->add(2);
+                        throw new NotImplementedException();
+                    } elseif (!$iw) { // RET|RETF imm16
+                        $this->sp->setData($dataWord[0]);
+                    }
+
                     break;
 
                 case 20: // MOV r/m, immed - OpCodes: c6 c7
