@@ -18,7 +18,8 @@ class FlagsTest extends TestCase
         $flags->set(0, true);
         $this->assertTrue($flags->get(0));
         $this->assertTrue($flags->getByName('CF'));
-        $this->assertFalse($flags->get(1));
+        $this->assertTrue($flags->get(1)); // Default true
+        $this->assertFalse($flags->get(3)); // Default false
 
         // Set 2
         $flags->setByName('CF', false);

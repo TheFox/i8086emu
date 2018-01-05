@@ -461,14 +461,18 @@ class Cpu implements CpuInterface, OutputAwareInterface
             }
 
             switch ($xlatId) {
-                case 0: // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
-
+                // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
+                case 0:
                     // $iw is the invert Flag.
                     // For example, $iw == 0 means JAE, $iw == 1 means JNAE
 
-                    $this->debugOp(sprintf('JMP %d/%x %d/%x',
-                        $dataByte[0], $dataByte[0],
-                        $dataWord[0], $dataWord[0]));
+                    $this->debugOp(sprintf(
+                        'JMP %d/%x %d/%x',
+                        $dataByte[0],
+                        $dataByte[0],
+                        $dataWord[0],
+                        $dataWord[0]
+                    ));
 
                     $flagId = ($opcodeRaw >> 1) & 7; // xxxx111x
 
@@ -830,8 +834,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugCsIpRegister();
                     break;
 
-                case 16: // NOP|XCHG AX, reg OpCodes: 90 91 92 93 94 95 96 97
-
+                // NOP|XCHG AX, reg - OpCodes: 90 91 92 93 94 95 96 97
+                case 16:
                     // For NOP the source and the destination is AX.
                     // Since AX is mandatory for 'XCHG AX, regs16' (not for 'XCHG reg, r/m'),
                     // NOP is the same as XCHG AX, AX.
