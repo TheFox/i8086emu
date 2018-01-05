@@ -16,5 +16,11 @@ interface FlagsInterface
 
     public function getName(int $flagId): string;
 
+    public function setIntData(int $data): void;
+
+    public function setData(iterable $data): void;
+
     public function getData(): \SplFixedArray;
+
+    public function toInt(): int;
 }

@@ -61,20 +61,7 @@ main:
 biosstr	db	'8086tiny BIOS Revision 1.61!', 0, 0		; Why not?
 mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
-test1:
-    mov ax, 0x1000
-    ret
-
-test2:
-    mov ax, 0x2000
-    ret
-
 bios_entry:
-	; DEV
-	call test1
-	call test2
-	hlt
-
 	; Set up initial stack to F000:F000
 	mov	sp, 0xf000
 	mov	ss, sp
@@ -249,6 +236,11 @@ boot:
 	mov	si, int_table
 	mov	cx, [itbl_size]
 	rep	movsb
+
+; DEV
+	int 3
+	int 7
+	hlt
 
 ; Set pointer to INT 41 table for hard disk
 
@@ -3872,7 +3864,3 @@ tm_wday		equ $+24
 tm_yday		equ $+28
 tm_dst		equ $+32
 tm_msec		equ $+36
-
-test1f:
-    mov ax, 0x3000
-    ret

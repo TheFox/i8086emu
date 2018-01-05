@@ -44,21 +44,21 @@ class Flags implements FlagsInterface
     {
         $this->data = \SplFixedArray::fromArray([
             false, // carry flag
-            null, // 1 reserved
+            true, // 1 reserved
             false, // parity flag
-            null, // 3 reserved
+            false, // 3 reserved
             false, // auxiliary carry flag
-            null, // 5 reserved
+            false, // 5 reserved
             false, // zero flag
             false, // sign flag
             false, // trap flag
             false, // interrupt enable flag
             false, // direction flag
             false, // overflow flag
-            null, // 12 reserved
-            null, // 13 reserved
-            null, // 14 reserved
-            null, // 15 reserved
+            true, // 12 reserved
+            true, // 13 reserved
+            true, // 14 reserved
+            true, // 15 reserved
         ]);
 
         $this->flippedNames = array_flip(self::NAMES);
@@ -69,10 +69,10 @@ class Flags implements FlagsInterface
         $a = $this->data->toArray();
         $a = array_reverse($a);
         $n = array_map(function ($f) {
-            return $f ? '1' : (null === $f ? '_' : '0');
+            return $f ? '1' : 0;
         }, $a);
         $s = join('', $n);
-        $s = sprintf('FLAGS[%s]', $s);
+        $s = sprintf('FLAGS[%s,%04x]', $s, $this->toInt());
         return $s;
     }
 
@@ -83,6 +83,12 @@ class Flags implements FlagsInterface
 
     public function set(int $flagId, bool $val): void
     {
+        /**
+         * @link https://en.wikipedia.org/wiki/FLAGS_register
+         */
+        if (1 === $flagId || $flagId >= 12) {
+            $val = true;
+        }
         $this->data[$flagId] = $val;
     }
 
@@ -107,17 +113,24 @@ class Flags implements FlagsInterface
         return $this->flippedNames[$flagId];
     }
 
-    public function setIntData(int $data)
+    public function setIntData(int $data): void
     {
         foreach ($this->data as $i => $f) {
-            if (1 === $i || 3 === $i || 5 === $i || $i >= 12) {
-                $c = null;
-            } else {
-                $c = (bool)($data & 1);
-            }
-            $this->data[$i] = $c;
+            //if (1 === $i || $i >= 12) {
+            //    $c = true;
+            //} else {
+            //    $c = (bool)($data & 1);
+            //}
+            //$this->data[$i] = $c;
+            $this->set($i, $data & 1);
             $data >>= 1;
         }
+    }
+
+    public function setData(iterable $data): void
+    {
+        $n = ($data[1] << 8) | $data[0];
+        $this->setIntData($n);
     }
 
     public function getData(): \SplFixedArray
@@ -133,5 +146,16 @@ class Flags implements FlagsInterface
         }
 
         return $data;
+    }
+
+    public function toInt(): int
+    {
+        $i = 0;
+        $bits = 0;
+        foreach ($this->data as $f) {
+            $i |= $f << $bits;
+            ++$bits;
+        }
+        return $i;
     }
 }

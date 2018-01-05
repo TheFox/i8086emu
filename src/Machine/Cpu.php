@@ -389,6 +389,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
             //}
 
             // Segment Register Override
+            // @todo move this to class parameter
             if ($segOverrideEn) {
                 --$segOverrideEn;
                 $defaultSegmentRegister = $this->getRegisterByNumber(true, $segOverride);
@@ -939,23 +940,30 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 case 19: // RET|RETF|IRET - OpCodes: c2 c3 ca cb cf
                     $this->debugOp(sprintf('RET %b %s', $extra, $this->ip));
+
+                    // Restore IP register.
                     $data = $this->popFromStack($this->ip->getSize());
                     $this->ip->setData($data);
-                    $this->debugOp(sprintf(' -> %s', $this->ip));
+                    $this->output->writeln(sprintf(' -> POP %s', $this->ip));
 
                     if ($extra) { // IRET|RETF|RETF imm16
+                        // Restore CS register.
                         $data = $this->popFromStack($this->cs->getSize());
                         $this->cs->setData($data);
-                        $this->debugOp(sprintf(' -> %s', $this->cs));
+                        $this->output->writeln(sprintf(' -> POP %s', $this->cs));
                     }
 
                     if ($extra & 2) { // IRET
-                        //$this->sp->add(2);
-                        throw new NotImplementedException();
+                        // Restore Flags.
+                        $data = $this->popFromStack($this->flags->getSize());
+                        $this->flags->setData($data);
+                        $this->output->writeln(sprintf(' -> POP %s', $this->flags));
                     } elseif (!$iw) { // RET|RETF imm16
                         $this->sp->setData($dataWord[0]);
                     }
 
+                    $this->debugCsIpRegister();
+                    $this->debugSsSpRegister();
                     break;
 
                 case 20: // MOV r/m, immed - OpCodes: c6 c7
@@ -1050,6 +1058,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('POPF %s', $this->flags));
                     break;
 
+                case 39: // INT imm - OpCodes: cd
+                    $this->debugOp(sprintf('INT %x', $dataByte[0]));
+                    $this->ip->add(2);
+                    $this->output->writeln(sprintf(' -> %s', $this->ip));
+                    $this->interrupt($dataByte[0]);
+                    break;
+
                 case 44: // XLAT - OpCodes: d7
                     $offset = ($defaultSegmentRegister->toInt() << 4) + $this->bx->toInt() + $this->ax->getLowInt();
 
@@ -1111,11 +1126,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
                 ) * $iModeSize
                 + $instSize
                 + $iwAdder;
-            $this->debugCsIpRegister();
             if ($add) {
+                $this->debugCsIpRegister();
                 $this->ip->add($add);
+                $this->debugCsIpRegister();
             }
-            $this->debugCsIpRegister();
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
             $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$opcodeRaw];
@@ -1240,7 +1255,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
         } // switch $iMod
 
         if (!isset($rm)) {
-            throw new \RuntimeException('rm variable has not been set yet.');
+            throw new \RuntimeException(sprintf('rm variable has not been set yet. mod=%d', $iMod));
         }
 
         $from = $to = $this->getRegisterByNumber($isWord, $iReg);
@@ -1255,9 +1270,39 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     private function interrupt(int $code)
     {
-        // @todo
-        $this->output->writeln(sprintf('Interrupt %02x', $code));
-        throw new NotImplementedException('Interrupt');
+        // Decode like INT
+        //$opcodeRaw = 0xCD;
+        //$xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
+        //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
+        //$iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
+
+        $this->output->writeln(sprintf(' -> Interrupt %02x', $code));
+
+        // Push Flags.
+        $this->output->writeln(sprintf(' -> PUSH %s', $this->flags));
+        $this->pushDataToStack($this->flags->getData(), $this->flags->getSize());
+
+        // Push Registers.
+        $this->output->writeln(sprintf(' -> PUSH %s', $this->cs));
+        $this->pushRegisterToStack($this->cs);
+        $this->output->writeln(sprintf(' -> PUSH %s', $this->ip));
+        $this->pushRegisterToStack($this->ip);
+
+        // Write CS Register.
+        $offset = ($code << 2) + 2;
+        $this->output->writeln(sprintf(' -> CS Offset %d/%x', $offset, $offset));
+        $this->ram->write($this->cs->getData(), $offset, $this->cs->getSize());
+
+        // Set IP Register.
+        $offset = $code << 2;
+        $data = $this->ram->read($offset, $this->ip->getSize());
+        $this->output->writeln(sprintf(' -> %s Offset %d/%x', $this->ip, $offset, $offset));
+        $this->ip->setData($data);
+        $this->output->writeln(sprintf(' -> %s', $this->ip));
+
+        // Set Flags.
+        $this->flags->setByName('TF', false);
+        $this->flags->setByName('IF', false);
     }
 
     private function updateGraphics()
@@ -1444,7 +1489,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $address = $this->getEffectiveStackPointerAddress();
         $offset = $address->toInt();
         $data = $this->ram->read($offset, self::SIZE_BYTE);
-        $this->output->writeln(sprintf(' -> %s %s -> %04x [%020b] -> %08b %08b', $this->ss, $this->sp, $offset, $offset, $data[0], $data[1]));
+
+        $this->output->writeln(sprintf(' -> %s %s -> %04x [%020b] -> 0=%02x 1=%02x', $this->ss, $this->sp, $offset, $offset, $data[0], $data[1]));
     }
 
     private function debugCsIpRegister()
@@ -1478,5 +1524,15 @@ class Cpu implements CpuInterface, OutputAwareInterface
         //$this->output->writeln(sprintf(' -> %s', $this->ds));
 
         $this->output->writeln(sprintf(' -> %s', $this->flags));
+
+        //$data = $this->ram->read(0xf012a, 20)->toArray();
+        $data = $this->ram->read(0xf1083, 20)->toArray();
+        $l = count($data);
+        for ($i = 0; $i < $l; $i += 1) {
+            printf(" -> %d  %02x\n", $i, $data[$i]);
+        }
+
+        //$data = array_map('chr', $data);
+        //$data = join('', $data);
     }
 }
