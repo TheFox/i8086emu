@@ -1,6 +1,11 @@
 # Intel 8086 CPU Emulator
 
-## Glossary
+## Pseudo-TTY Test
+
+1. Install `socat`.
+2. Open a shell and run `./bin/screen_pipe.sh`.
+3. Open another shell and run `php ./bin/ptty_test.php`.
+4. Open ANOTHER shell and run `screen /dev/csTTY1`.
 
 ## Resources
 

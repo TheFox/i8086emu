@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV PHP_IDE_CONFIG "serverName=docker"
 
 RUN apt-get update && \
-	apt-get install -y apt-transport-https man rsync ack git htop tig zlib1g-dev nasm && \
+	apt-get install -y apt-transport-https man rsync ack git htop tig zlib1g-dev nasm socat && \
 	docker-php-ext-install zip && \
 	apt-get clean
 
