@@ -624,6 +624,36 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->debugOp(sprintf('POP %s', $register));
                     break;
 
+                // TEST r/m, imm16 / NOT|NEG|MUL|IMUL|DIV|IDIV reg - OpCodes: f6 f7
+                case 6:
+                    $to = $from;
+
+                    switch ($iReg) {
+                        case 0:
+                            // Decode like AND.
+                            $opcodeRaw = 0x20;
+                            //$xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
+                            //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
+                            $iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
+
+                            $add = 1;
+                            if ($iw) {
+                                ++$add;
+                            }
+                            $this->ip->add($add);
+
+                            $data = $iw ? $dataWord[2] : $dataByte[2];
+                            $this->debugOp(sprintf('TEST %s %04x', $to, $data));
+                            $opResult = $to->toInt() & $data;
+                            $this->output->writeln(sprintf(' -> RES %08b', $opResult));
+
+                            break;
+
+                        default:
+                            throw new UnknownTypeException(sprintf('ireg %d', $iReg));
+                    }
+                    break;
+
                 // CMP reg, imm - OpCodes: 04 05 0c 0d 14 15 1c 1d 24 25 2c 2d 34 35 3c 3d
                 case 7:
                     $rm = $this->ax;
@@ -846,6 +876,13 @@ class Cpu implements CpuInterface, OutputAwareInterface
                         $this->ip->add($add);
                     }
                     $this->debugCsIpRegister();
+                    break;
+
+                // TEST reg, r/m - OpCodes: 84 85
+                case 15:
+                    $this->debugOp(sprintf('TEST %s %s', $to, $from));
+                    $opResult = $to->toInt() & $from->toInt();
+                    $this->output->writeln(sprintf(' -> RES %08b', $opResult));
                     break;
 
                 // NOP|XCHG AX, reg - OpCodes: 90 91 92 93 94 95 96 97
@@ -1119,6 +1156,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $flagName = $this->flags->getName($realFlagId);
                     $this->debugOp(sprintf('CLx %02x (=%d [%08b]) ID=%d/%d v=%d F=%s', $extra, $extra, $extra, $flagId, $realFlagId, $val, $flagName));
                     $this->flags->set($realFlagId, $val);
+                    break;
+
+                // TEST AL/AX, imm - OpCodes: a8 a9
+                case 47:
+                    // AL/AX
+                    $register = $this->getRegisterByNumber($iw, 0);
+                    $data = $iw ? $dataWord[0] : $dataByte[0];
+                    $this->debugOp(sprintf('TEST w=%d %s %04x', $iw, $register, $data));
+                    $opResult = $register->toInt() & $data;
+                    $this->output->writeln(sprintf(' -> RES %08b', $opResult));
                     break;
 
                 // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
@@ -1553,15 +1600,5 @@ class Cpu implements CpuInterface, OutputAwareInterface
         //$this->output->writeln(sprintf(' -> %s', $this->ds));
 
         $this->output->writeln(sprintf(' -> %s', $this->flags));
-
-        //$data = $this->ram->read(0xf012a, 20)->toArray();
-        $data = $this->ram->read(0xf1083, 20)->toArray();
-        $l = count($data);
-        for ($i = 0; $i < $l; $i += 1) {
-            printf(" -> %d  %02x\n", $i, $data[$i]);
-        }
-
-        //$data = array_map('chr', $data);
-        //$data = join('', $data);
     }
 }
