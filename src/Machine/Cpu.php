@@ -1176,6 +1176,16 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $this->output->writeln(sprintf(' -> RES %08b', $opResult));
                     break;
 
+                // Emulator-specific 0F xx opcodes
+                case 48:
+                    $subOpCode = NumberHelper::unsignedIntToChar($dataByte[0]);
+                    switch ($subOpCode) {
+                        default:
+                            throw new NotImplementedException(sprintf('Emulator-specific 0F xx opcodes: %d', $subOpCode));
+                    }
+                    //throw new NotImplementedException('Emulator-specific 0F xx opcodes');
+                    break;
+
                 // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
                 case 53:
                     $this->debugOp('HLT');
