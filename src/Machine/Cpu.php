@@ -340,6 +340,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
         //$repOverride = 0;
         $repOverrideEn = 0; // Repeat
         $repMode = null;
+        $trapFlag = false;
+        $int8 = false;
 
         $loop = 0;
         while ($opcodeRaw = $this->getOpcode()) {
@@ -1126,6 +1128,12 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
                 // INT imm - OpCodes: cd
                 case 39:
+                    // Decode like INT
+                    $opcodeRaw = 0xCD;
+                    //$xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
+                    //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
+                    $iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
+
                     $this->debugOp(sprintf('INT %x', $dataByte[0]));
                     $this->ip->add(2);
                     $this->output->writeln(sprintf(' -> %s', $this->ip));
@@ -1154,7 +1162,7 @@ class Cpu implements CpuInterface, OutputAwareInterface
                     $flagId = ($extra >> 1) & 7; // xxxx111x
                     $realFlagId = $this->biosDataTables[self::TABLE_FLAGS_BITFIELDS][$flagId];
                     $flagName = $this->flags->getName($realFlagId);
-                    $this->debugOp(sprintf('CLx %02x (=%d [%08b]) ID=%d/%d v=%d F=%s', $extra, $extra, $extra, $flagId, $realFlagId, $val, $flagName));
+                    $this->debugOp(sprintf('CLx|STx %02x (=%d [%08b]) ID=%d/%d v=%d F=%s', $extra, $extra, $extra, $flagId, $realFlagId, $val, $flagName));
                     $this->flags->set($realFlagId, $val);
                     break;
 
@@ -1248,21 +1256,26 @@ class Cpu implements CpuInterface, OutputAwareInterface
             // Update Instruction counter.
             ++$loop;
 
-            //$int8 = false;
-            //if (0 === $cycle % self::KEYBOARD_TIMER_UPDATE_DELAY) {
-            //    $int8 = true;
-            //}
-            //
-            //if (0 === $cycle % self::GRAPHICS_UPDATE_DELAY) {
+            //if (0 === $loop % self::GRAPHICS_UPDATE_DELAY) {
             //    $this->updateGraphics();
             //}
-            //
-            //if ($trapFlag) {
-            //    $this->interrupt(1);
-            //}
-            //$trapFlag = $this->flags->getByName('TF');
 
-            // @todo interrupt 8
+            if ($trapFlag) {
+                $this->interrupt(1);
+            }
+            $trapFlag = $this->flags->getByName('TF');
+
+            // @todo also set $int8 to true on keyboard read
+            if (0 === $loop % self::KEYBOARD_TIMER_UPDATE_DELAY) {
+                $int8 = true;
+            }
+
+            // If a timer tick is pending, interrupts are enabled, and no overrides/REP are active,
+            // then process the tick and check for new keystrokes
+            if ($int8 && !$segOverrideEn && !$repOverrideEn && $this->flags->getByName('IF') && !$trapFlag) {
+                $this->interrupt(0xA);
+                $int8 = false;
+            }
         } // while $opcodeRaw
     } // run()
 
@@ -1346,12 +1359,6 @@ class Cpu implements CpuInterface, OutputAwareInterface
 
     private function interrupt(int $code)
     {
-        // Decode like INT
-        //$opcodeRaw = 0xCD;
-        //$xlatId = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$opcodeRaw];
-        //$extra = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$opcodeRaw];
-        //$iModeSize = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$opcodeRaw];
-
         $this->output->writeln(sprintf(' -> Interrupt %02x', $code));
 
         // Push Flags.

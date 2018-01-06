@@ -68,8 +68,6 @@ class Machine implements MachineInterface, OutputAwareInterface
         if (!$this->biosFilePath) {
             throw new NoBiosException();
         }
-        //if ($this->hardDiskFilePath) {
-        //}
 
         // Load BIOS into RAM.
         $biosOffset = (0xF000 << 4) + 0x0100; // @todo
