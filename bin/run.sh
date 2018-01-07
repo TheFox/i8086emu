@@ -9,4 +9,6 @@ BIOS=${1:-./bios/bios}
 ./bin/i8086emu run \
 	--bios "${BIOS}" \
 	--floppy ./opt/8086tiny/fd.img \
+	--tty /tmp/i8086TTY \
+	--socat /usr/bin/socat \
 	-vv

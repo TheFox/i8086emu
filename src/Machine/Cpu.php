@@ -12,11 +12,11 @@ namespace TheFox\I8086emu\Machine;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
+use TheFox\I8086emu\Blueprint\GraphicInterface;
 use TheFox\I8086emu\Blueprint\OutputAwareInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
-use TheFox\I8086emu\Components\ChildRegister;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Register;
 use TheFox\I8086emu\Exception\NotImplementedException;
@@ -64,6 +64,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
      * @var RamInterface
      */
     private $ram;
+
+    /**
+     * @var GraphicInterface
+     */
+    private $graphic;
 
     /**
      * @var Register
@@ -226,15 +231,26 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->flags = new Flags();
     }
 
+    /**
+     * @param RamInterface $ram
+     */
     public function setRam(RamInterface $ram)
     {
         $this->ram = $ram;
     }
 
     /**
+     * @param GraphicInterface $graphic
+     */
+    public function setGraphic(GraphicInterface $graphic): void
+    {
+        $this->graphic = $graphic;
+    }
+
+    /**
      * @param OutputInterface $output
      */
-    public function setOutput(OutputInterface $output)
+    public function setOutput(OutputInterface $output): void
     {
         $this->output = $output;
     }
@@ -329,6 +345,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
     {
         $this->setupBiosDataTables();
         $this->printXlatOpcodes();
+
+        // Initialize Graphic.
+        $this->graphic->init();
 
         // Debug
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
