@@ -49,13 +49,28 @@ class RunCommand extends Command
         $machine->setOutput($output);
 
         if (isset($biosFilePath)) {
-            $machine->setBiosFilePath($biosFilePath);
+            // $machine->setBiosFilePath($biosFilePath);
+
+            $floppy=new Disk();
+            $floppy->setSourceFilePath($biosFilePath);
+
+            $machine->setBios($floppy);
         }
         if (isset($floppyFilePath)) {
-            $machine->setFloppyDiskFilePath($floppyFilePath);
+            // $machine->setFloppyDiskFilePath($floppyFilePath);
+
+            $floppy=new Disk();
+            $floppy->setSourceFilePath($floppyFilePath);
+
+            $machine->setFloppyDisk($floppy);
         }
         if (isset($harddiskFilePath)) {
-            $machine->setHardDiskFilePath($harddiskFilePath);
+            // $machine->setHardDiskFilePath($harddiskFilePath);
+
+            $hardDisk=new Disk();
+            $hardDisk->setSourceFilePath($harddiskFilePath);
+
+            $machine->setFloppyDisk($hardDisk);
         }
         if (isset($ttyFilePath)) {
             $graphic = new TtyGraphic();

@@ -25,14 +25,29 @@ final class Machine implements MachineInterface, OutputAwareInterface
     private $biosFilePath;
 
     /**
+     * @var Disk
+     */
+    private $bios;
+
+    /**
      * @var string
      */
     private $floppyDiskFilePath;
 
     /**
+     * @var Disk
+     */
+    private $floppyDisk;
+
+    /**
      * @var string
      */
     private $hardDiskFilePath;
+
+    /**
+     * @var Disk
+     */
+    private $hardDisk;
 
     /**
      * @var Ram
@@ -96,6 +111,7 @@ final class Machine implements MachineInterface, OutputAwareInterface
     }
 
     /**
+     * @deprecated
      * @param string $biosFilePath
      */
     public function setBiosFilePath(string $biosFilePath): void
@@ -104,6 +120,15 @@ final class Machine implements MachineInterface, OutputAwareInterface
     }
 
     /**
+     * @param Disk $bios
+     */
+    public function setBios(Disk $bios): void
+    {
+        $this->bios = $bios;
+    }
+
+    /**
+     * @deprecated
      * @param string $filePath
      */
     public function setFloppyDiskFilePath(string $filePath): void
@@ -112,11 +137,28 @@ final class Machine implements MachineInterface, OutputAwareInterface
     }
 
     /**
+     * @param Disk $floppyDisk
+     */
+    public function setFloppyDisk(Disk $floppyDisk): void
+    {
+        $this->floppyDisk = $floppyDisk;
+    }
+
+    /**
+     * @deprecated
      * @param string $filePath
      */
     public function setHardDiskFilePath(string $filePath): void
     {
         $this->hardDiskFilePath = $filePath;
+    }
+
+    /**
+     * @param Disk $hardDisk
+     */
+    public function setHardDisk(Disk $hardDisk): void
+    {
+        $this->hardDisk = $hardDisk;
     }
 
     /**
