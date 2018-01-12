@@ -6,6 +6,6 @@
 
 namespace TheFox\I8086emu\Machine;
 
-final class NullGraphic extends Graphic
+final class NullOutputDevice extends OutputDevice
 {
 }

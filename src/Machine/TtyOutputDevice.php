@@ -6,7 +6,7 @@
 
 namespace TheFox\I8086emu\Machine;
 
-final class TtyGraphic extends Graphic
+final class TtyOutputDevice extends OutputDevice
 {
     /**
      * @var string

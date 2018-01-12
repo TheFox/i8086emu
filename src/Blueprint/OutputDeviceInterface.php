@@ -2,7 +2,7 @@
 
 namespace TheFox\I8086emu\Blueprint;
 
-interface GraphicInterface
+interface OutputDeviceInterface
 {
     public function init(): void;
 }

@@ -9,15 +9,15 @@ namespace TheFox\I8086emu\Machine;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
-use TheFox\I8086emu\Blueprint\GraphicInterface;
+use TheFox\I8086emu\Blueprint\DebugAwareInterface;
 use TheFox\I8086emu\Blueprint\MachineInterface;
-use TheFox\I8086emu\Blueprint\OutputAwareInterface;
+use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Exception\NoBiosException;
 use TheFox\I8086emu\Exception\NoCpuException;
 use TheFox\I8086emu\Exception\NoRamException;
 
-final class Machine implements MachineInterface, OutputAwareInterface
+final class Machine implements MachineInterface, DebugAwareInterface
 {
     /**
      * @var string
@@ -60,9 +60,9 @@ final class Machine implements MachineInterface, OutputAwareInterface
     private $cpu;
 
     /**
-     * @var Graphic
+     * @var NullOutputDevice|TtyOutputDevice
      */
-    private $graphic;
+    private $tty;
 
     /**
      * @var OutputInterface
@@ -73,7 +73,7 @@ final class Machine implements MachineInterface, OutputAwareInterface
     {
         $this->ram = new Ram(0x00100000); // 1 MB
         $this->cpu = new Cpu();
-        $this->graphic = new NullGraphic();
+        $this->tty = new NullOutputDevice();
 
         $this->output = new NullOutput();
     }
@@ -103,8 +103,8 @@ final class Machine implements MachineInterface, OutputAwareInterface
         $this->output->writeln('set ram');
         $this->cpu->setRam($this->ram);
 
-        // Setup Graphic.
-        $this->cpu->setGraphic($this->graphic);
+        // Setup TTY.
+        $this->cpu->setTty($this->tty);
 
         // Run the CPU.
         $this->cpu->run();
@@ -161,12 +161,9 @@ final class Machine implements MachineInterface, OutputAwareInterface
         $this->hardDisk = $hardDisk;
     }
 
-    /**
-     * @param GraphicInterface $graphic
-     */
-    public function setGraphic(GraphicInterface $graphic): void
+    public function setTty(OutputDeviceInterface $tty): void
     {
-        $this->graphic = $graphic;
+        $this->tty = $tty;
     }
 
     /**

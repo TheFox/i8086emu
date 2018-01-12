@@ -12,8 +12,8 @@ namespace TheFox\I8086emu\Machine;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
-use TheFox\I8086emu\Blueprint\GraphicInterface;
-use TheFox\I8086emu\Blueprint\OutputAwareInterface;
+use TheFox\I8086emu\Blueprint\DebugAwareInterface;
+use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
@@ -25,7 +25,7 @@ use TheFox\I8086emu\Exception\ValueExceededException;
 use TheFox\I8086emu\Helper\DataHelper;
 use TheFox\I8086emu\Helper\NumberHelper;
 
-class Cpu implements CpuInterface, OutputAwareInterface
+class Cpu implements CpuInterface, DebugAwareInterface
 {
     public const SIZE_BYTE = 2;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
@@ -66,9 +66,9 @@ class Cpu implements CpuInterface, OutputAwareInterface
     private $ram;
 
     /**
-     * @var GraphicInterface
+     * @var TtyOutputDevice
      */
-    private $graphic;
+    private $tty;
 
     /**
      * @var Register
@@ -240,11 +240,11 @@ class Cpu implements CpuInterface, OutputAwareInterface
     }
 
     /**
-     * @param GraphicInterface $graphic
+     * @param OutputDeviceInterface $tty
      */
-    public function setGraphic(GraphicInterface $graphic): void
+    public function setTty(OutputDeviceInterface $tty): void
     {
-        $this->graphic = $graphic;
+        $this->tty = $tty;
     }
 
     /**
@@ -346,8 +346,8 @@ class Cpu implements CpuInterface, OutputAwareInterface
         $this->setupBiosDataTables();
         $this->printXlatOpcodes();
 
-        // Initialize Graphic.
-        $this->graphic->init();
+        // Initialize TTY.
+        $this->tty->init();
 
         // Debug
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));

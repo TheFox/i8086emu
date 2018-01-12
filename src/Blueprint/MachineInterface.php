@@ -12,5 +12,5 @@ interface MachineInterface
 
     public function setHardDiskFilePath(string $filePath): void;
 
-    public function setGraphic(GraphicInterface $graphic): void;
+    public function setTty(OutputDeviceInterface $tty): void;
 }

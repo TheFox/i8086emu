@@ -4,7 +4,7 @@ namespace TheFox\I8086emu\Blueprint;
 
 use Symfony\Component\Console\Output\OutputInterface;
 
-interface OutputAwareInterface
+interface DebugAwareInterface
 {
     public function setOutput(OutputInterface $output): void;
 }

@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Machine\Machine;
-use TheFox\I8086emu\Machine\TtyGraphic;
+use TheFox\I8086emu\Machine\TtyOutputDevice;
 
 class RunCommand extends Command
 {
@@ -73,13 +73,13 @@ class RunCommand extends Command
             $machine->setFloppyDisk($hardDisk);
         }
         if (isset($ttyFilePath)) {
-            $graphic = new TtyGraphic();
-            $graphic->setTtyFilePath($ttyFilePath);
+            $tty = new TtyOutputDevice();
+            $tty->setTtyFilePath($ttyFilePath);
             if (isset($socatFilePath)&&$socatFilePath) {
-                $graphic->setSocatFilePath($socatFilePath);
+                $tty->setSocatFilePath($socatFilePath);
             }
 
-            $machine->setGraphic($graphic);
+            $machine->setTty($tty);
         }
 
         $machine->run();
