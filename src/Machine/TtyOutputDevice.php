@@ -38,4 +38,8 @@ final class TtyOutputDevice extends OutputDevice
     {
         $this->socatFilePath = $socatFilePath;
     }
+
+    public function init(): void
+    {if (null===$this->ttyFilePath)return;
+    }
 }

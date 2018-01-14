@@ -6,6 +6,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use TheFox\I8086emu\Machine\Disk;
 use TheFox\I8086emu\Machine\Machine;
 use TheFox\I8086emu\Machine\TtyOutputDevice;
 
@@ -49,33 +50,27 @@ class RunCommand extends Command
         $machine->setOutput($output);
 
         if (isset($biosFilePath)) {
-            // $machine->setBiosFilePath($biosFilePath);
-
-            $floppy=new Disk();
+            $floppy = new Disk();
             $floppy->setSourceFilePath($biosFilePath);
 
             $machine->setBios($floppy);
         }
         if (isset($floppyFilePath)) {
-            // $machine->setFloppyDiskFilePath($floppyFilePath);
-
-            $floppy=new Disk();
+            $floppy = new Disk();
             $floppy->setSourceFilePath($floppyFilePath);
 
             $machine->setFloppyDisk($floppy);
         }
         if (isset($harddiskFilePath)) {
-            // $machine->setHardDiskFilePath($harddiskFilePath);
-
-            $hardDisk=new Disk();
+            $hardDisk = new Disk();
             $hardDisk->setSourceFilePath($harddiskFilePath);
 
-            $machine->setFloppyDisk($hardDisk);
+            $machine->setHardDisk($hardDisk);
         }
         if (isset($ttyFilePath)) {
             $tty = new TtyOutputDevice();
             $tty->setTtyFilePath($ttyFilePath);
-            if (isset($socatFilePath)&&$socatFilePath) {
+            if (isset($socatFilePath) && $socatFilePath) {
                 $tty->setSocatFilePath($socatFilePath);
             }
 

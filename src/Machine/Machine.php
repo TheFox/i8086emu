@@ -88,16 +88,18 @@ final class Machine implements MachineInterface, DebugAwareInterface
             throw new NoCpuException();
         }
 
-        if (!$this->biosFilePath) {
+        if (!$this->bios) {
             throw new NoBiosException();
         }
 
         // Load BIOS into RAM.
         $biosOffset = (0xF000 << 4) + 0x0100;
         $biosLen = 0xFF00;
-        $this->output->writeln(sprintf("bios start %08x", $biosOffset));
-        $this->output->writeln(sprintf("bios end   %08x", $biosOffset + $biosLen));
-        $this->writeRamFromFile($this->biosFilePath, $biosOffset, $biosLen);
+        $biosEnd = $biosOffset + $biosLen;
+        $this->output->writeln(sprintf('[MACHINE] bios start %08x', $biosOffset));
+        $this->output->writeln(sprintf('[MACHINE] bios end   %08x', $biosEnd));
+        $data = $this->bios->getContent($biosLen);
+        $this->ram->write($data, $biosOffset, $biosLen);
 
         // Setup CPU.
         $this->output->writeln('set ram');
@@ -174,13 +176,5 @@ final class Machine implements MachineInterface, DebugAwareInterface
         $this->output = $output;
 
         $this->cpu->setOutput($this->output);
-    }
-
-    private function writeRamFromFile(string $path, int $offset, int $length): void
-    {
-        $content = file_get_contents($path, false, null, 0, $length);
-        $data = str_split($content);
-        $data = array_map('ord', $data);
-        $this->ram->write($data, $offset, $length);
     }
 }
