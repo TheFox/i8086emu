@@ -41,14 +41,18 @@ class Register extends Address implements RegisterInterface
 
     public function getLowRegister(): Register
     {
+        // Replace "AX" with "AL".
         $name = str_replace('X', 'L', $this->getName());
+
         $child = new ChildRegister($this, false, $name);
         return $child;
     }
 
     public function getHighRegister(): Register
     {
+        // Replace "AX" with "AH".
         $name = str_replace('X', 'H', $this->getName());
+
         $child = new ChildRegister($this, true, $name);
         return $child;
     }
