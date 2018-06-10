@@ -102,10 +102,11 @@ final class Machine implements MachineInterface, DebugAwareInterface
         $this->ram->write($data, $biosOffset, $biosLen);
 
         // Setup CPU.
-        $this->output->writeln('set ram');
+        $this->output->writeln('[MACHINE] set ram');
         $this->cpu->setRam($this->ram);
 
         // Setup TTY.
+        $this->output->writeln('[MACHINE] set TTY');
         $this->cpu->setTty($this->tty);
 
         // Run the CPU.

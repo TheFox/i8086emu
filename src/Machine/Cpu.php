@@ -474,7 +474,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         throw new UnknownTypeException();
                 }
 
-                [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+                [
+                    $rm,
+                    $from,
+                    $to,
+                ] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
 
                 $this->output->writeln(sprintf(' -> <info>FROM %s</info>', $from));
                 $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $to));
@@ -805,7 +809,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $iw = true;
                         $iwSize = 2;
                         $iReg += 8;
-                        [$rm, $from, $to] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+                        [
+                            $rm,
+                            $from,
+                            $to,
+                        ] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
                         $this->debugOp(sprintf('MOV %s %s', $to, $from));
 
                         if ($from instanceof AbsoluteAddress && $to instanceof Register) {
@@ -831,7 +839,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $segOverride = 12; // Zero-Register
 
                         // Since the direction in this case is always false we have to swap $from/$to.
-                        [$rm, $to, $from] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
+                        [
+                            $rm,
+                            $to,
+                            $from,
+                        ] = $this->decodeRegisterMemory($iw, $id, $iMod, $segOverrideEn, $segOverride, $iRm, $iReg, $dataWord[1]);
                         $this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $to, $from, $rm));
 
                         $to->setData($from->toInt());
@@ -1311,8 +1323,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
     /**
      * @deprecated
      */
-    private function decodeRegisterMemory(bool $isWord, bool $id, int $iMod, int $segOverrideEn, int $segOverride, int $iRm, int $iReg, int $data): iterable
-    {
+    private function decodeRegisterMemory(
+        bool $isWord,
+        bool $id,
+        int $iMod,
+        int $segOverrideEn,
+        int $segOverride,
+        int $iRm,
+        int $iReg,
+        int $data
+    ): iterable {
         $biosDataTableBaseIndex = 0;
         switch ($iMod) {
             case 0:

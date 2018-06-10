@@ -50,16 +50,16 @@ class RunCommand extends Command
         $machine->setOutput($output);
 
         if (isset($biosFilePath)) {
-            $floppy = new Disk();
-            $floppy->setSourceFilePath($biosFilePath);
+            $biosDisk = new Disk();
+            $biosDisk->setSourceFilePath($biosFilePath);
 
-            $machine->setBios($floppy);
+            $machine->setBios($biosDisk);
         }
         if (isset($floppyFilePath)) {
-            $floppy = new Disk();
-            $floppy->setSourceFilePath($floppyFilePath);
+            $floppyDisk = new Disk();
+            $floppyDisk->setSourceFilePath($floppyFilePath);
 
-            $machine->setFloppyDisk($floppy);
+            $machine->setFloppyDisk($floppyDisk);
         }
         if (isset($harddiskFilePath)) {
             $hardDisk = new Disk();
@@ -70,6 +70,7 @@ class RunCommand extends Command
         if (isset($ttyFilePath)) {
             $tty = new TtyOutputDevice();
             $tty->setTtyFilePath($ttyFilePath);
+
             if (isset($socatFilePath) && $socatFilePath) {
                 $tty->setSocatFilePath($socatFilePath);
             }

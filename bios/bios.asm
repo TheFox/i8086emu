@@ -1,5 +1,6 @@
 ; BIOS source for 8086tiny IBM PC emulator (revision 1.21 and above). Compiles with NASM.
 ; Copyright 2013-14, Adrian Cable (adrian.cable@gmail.com) - http://www.megalith.co.uk/8086tiny
+; Copyright 2017, Christian Mayer (christian@fox21.at) - https://fox21.at
 ;
 ; Revision 1.61
 ;
@@ -67,7 +68,7 @@ bios_entry:
 	mov	ss, sp
 
 	push	cs
-	pop	es
+	pop		es
 
 	push	ax
 

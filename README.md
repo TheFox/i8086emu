@@ -1,8 +1,12 @@
 # Intel 8086 CPU Emulator
 
+## Compile the BIOS
+
+Run `make bios/bios`
+
 ## TTY
 
-Inorder to have a TTY for the in- and output you can specify `--tty <path>`. This will start a `socat` subprocess to create an interface between PHP and TTY. The TTY then can be accessed using `screen`.
+In order to have a TTY for the in- and output you can specify `--tty <path>`. This will start a `socat` subprocess to create an interface between PHP and TTY. The TTY then can be accessed using `screen`.
 
 Optional, to use a different installation path for the `socat` binary you can specify `--socat <path>`.
 

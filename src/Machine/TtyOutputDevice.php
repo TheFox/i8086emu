@@ -40,6 +40,11 @@ final class TtyOutputDevice extends OutputDevice
     }
 
     public function init(): void
-    {if (null===$this->ttyFilePath)return;
+    {
+        if (null === $this->ttyFilePath) {
+            return;
+        }
+
+        // @todo start socat?
     }
 }

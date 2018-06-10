@@ -10,7 +10,7 @@ set -x
 
 ./vendor/bin/phpunit
 
-./vendor/bin/phpcs --config-set ignore_warnings_on_exit 1
-./vendor/bin/phpcs --config-show
-./vendor/bin/phpcs
+#./vendor/bin/phpcs --config-set ignore_warnings_on_exit 1
+#./vendor/bin/phpcs --config-show
+#./vendor/bin/phpcs
 
