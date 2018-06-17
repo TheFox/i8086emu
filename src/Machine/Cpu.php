@@ -512,7 +512,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 --$this->repOverrideInt;
             }
 
-
             $debug = null;
 
             // $this->instr['has_modregrm'] > 0 indicates that opcode uses Mod/Reg/RM, so decode them.
@@ -655,28 +654,41 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             if ($this->instr['from'] instanceof Register) {
                                 $this->op['dst'] = $this->instr['from']->toInt();
                                 $this->op['res'] = $this->instr['from']->add($add);
+
                                 $this->output->writeln(sprintf(' -> %s', $this->instr['from']));
                             } elseif ($this->instr['from'] instanceof AbsoluteAddress) {
                                 $offset = $this->instr['from']->toInt();
                                 $data = $this->ram->read($offset, $this->instr['size']);
+
                                 $this->op['dst'] = DataHelper::arrayToInt($data);
                                 $this->op['res'] = $this->op['dst'] + $add;
+
                                 $this->ram->write($this->op['res'], $offset, $this->instr['size']);
-                                $this->output->writeln(sprintf(' -> RES %04x', $this->op['res']));
                             }
 
-                            $this->setAuxiliaryFlagArith(1, $this->op['dst'], $this->op['res']);
-                            $af = $this->flags->getByName('AF');
+                            $this->output->writeln(sprintf(' -> SRC %04x', $this->op['src']));
+                            $this->output->writeln(sprintf(' -> DST %04x', $this->op['dst']));
+                            $this->output->writeln(sprintf(' -> RES %04x', $this->op['res']));
 
-                            $x = $this->op['dst'] + 1 - $this->instr['dir'];
-                            $y = 1 << (($this->instr['size'] << 3) - 1);
-                            $of = $x === $y;
-                            $this->flags->setByName('OF', $of);
+                            // Auxiliary Flag
+                            $tmpAf = $this->setAuxiliaryFlagArith(1, $this->op['dst'], $this->op['res']);
 
-                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d AF=%d OF=%d 0x%x', $this->instr['dir'] ? 'DEC' : 'INC', $this->instr['i_reg'], $this->instr['dir'], $this->instr['data_b'][0], $this->instr['is_word'], $af, $of, $this->op['res']));
+                            // Overflow Flag
+                            $tmpOf = $this->setOverflowFlagArith2($this->op['dst'], $this->instr['size'], $this->instr['dir']);
+
+                            // Debug
+                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d AF=%d OF=%d RES=0x%x',
+                                $this->instr['dir'] ? 'DEC' : 'INC',
+                                $this->instr['i_reg'],
+                                $this->instr['dir'],
+                                $this->instr['data_b'][0],
+                                $this->instr['is_word'],
+                                $tmpAf, $tmpOf,
+                                $this->op['res']));
 
                             // Decode like ADC.
-                            $this->instr['raw'] = 0x10;
+                            // We need that later.
+                            $this->instr['raw'] = 0x10; // needed
                             break;
 
                         default:
@@ -736,7 +748,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->instr['rm'] = $this->ax;
                     $this->instr['data_b'][2] = $this->instr['data_b'][0];
                     $this->instr['data_w'][2] = $this->instr['data_w'][0];
-                    $this->instr['i_reg'] = $this->instr['extra']; // Will later be switched back.
+
+                    // Will later be switched back.
+                    $this->instr['i_reg'] = $this->instr['extra'];
+
+                    // Correct IP for case 8.
                     $this->ip->add(-1);
                 // no break
 
@@ -1338,7 +1354,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
-                    $this->setOverflowFlagArith($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
+                    $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
                 }
                 if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
@@ -1663,19 +1679,21 @@ class Cpu implements CpuInterface, DebugAwareInterface
         return $data;
     }
 
-    private function setAuxiliaryFlagArith(int $src, int $dest, int $result)
+    private function setAuxiliaryFlagArith(int $src, int $dest, int $result): bool
     {
         $x = $dest ^ $result;
         $src ^= $x;
+
         $af = ($src >> 4) & 0x1;
         $this->flags->setByName('AF', $af);
-        //$this->output->writeln(sprintf(' -> AF %d', $af));
+
+        return $af;
     }
 
-    private function setOverflowFlagArith(int $src, int $dest, int $result, bool $isWord)
+    private function setOverflowFlagArith1(int $src, int $dest, int $result, bool $isWord):void
     {
         if ($result === $dest) {
-            $of = 0;
+            $of = false;
         } else {
             $x = $dest ^ $result;
             $src ^= $x;
@@ -1685,7 +1703,21 @@ class Cpu implements CpuInterface, DebugAwareInterface
             $of = ($cf ^ ($src >> $topBit)) & 1;
         }
         $this->flags->setByName('OF', $of);
-        //$this->output->writeln(sprintf(' -> OF %d', $of));
+    }
+
+    private function setOverflowFlagArith2(int $dest, int $size, bool $direction): bool
+    {
+        $x = $dest + 1 - $direction;
+
+        // $y = 1 << (($size << 3) - 1);
+        $y = $size << 3;
+        $y -= 1;
+        $y = 1 << $y;
+
+        $of = $x === $y;
+        $this->flags->setByName('OF', $of);
+
+        return $of;
     }
 
     private function debugSsSpRegister()
