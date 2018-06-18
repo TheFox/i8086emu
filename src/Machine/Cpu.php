@@ -630,13 +630,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     $this->op['res'] = $register->toInt();
 
-                    $this->setAuxiliaryFlagArith(1, $this->op['dst'], $this->op['res']);
-                    $af = $this->flags->getByName('AF');
-
-                    $x = $this->op['dst'] + 1 - $this->instr['dir'];
-                    $y = 1 << (($this->instr['size'] << 3) - 1);
-                    $of = $x === $y;
-                    $this->flags->setByName('OF', $of);
+                    $af = $this->setAuxiliaryFlagArith(1, $this->op['dst'], $this->op['res']);
+                    $of = $this->setOverflowFlagArith2($this->op['dst'], $this->instr['size'], $this->instr['dir']);
 
                     $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $af, $of));
                     break;
@@ -1023,7 +1018,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $ax = $this->getRegisterByNumber($this->instr['is_word'], 0);
                     $add = (2 * $this->flags->getByName('DF') - 1) * ($this->instr['is_word'] + 1); // direction flag
 
-                    $this->debugOp(sprintf('MOVSx|STOSx|LODSx w=%d e=%b a=%d', $this->instr['is_word'], $this->instr['extra'], $add));
+                    $this->debugOp(sprintf('MOVSx|STOSx|LODSx w=%d extra=%b add=%d', $this->instr['is_word'], $this->instr['extra'], $add));
 
                     for ($tmpInt = $tmpCount; $tmpInt > 0; --$tmpInt) {
                         if (1 == $this->instr['extra']) {
@@ -1690,7 +1685,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         return $af;
     }
 
-    private function setOverflowFlagArith1(int $src, int $dest, int $result, bool $isWord):void
+    private function setOverflowFlagArith1(int $src, int $dest, int $result, bool $isWord): void
     {
         if ($result === $dest) {
             $of = false;
