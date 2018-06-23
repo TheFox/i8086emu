@@ -1363,6 +1363,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
             // Update Instruction counter.
             ++$this->runLoop;
 
+            if ($this->runLoop >= 500000) {
+                break;
+            }
+
             //if (0 === $this->$this->runLoop % self::GRAPHICS_UPDATE_DELAY) {
             //    $this->updateGraphics();
             //}
