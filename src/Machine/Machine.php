@@ -114,15 +114,6 @@ final class Machine implements MachineInterface, DebugAwareInterface
     }
 
     /**
-     * @deprecated
-     * @param string $biosFilePath
-     */
-    public function setBiosFilePath(string $biosFilePath): void
-    {
-        $this->biosFilePath = $biosFilePath;
-    }
-
-    /**
      * @param Disk $bios
      */
     public function setBios(Disk $bios): void
@@ -131,29 +122,11 @@ final class Machine implements MachineInterface, DebugAwareInterface
     }
 
     /**
-     * @deprecated
-     * @param string $filePath
-     */
-    public function setFloppyDiskFilePath(string $filePath): void
-    {
-        $this->floppyDiskFilePath = $filePath;
-    }
-
-    /**
      * @param Disk $floppyDisk
      */
     public function setFloppyDisk(Disk $floppyDisk): void
     {
         $this->floppyDisk = $floppyDisk;
-    }
-
-    /**
-     * @deprecated
-     * @param string $filePath
-     */
-    public function setHardDiskFilePath(string $filePath): void
-    {
-        $this->hardDiskFilePath = $filePath;
     }
 
     /**
