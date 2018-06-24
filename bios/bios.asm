@@ -320,7 +320,7 @@ next_out:
 	cmp	dx, 0xFFF
 	jl	next_out ; RUN 161
 
-	mov	al, 0
+	mov	al, 0 ; RUN 65618
 
 	mov	dx, 0x3DA	; CGA refresh port
 	out	dx, al
