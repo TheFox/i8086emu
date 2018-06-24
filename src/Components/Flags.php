@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * @link https://en.wikipedia.org/wiki/FLAGS_register
  * @link https://en.wikipedia.org/wiki/Intel_8086#Flags
  */
 
@@ -42,6 +43,15 @@ class Flags implements FlagsInterface
 
     public function __construct()
     {
+        /**
+         * @link https://en.wikipedia.org/wiki/FLAGS_register
+         * Hint for reserved FLAGs 1 and 12 to 15:
+         * Regarding to Wikipedia these flags should always be `1`.
+         * But since we are using FLAG 12 as a always-zero FLAG we
+         * have to set FLAG 12 to `0` here.
+         *
+         * Always-Zero FLAG is used to calculate JMP.
+         */
         $this->data = \SplFixedArray::fromArray([
             false, // carry flag
             true, // 1 reserved
@@ -55,7 +65,8 @@ class Flags implements FlagsInterface
             false, // interrupt enable flag
             false, // direction flag
             false, // overflow flag
-            true, // 12 reserved
+
+            false, // 12 reserved
             true, // 13 reserved
             true, // 14 reserved
             true, // 15 reserved
@@ -86,8 +97,11 @@ class Flags implements FlagsInterface
         /**
          * @link https://en.wikipedia.org/wiki/FLAGS_register
          */
-        if (1 === $flagId || $flagId >= 12) {
+        if (1 === $flagId || $flagId >= 13) {
             $val = true;
+        }
+        if (12 === $flagId) {
+            throw new \RuntimeException('Since we use FLAG 12 as Always-Zero FLAG we cannot override it.');
         }
         $this->data[$flagId] = $val;
     }
@@ -116,13 +130,9 @@ class Flags implements FlagsInterface
     public function setIntData(int $data): void
     {
         foreach ($this->data as $i => $f) {
-            //if (1 === $i || $i >= 12) {
-            //    $c = true;
-            //} else {
-            //    $c = (bool)($data & 1);
-            //}
-            //$this->data[$i] = $c;
-            $this->set($i, $data & 1);
+            if (12 !== $i) {
+                $this->set($i, $data & 1);
+            }
             $data >>= 1;
         }
     }

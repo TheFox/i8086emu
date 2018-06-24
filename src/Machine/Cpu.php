@@ -582,6 +582,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $flagC = $this->flags->get($realFlagIdC);
                     $flagD = $this->flags->get($realFlagIdD);
 
+                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
+                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
+                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
+                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
+
                     $data = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
 
                     $flagsVal1 =
@@ -634,6 +639,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $of = $this->setOverflowFlagArith2($this->op['dst'], $this->instr['size'], $this->instr['dir']);
 
                     $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $af, $of));
+                    $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                     break;
 
                 // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
@@ -645,6 +652,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         case 1: // INC|DEC [loc]
                             $this->instr['dir'] = (bool)$this->instr['i_reg'];
                             $add = 1 - ($this->instr['dir'] << 1);
+
+                            $this->op['src'] = 0;
 
                             if ($this->instr['from'] instanceof Register) {
                                 $this->op['dst'] = $this->instr['from']->toInt();
@@ -754,7 +763,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // CMP reg, imm - OpCodes: 80 81 82 83
                 case 8:
                     $this->instr['to'] = $this->instr['rm'];
-                    //$this->debugOp(sprintf('CMP f=%s t=%s s=%d', $this->instr['from'], $this->instr['to'], $this->instr['size']));
+                    $this->debugOp(sprintf('CMP f=%s t=%s s=%d w=%d d=%d',
+                        $this->instr['from'], $this->instr['to'], $this->instr['size'], $this->instr['is_word'], $this->instr['dir']));
 
                     $this->instr['dir'] |= !$this->instr['is_word'];
 
@@ -813,14 +823,20 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 throw new NotImplementedException();
                             }
 
+                            // Operation
                             $this->op['res'] = $this->op['dst'] - $this->op['src'];
+
+                            // CF dependency
                             if ($this->instr['is_word']) {
                                 $tmpUiOpResult = $this->op['res'] & 0xFFFF;
                             } else {
                                 $tmpUiOpResult = $this->op['res'] & 0xFF;
                             }
 
+                            // Calc CF
                             $tmpCf = $tmpUiOpResult > $this->op['dst'];
+
+                            // Set new CF.
                             $this->flags->setByName('CF', $tmpCf);
 
                             break;
@@ -1038,20 +1054,29 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpTo = $ax;
                         }
 
-                        //$this->output->writeln(sprintf(' -> INDEX %d', $tmpInt));
-                        //$this->output->writeln(sprintf(' -> FROM %s', $tmpFrom));
-                        //$this->output->writeln(sprintf(' -> TO   %s', $tmpTo));
-                        //$this->output->writeln('');
+                        $this->output->writeln(sprintf(' -> SEG   %s', $this->segDefaultReg));
+                        $this->output->writeln(sprintf(' -> INDEX %d', $tmpInt));
+                        $this->output->writeln(sprintf(' -> FROM %s', $tmpFrom));
+                        $this->output->writeln(sprintf(' -> TO   %s', $tmpTo));
 
                         if ($tmpFrom instanceof Register && $tmpTo instanceof AbsoluteAddress) {
+                            // FROM  Register
+                            // TO    Address
+
                             $data = $tmpFrom->getData();
                             $offset = $tmpTo->toInt();
                             $this->ram->write($data, $offset, $tmpFrom->getSize());
                         } elseif ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof Register) {
+                            // FROM  Address
+                            // TO    Register
+
                             $offset = $tmpFrom->toInt();
                             $data = $this->ram->read($offset, $tmpTo->getSize());
                             $tmpTo->setData($data, true);
                         } elseif ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof AbsoluteAddress) {
+                            // FROM  Address
+                            // TO    Address
+
                             $offset = $tmpFrom->toInt();
                             $data = $this->ram->read($offset, $this->instr['size']);
 
@@ -1063,10 +1088,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         if (1 !== $this->instr['extra']) {
                             $this->si->add(-$add);
+
+                            $this->output->writeln(sprintf(' -> SI   %s', $this->si));
                         }
                         if (2 !== $this->instr['extra']) {
                             $this->di->add(-$add);
+
+                            $this->output->writeln(sprintf(' -> DI   %s', $this->di));
                         }
+
+                        $this->output->writeln('');
                     }
 
                     // Reset CX on repeat mode.
@@ -1178,7 +1209,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $stackData = $this->popFromStack($register->getSize());
                     $register->setData($stackData);
 
-                    $this->debugOp(sprintf('POP %s %d %d', $register, $this->instr['i_reg'], $this->instr['extra']));
+                    $this->debugOp(sprintf('POP %s reg=%d e=%d', $register, $this->instr['i_reg'], $this->instr['extra']));
                     $this->debugSsSpRegister();
 
                     break;
@@ -1326,9 +1357,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     throw new NotImplementedException('op result has not been set, but maybe it needs to be.');
                 }
 
-                $tmpSign = $this->op['res'] < 0;
-                $tmpZero = $this->op['res'] == 0;
-
                 // unsigned int. For example, int -42 = unsigned char 214
                 // Since we deal with Integer values < 256 we only need a 0xFF-mask.
                 $ucOpResult = $this->op['res'] & 0xFF;
@@ -1338,18 +1366,26 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 }
 
                 // Sign Flag
+                $tmpSign = $this->op['res'] < 0;
                 $this->flags->setByName('SF', $tmpSign);
+                $this->debugInfo(sprintf(' -> SF %d', $this->flags->getByName('SF')));
 
                 // Zero Flag
+                $tmpZero = $this->op['res'] == 0;
                 $this->flags->setByName('ZF', $tmpZero);
+                $this->debugInfo(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
                 $this->flags->setByName('PF', $tmpParity);
+                $this->debugInfo(sprintf(' -> PF %d', $this->flags->getByName('PF')));
 
                 if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
                     $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
+
+                    $this->debugInfo(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    $this->debugInfo(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                 }
                 if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
@@ -1363,7 +1399,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             // Update Instruction counter.
             ++$this->runLoop;
 
-            if ($this->runLoop >= 500000) {
+            if ($this->runLoop >= 500000) { // @todo remove
                 break;
             }
 

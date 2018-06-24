@@ -81,6 +81,8 @@ bios_entry:
 
 	cld
 
+	; @TODO remove set REG_ZERO to 0 and set XF to 0. This is only needed by 8086tiny, not by i8086emu.
+
 	xor	ax, ax
 	mov	di, 24		; REG_ZERO 12
 	stosw			; Set ZS = 0
@@ -316,7 +318,7 @@ next_out:
 	out	dx, al
 
 	cmp	dx, 0xFFF
-	jl	next_out
+	jl	next_out ; RUN 161
 
 	mov	al, 0
 
@@ -3839,6 +3841,9 @@ flags_mult	db	0, 2, 4, 6, 7, 8, 9, 10, 11, 12
 
 ; Table 15, 16, 17, 18
 ; Flag 9 is the always-zero flag (XF).
+; In the original 8086tiny BIOS this was on 40-base.
+; Since i8086emu isn't storing the FLAGS inside the RAM rather than
+; using a separate object we can use the Flag ID without any base.
 jxx_dec_a	db	8, 0, 3, 0, 4, 1, 9, 9
 jxx_dec_b	db	9, 9, 9, 3, 9, 9, 9, 3
 jxx_dec_c	db	9, 9, 9, 9, 9, 9, 4, 4

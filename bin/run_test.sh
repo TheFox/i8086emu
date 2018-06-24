@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 
-# Start the 'run' command.
-
 SCRIPT_BASEDIR=$(dirname "$0")
-BIOS=${1:-./bios/bios}
+BIOS=${1:-}
 
 cd "${SCRIPT_BASEDIR}/.."
 
 set -x
 ./bin/i8086emu run \
-	--bios "${BIOS}" \
+	--bios   ./bios/bios           \
 	--floppy ./opt/8086tiny/fd.img \
-	--tty /tmp/i8086TTY \
-	--socat /usr/bin/socat \
 	-vv
