@@ -9,6 +9,7 @@
 
 namespace TheFox\I8086emu\Machine;
 
+use Carbon\Carbon;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
@@ -18,6 +19,7 @@ use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
 use TheFox\I8086emu\Components\Flags;
+use TheFox\I8086emu\Components\Memory;
 use TheFox\I8086emu\Components\Register;
 use TheFox\I8086emu\Exception\NotImplementedException;
 use TheFox\I8086emu\Exception\UnknownTypeException;
@@ -1304,6 +1306,43 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 case 48:
                     $subOpCode = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
                     switch ($subOpCode) {
+                        case 1: // Get RTC
+                            $now = Carbon::now();
+
+                            $dayOfYear = new Memory(4, $now->dayOfYear);
+
+                            // struct tm
+                            $tm = [
+                                [$now->second],
+                                [$now->minute],
+                                [$now->hour],
+                                [$now->day],
+                                [$now->month],
+                                [$now->year - 1900],
+                                [$now->dayOfWeek],
+                                $dayOfYear->getData()->toArray(),
+                                [$now->dst],
+                                [], /* TODO offset from UTC in seconds */
+                                // 0, /* TODO timezone abbreviation */
+                            ];
+
+                            $tmFilled = array_map(function (array $item) {
+                                $c = count($item);
+                                $d = 4 - $c; // 4 because 'timetable' in Bios is actually 32-bit. IDK why.
+                                $item = array_merge($item, array_fill(0, $d, 0));
+                                return $item;
+                            }, $tm);
+
+                            $tmFlatten = call_user_func_array('array_merge', $tmFilled);
+
+                            $ea = $this->getEffectiveEsBxAddress();
+                            $offset = $ea->toInt();
+                            $size = count($tmFlatten);
+
+                            $this->ram->write($tmFlatten, $offset, $size);
+
+                            break;
+
                         default:
                             throw new NotImplementedException(sprintf('Emulator-specific 0F xx opcodes: %d', $subOpCode));
                     }
@@ -1553,6 +1592,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
         // Set Flags.
         $this->flags->setByName('TF', false);
         $this->flags->setByName('IF', false);
+
+        // @TODO something else todo for interrupt? seems like something is missing..?
     }
 
     private function updateGraphics()
@@ -1615,6 +1656,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
     private function getEffectiveEsDiAddress(): AbsoluteAddress
     {
         $offset = ($this->es->toInt() << 4) + $this->di->toInt();
+        $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
+        return $address;
+    }
+
+    /**
+     * EA of ES:BX
+     */
+    private function getEffectiveEsBxAddress(): AbsoluteAddress
+    {
+        $offset = ($this->es->toInt() << 4) + $this->bx->toInt();
         $address = new AbsoluteAddress(self::SIZE_BYTE << 1, $offset);
         return $address;
     }

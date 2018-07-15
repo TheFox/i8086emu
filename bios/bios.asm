@@ -342,7 +342,7 @@ next_out:
 	push	cs
 	pop	es
 	mov	bx, timetable
-	extended_get_rtc
+	extended_get_rtc ; RUN 65632
 	mov	ax, [es:tm_msec]
 	mov	[cs:last_int8_msec], ax
 
@@ -356,7 +356,7 @@ next_out:
 	mov	dl, [cs:boot_device]
 	mov	cx, 1
 	mov	bx, 0x7c00
-	int	13h
+	int	13h ; RUN 65645
 
 ; Jump to boot sector
 
