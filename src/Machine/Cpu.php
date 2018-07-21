@@ -584,10 +584,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $flagC = $this->flags->get($realFlagIdC);
                     $flagD = $this->flags->get($realFlagIdD);
 
-                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
-                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
-                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
-                    $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
+                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
+                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
+                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
+                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
 
                     $data = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
 
@@ -1056,10 +1056,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpTo = $ax;
                         }
 
-                        $this->output->writeln(sprintf(' -> SEG   %s', $this->segDefaultReg));
-                        $this->output->writeln(sprintf(' -> INDEX %d', $tmpInt));
-                        $this->output->writeln(sprintf(' -> FROM %s', $tmpFrom));
-                        $this->output->writeln(sprintf(' -> TO   %s', $tmpTo));
+                        // $this->output->writeln(sprintf(' -> SEG   %s', $this->segDefaultReg));
+                        // $this->output->writeln(sprintf(' -> INDEX %d', $tmpInt));
+                        // $this->output->writeln(sprintf(' -> FROM %s', $tmpFrom));
+                        // $this->output->writeln(sprintf(' -> TO   %s', $tmpTo));
 
                         if ($tmpFrom instanceof Register && $tmpTo instanceof AbsoluteAddress) {
                             // FROM  Register
@@ -1307,6 +1307,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $subOpCode = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
                     switch ($subOpCode) {
                         case 1: // Get RTC
+                            $this->debugOp(sprintf('GET RTC'));
                             $now = Carbon::now();
 
                             $dayOfYear = new Memory(4, $now->dayOfYear);
@@ -1384,9 +1385,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 + $baseInstrSize
                 + $iwAdder;
             if ($add) {
-                $this->debugCsIpRegister();
+                // $this->debugCsIpRegister();
                 $this->ip->add($add);
-                $this->debugCsIpRegister();
+                // $this->debugCsIpRegister();
             }
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
@@ -1423,8 +1424,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
                     $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
 
-                    $this->debugInfo(sprintf(' -> AF %d', $this->flags->getByName('AF')));
-                    $this->debugInfo(sprintf(' -> OF %d', $this->flags->getByName('OF')));
+                    // $this->debugInfo(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    // $this->debugInfo(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                 }
                 if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
@@ -1433,7 +1434,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             // Debug Flags
-            $this->output->writeln(sprintf(' -> %s set=%b', $this->flags, $setFlagsType));
+            // $this->output->writeln(sprintf(' -> %s set=%b', $this->flags, $setFlagsType));
 
             // Update Instruction counter.
             ++$this->runLoop;
@@ -1592,7 +1593,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         // Set Flags.
         $this->flags->setByName('TF', false);
         $this->flags->setByName('IF', false);
-
         // @TODO something else todo for interrupt? seems like something is missing..?
     }
 

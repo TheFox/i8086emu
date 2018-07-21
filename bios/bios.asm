@@ -2059,7 +2059,7 @@ int13:
 
   i13_diskok:
 
-	cmp	ah, 0x02 ; Read disk
+	cmp	ah, 0x02 ; Read disk ; RUN 65652
 	je	int13_read_disk
 	cmp	ah, 0x03 ; Write disk
 	je	int13_write_disk
