@@ -810,17 +810,35 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('CMP %s %s', $this->instr['to'], $this->instr['from']));
 
                             if ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
+                                // FROM  Register
+                                // TO    Register
+
                                 $this->op['src'] = $this->instr['from']->toInt();
                                 $this->op['dst'] = $this->instr['to']->toInt();
                             } elseif (is_numeric($this->instr['from']) && $this->instr['to'] instanceof Register) {
+                                // FROM  numberic
+                                // TO    Register
+
                                 $this->op['src'] = $this->instr['from'];
                                 $this->op['dst'] = $this->instr['to']->toInt();
                             } elseif (is_numeric($this->instr['from']) && $this->instr['to'] instanceof AbsoluteAddress) {
+                                // FROM  numberic
+                                // TO    Absolute Address
+
                                 $this->op['src'] = $this->instr['from'];
 
                                 $offset = $this->instr['to']->toInt();
                                 $data = $this->ram->read($offset, $this->instr['size']);
                                 $this->op['dst'] = DataHelper::arrayToInt($data);
+                            } elseif ($this->instr['from'] instanceof AbsoluteAddress && $this->instr['to'] instanceof Register) {
+                                // FROM  Absolute Address
+                                // TO    numberic
+
+                                $offset = $this->instr['from']->toInt();
+                                $data = $this->ram->read($offset, $this->instr['size']);
+                                $this->op['src'] = DataHelper::arrayToInt($data);
+
+                                $this->op['dst'] = $this->instr['to']->toInt();
                             } else {
                                 throw new NotImplementedException();
                             }
@@ -1320,8 +1338,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 [$now->dayOfWeek],
                                 $dayOfYear->getData()->toArray(),
                                 [$now->dst],
-                                [], /* TODO offset from UTC in seconds */
-                                // 0, /* TODO timezone abbreviation */
+                                [],
+                                /* @TODO offset from UTC in seconds */
+                                // 0, /* @TODO timezone abbreviation */
                             ];
 
                             $tmFilled = array_map(function (array $item) {
