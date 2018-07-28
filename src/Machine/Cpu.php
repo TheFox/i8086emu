@@ -1090,16 +1090,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         if (1 !== $this->instr['extra']) {
                             $this->si->add(-$add);
-
-                            $this->output->writeln(sprintf(' -> SI   %s', $this->si));
+                            // $this->output->writeln(sprintf(' -> SI   %s', $this->si));
                         }
                         if (2 !== $this->instr['extra']) {
                             $this->di->add(-$add);
-
-                            $this->output->writeln(sprintf(' -> DI   %s', $this->di));
+                            // $this->output->writeln(sprintf(' -> DI   %s', $this->di));
                         }
-
-                        $this->output->writeln('');
+                        // $this->output->writeln('');
                     }
 
                     // Reset CX on repeat mode.
@@ -1408,17 +1405,17 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // Sign Flag
                 $tmpSign = $this->op['res'] < 0;
                 $this->flags->setByName('SF', $tmpSign);
-                $this->debugInfo(sprintf(' -> SF %d', $this->flags->getByName('SF')));
+                // $this->debugInfo(sprintf(' -> SF %d', $this->flags->getByName('SF')));
 
                 // Zero Flag
                 $tmpZero = $this->op['res'] == 0;
                 $this->flags->setByName('ZF', $tmpZero);
-                $this->debugInfo(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
+                // $this->debugInfo(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
                 $this->flags->setByName('PF', $tmpParity);
-                $this->debugInfo(sprintf(' -> PF %d', $this->flags->getByName('PF')));
+                // $this->debugInfo(sprintf(' -> PF %d', $this->flags->getByName('PF')));
 
                 if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
