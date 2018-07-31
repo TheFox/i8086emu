@@ -16,6 +16,10 @@ indent_style = tab
 [*.asm]
 indent_style = tab
 
-[*.yml]
+[*.{yml,yaml,rb}]
+indent_style = space
+indent_size = 2
+
+[Vagrantfile]
 indent_style = space
 indent_size = 2
