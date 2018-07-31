@@ -856,10 +856,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             }
 
                             // Calc CF
-                            $tmpCf = $tmpUiOpResult > $this->op['dst'];
+                            $dst = $tmpUiOpResult > $this->op['dst'];
 
                             // Set new CF.
-                            $this->flags->setByName('CF', $tmpCf);
+                            $this->flags->setByName('CF', $dst);
 
                             break;
 
@@ -1025,16 +1025,36 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         }
                     }
 
-                    // @todo FINISH IMPLEMENTATION
+
                     switch ($ireg) {
                         case 0: // ROL
+                            // @todo FINISH IMPLEMENTATION
                             throw new NotImplementedException(sprintf('ireg %d', $ireg));
                             break;
 
                         case 4: // SHL
-                            $tmpCf = $this->op['dst'] << ($scratch - 1);
-                            $this->flags->setByName('CF', $tmpCf < 0);
-                            $this->output->writeln(sprintf(' -> tmpCF %d %d', $tmpCf, $tmpCf < 0));
+                            $tmpDst = $this->op['dst'] << ($scratch - 1);
+                            $tmpCf1 = $tmpDst < 0;
+                            $tmpCf2 = $this->op['dst'] < 0;
+                            $tmpCf = $tmpCf1 ^ $tmpCf2;
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> tmpCF %d', $tmpCf));
+                            break;
+
+                        case 5: // SHR
+                            $tmpCf = $this->op['dst'] < 0;
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> tmpCF %d', $tmpCf));
+                            break;
+
+                        case 7: // SAR
+                            $this->output->writeln(sprintf(' -> bsize %d', $this->instr['bsize']));
+                            if ($scratch < $this->instr['bsize']) {
+                                $this->flags->setByName('CF', $scratch);
+                            }
+                            $this->flags->setByName('OF', false);
+
+                            // @todo FINISH IMPLEMENTATION
                             break;
 
                         default:
