@@ -964,9 +964,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // ROL|ROR|RCL|RCR|SHL|SHR|???|SAR reg/mem, 1/CL/imm (80186)
                 case 12:
+                    /** @var Address $to */
                     $to = $this->instr['rm_o'];
-                    $this->debugOp(sprintf('[80186] ROL %s', $to));
+                    $scratch2 = $to->toInt() < 0;
+
+                    $this->debugOp(sprintf('[80186] SHL|SHR|... %s', $to));
                     $this->output->writeln(sprintf(' -> is_word %d', $this->instr['is_word']));
+                    $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
 
                     if ($this->instr['extra']) {
                         // xxx reg/mem, imm
@@ -993,7 +997,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         // Rotate operations
                         if ($ireg < 4) {
                             $scratch %= ($ireg >> 1) + $this->instr['bsize'];
+
                             $this->output->writeln(sprintf(' -> scratch %d', $scratch));
+                            $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
                         }
 
                         // Rotate/shift right operations
@@ -1004,6 +1010,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         } else {
                             $this->op['res'] = $this->op['dst'] << $this->op['src'];
                         }
+
+                        $to->setData($this->op['res']);
+                        $this->output->writeln(sprintf(' -> %s', $to));
 
                         $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
                         $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
@@ -1025,14 +1034,39 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         }
                     }
 
-
                     switch ($ireg) {
                         case 0: // ROL
                             // @todo FINISH IMPLEMENTATION
+                            $this->debugOp(sprintf('[80186] ROL %s', $to));
+
+                            $toInt=$to->toInt();
+                            
+                            $to->setData($toInt);
+
+                            throw new NotImplementedException(sprintf('ireg %d', $ireg));
+                            break;
+
+                        case 1: // ROR
+                            // @todo FINISH IMPLEMENTATION
+                            $this->debugOp(sprintf('[80186] ROR %s', $to));
+                            throw new NotImplementedException(sprintf('ireg %d', $ireg));
+                            break;
+
+                        case 2: // RCL
+                            // @todo FINISH IMPLEMENTATION
+                            $this->debugOp(sprintf('[80186] RCL %s', $to));
+                            throw new NotImplementedException(sprintf('ireg %d', $ireg));
+                            break;
+
+                        case 3: // RCR
+                            // @todo FINISH IMPLEMENTATION
+                            $this->debugOp(sprintf('[80186] RCR %s', $to));
                             throw new NotImplementedException(sprintf('ireg %d', $ireg));
                             break;
 
                         case 4: // SHL
+                            $this->debugOp(sprintf('[80186] SHL %s', $to));
+
                             $tmpDst = $this->op['dst'] << ($scratch - 1);
                             $tmpCf1 = $tmpDst < 0;
                             $tmpCf2 = $this->op['dst'] < 0;
@@ -1042,19 +1076,40 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             break;
 
                         case 5: // SHR
+                            $this->debugOp(sprintf('[80186] SHR %s', $to));
+
                             $tmpCf = $this->op['dst'] < 0;
                             $this->flags->setByName('CF', $tmpCf);
                             $this->output->writeln(sprintf(' -> tmpCF %d', $tmpCf));
                             break;
 
                         case 7: // SAR
+                            $this->debugOp(sprintf('[80186] SAR %s', $to));
+
                             $this->output->writeln(sprintf(' -> bsize %d', $this->instr['bsize']));
                             if ($scratch < $this->instr['bsize']) {
                                 $this->flags->setByName('CF', $scratch);
                             }
                             $this->flags->setByName('OF', false);
 
-                            // @todo FINISH IMPLEMENTATION
+                            $scratch2 = intval($scratch2) * ~(((1 << $this->instr['bsize']) - 1) >> $scratch);
+
+                            $toInt = $to->toInt();
+
+                            $this->op['dst'] = $toInt;
+                            $this->op['src'] = $scratch2;
+
+                            $toInt += $this->op['src'];
+                            $to->setData($toInt);
+                            $this->op['res'] = $toInt;
+
+                            /**
+                             * op_dest = $to->toInt();
+                             * op_source = $scratch2;
+                             * op_result = $to->toInt() += $scratch2;
+                             */
+
+                            $this->output->writeln(sprintf(' -> %s', $to));
                             break;
 
                         default:
