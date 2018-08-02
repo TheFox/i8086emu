@@ -1036,20 +1036,57 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     switch ($ireg) {
                         case 0: // ROL
-                            // @todo FINISH IMPLEMENTATION
                             $this->debugOp(sprintf('[80186] ROL %s', $to));
 
-                            $toInt=$to->toInt();
-                            
-                            $to->setData($toInt);
+                            $toInt = $to->toInt();
 
-                            throw new NotImplementedException(sprintf('ireg %d', $ireg));
+                            $this->op['dst'] = $toInt;
+                            $this->op['src'] = $scratch2 >> ($this->instr['bsize'] - $scratch);
+
+                            $toInt += $this->op['src'];
+                            $to->setData($toInt);
+                            $this->op['res'] = $toInt;
+
+                            $tmpCf = $this->op['res'] & 1;
+                            $tmpOf = intval($this->op['res'] < 0) ^ $tmpCf;
+
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->flags->setByName('OF', $tmpOf);
+
+                            $this->output->writeln(sprintf(' -> %s', $to));
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            $this->output->writeln(sprintf(' -> OF %d', $tmpOf));
+                            $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
+                            $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
+                            $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
                             break;
 
                         case 1: // ROR
-                            // @todo FINISH IMPLEMENTATION
                             $this->debugOp(sprintf('[80186] ROR %s', $to));
-                            throw new NotImplementedException(sprintf('ireg %d', $ireg));
+
+                            $scratch2 = intval($scratch2) & (1 << $scratch) - 1;
+
+                            $toInt = $to->toInt();
+
+                            $this->op['dst'] = $toInt;
+                            $this->op['src'] = $scratch2 << ($this->instr['bsize'] - $scratch);
+
+                            $toInt += $this->op['src'];
+                            $to->setData($toInt);
+                            $this->op['res'] = $toInt;
+
+                            $tmpCf = $this->op['res'] <0;
+                            $tmpOf = intval(($this->op['res']<<1)<0) ^intval($tmpCf);
+
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->flags->setByName('OF', $tmpOf);
+
+                            $this->output->writeln(sprintf(' -> %s', $to));
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            $this->output->writeln(sprintf(' -> OF %d', $tmpOf));
+                            $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
+                            $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
+                            $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
                             break;
 
                         case 2: // RCL
@@ -1119,7 +1156,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // JMP | CALL short/near - OpCodes: e8 e9 ea eb
                 case 14:
-                    $this->debugOp(sprintf('JMP'));
+                    $this->debugOp(sprintf('JMP|CALL'));
 
                     $this->ip->add(3 - $this->instr['dir']);
                     if (!$this->instr['is_word']) {
@@ -1130,7 +1167,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         } else {
                             // CALL
                             $this->debugOp(sprintf('CALL'));
-                            $this->debugOp(sprintf(' -> %s', $this->ip));
+                            $this->output->writeln(sprintf(' -> %s', $this->ip));
                             $this->pushRegisterToStack($this->ip);
                         }
                     }
