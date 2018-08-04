@@ -804,8 +804,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
+                            // CF
                             $tmpCf = $this->op['res'] < $this->op['dst'];
                             $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
                         // OR
@@ -821,6 +823,51 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+                            break;
+
+                        // ADC
+                        case 2:// @todo
+                            throw new NotImplementedException('ADC');
+                            break;
+
+                        // SBB
+                        case 3: // @todo
+                            throw new NotImplementedException('SBB');
+                            break;
+
+                        // AND
+                        case 4:
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('AND %s %s', $tmpTo, $tmpFrom));
+
+                            $this->op['src'] = $tmpFrom;
+                            $this->op['dst'] = $tmpTo->toInt() & $this->op['src'];
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+                            break;
+
+                        // SUB
+                        case 5:
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('SUB %s %s', $tmpTo, $tmpFrom));
+
+                            $this->op['src'] = $tmpFrom;
+                            $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // CF
+                            $tmpCf = $this->op['res'] > $this->op['dst'];
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
                         // XOR
