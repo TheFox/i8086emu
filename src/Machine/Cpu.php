@@ -797,8 +797,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $this->debugOp(sprintf('ADD %s %s', $tmpTo, $tmpFrom));
 
-                            $this->op['src'] = $tmpFrom;
-                            $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
+                            if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
+                            } elseif ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom->toInt();
+                                $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
+                            } else {
+                                throw new NotImplementedException();
+                            }
+
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
@@ -817,8 +825,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $this->debugOp(sprintf('OR %s %s', $tmpTo, $tmpFrom));
 
-                            $this->op['src'] = $tmpFrom;
-                            $this->op['dst'] = $tmpTo->toInt() | $this->op['src'];
+                            if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt() | $this->op['src'];
+                            } else {
+                                throw new NotImplementedException();
+                            }
+
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
@@ -842,8 +855,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $this->debugOp(sprintf('AND %s %s', $tmpTo, $tmpFrom));
 
-                            $this->op['src'] = $tmpFrom;
-                            $this->op['dst'] = $tmpTo->toInt() & $this->op['src'];
+                            if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt() & $this->op['src'];
+                            } else {
+                                throw new NotImplementedException();
+                            }
+
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
@@ -857,8 +875,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $this->debugOp(sprintf('SUB %s %s', $tmpTo, $tmpFrom));
 
-                            $this->op['src'] = $tmpFrom;
-                            $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
+                            if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
+                            } else {
+                                throw new NotImplementedException();
+                            }
+
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
