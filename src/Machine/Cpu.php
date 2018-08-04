@@ -792,8 +792,35 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     switch ($this->instr['extra']) {
                         // ADD
                         case 0:
-                            $this->debugOp(sprintf('ADD'));
-                            throw new NotImplementedException();
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('ADD %s %s', $tmpTo, $tmpFrom));
+
+                            $this->op['src'] = $tmpFrom;
+                            $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            $tmpCf = $this->op['res'] < $this->op['dst'];
+                            $this->flags->setByName('CF', $tmpCf);
+                            break;
+
+                        // OR
+                        case 1:
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('OR %s %s', $tmpTo, $tmpFrom));
+
+                            $this->op['src'] = $tmpFrom;
+                            $this->op['dst'] = $tmpTo->toInt() | $this->op['src'];
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
                             break;
 
                         // XOR
@@ -886,7 +913,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             break;
 
                         default:
-                            throw new NotImplementedException(sprintf('else %d %b', $this->instr['extra'], $this->instr['extra']));
+                            throw new NotImplementedException(sprintf('else e=%d', $this->instr['extra']));
                     }
                     break;
 
@@ -1075,8 +1102,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $to->setData($toInt);
                             $this->op['res'] = $toInt;
 
-                            $tmpCf = $this->op['res'] <0;
-                            $tmpOf = intval(($this->op['res']<<1)<0) ^intval($tmpCf);
+                            $tmpCf = $this->op['res'] < 0;
+                            $tmpOf = intval(($this->op['res'] << 1) < 0) ^ intval($tmpCf);
 
                             $this->flags->setByName('CF', $tmpCf);
                             $this->flags->setByName('OF', $tmpOf);
