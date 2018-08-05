@@ -744,24 +744,49 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $this->op['res'] = $tmpTo->toInt() & $data;
                             $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
-
                             break;
 
                         // NOT
                         case 2:
-                            $this->debugOp(sprintf('NOT %s',  $tmpTo));
+                            $this->debugOp(sprintf('NOT %s', $tmpTo));
 
-                            if ( $tmpTo instanceof Register) {
-                                $this->op['src'] =$tmpTo->toInt();
+                            if ($tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpTo->toInt();
                                 $this->op['dst'] = ~$this->op['src'];
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
 
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+                            break;
+
+                        // NEG
+                        case 3:
+                            $this->debugOp(sprintf('NEG %s', $tmpTo));
+
+                            $this->instr['raw'] = 0x28; // Decode like SUB
+
+                            if ($tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpTo->toInt();
+                                $this->op['dst'] =  - $this->op['src'];
+                            } else {
+                                throw new UnknownTypeException();
+                            }
+
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            $this->op['dst'] = 0;
+
+                            // CF
+                            $tmpCf = $tmpTo->toInt() > $this->op['dst'];
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
                         default:
@@ -822,7 +847,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['src'] = $tmpFrom->toInt();
                                 $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
 
                             $this->op['res'] = $this->op['dst'];
@@ -847,7 +872,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() | $this->op['src'];
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
 
                             $this->op['res'] = $this->op['dst'];
@@ -877,7 +902,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() & $this->op['src'];
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
 
                             $this->op['res'] = $this->op['dst'];
@@ -897,7 +922,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
 
                             $this->op['res'] = $this->op['dst'];
@@ -918,7 +943,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['res'] = $this->instr['from']->toInt() ^ $this->instr['to']->toInt();
                                 $this->instr['to']->setData($this->op['res']);
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
                             break;
 
@@ -957,7 +982,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                                 $this->op['dst'] = $this->instr['to']->toInt();
                             } else {
-                                throw new NotImplementedException();
+                                throw new UnknownTypeException();
                             }
 
                             // Operation
