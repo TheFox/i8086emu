@@ -725,6 +725,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $tmpTo = $this->instr['from'];
 
                     switch ($this->instr['reg']) {
+                        // TEST
                         case 0:
                             // Decode like AND.
                             $this->instr['raw'] = 0x20;
@@ -744,6 +745,23 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->op['res'] = $tmpTo->toInt() & $data;
                             $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
 
+                            break;
+
+                        // NOT
+                        case 2:
+                            $this->debugOp(sprintf('NOT %s',  $tmpTo));
+
+                            if ( $tmpTo instanceof Register) {
+                                $this->op['src'] =$tmpTo->toInt();
+                                $this->op['dst'] = ~$this->op['src'];
+                            } else {
+                                throw new NotImplementedException();
+                            }
+
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
                             break;
 
                         default:
