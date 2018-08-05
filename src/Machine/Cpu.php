@@ -18,6 +18,7 @@ use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
+use TheFox\I8086emu\Components\ChildRegister;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Memory;
 use TheFox\I8086emu\Components\Register;
@@ -771,7 +772,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             if ($tmpTo instanceof Register) {
                                 $this->op['src'] = $tmpTo->toInt();
-                                $this->op['dst'] =  - $this->op['src'];
+                                $this->op['dst'] = -$this->op['src'];
                             } else {
                                 throw new UnknownTypeException();
                             }
@@ -787,6 +788,65 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpCf = $tmpTo->toInt() > $this->op['dst'];
                             $this->flags->setByName('CF', $tmpCf);
                             $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            break;
+
+                        // MUL|IMUL
+                        case 4:
+                        case 5:
+                            $this->debugOp(sprintf('MUL %s (%d)', $tmpTo, $this->instr['reg']));
+
+                            $this->instr['raw'] = 0x10;
+
+                            if ($this->instr['is_word']) {
+                                $multiplicand = $this->ax;
+                            } else {
+                                $multiplicand = $this->ax->getChildRegister();
+                            }
+
+                            $this->output->writeln(sprintf(' -> %s', $multiplicand));
+
+                            if ($tmpTo instanceof Register) {
+
+                                $this->op['src'] = $tmpTo->toInt();
+                                $this->op['res'] = $this->op['src'] * $multiplicand->toInt();
+
+                                $multiplicand->setData($this->op['res']);
+                                $this->output->writeln(sprintf(' -> %s %d', $multiplicand, $multiplicand->toInt()));
+
+                                if ($this->instr['is_word']) {
+                                    // Touch DX only when a word operator is used.
+                                    $tmpDx = $this->op['res'] >> 16;
+                                    $this->dx->setData($tmpDx);
+                                }
+                                $this->output->writeln(sprintf(' -> %s %d', $this->dx, $this->dx->toInt()));
+
+                                // if ($this->instr['reg']==4)
+                                if ($this->instr['is_word']) {
+                                    $tmpCf = $this->op['res'] !== 0;
+                                } else {
+                                    $tmpCf = (0xFF00 & $this->op['res']) !== 0;
+                                }
+
+                                $this->flags->setByName('CF', $tmpCf);
+                                $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            } else {
+                                throw new UnknownTypeException();
+                            }
+                            break;
+
+                        // IMUL
+                        case 5:
+                            throw new NotImplementedException('IMUL');
+                            break;
+
+                        // DIV
+                        case 6:
+                            throw new NotImplementedException('DIV');
+                            break;
+
+                        // IDIV
+                        case 7:
+                            throw new NotImplementedException('IDIV');
                             break;
 
                         default:

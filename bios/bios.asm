@@ -64,6 +64,24 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 
+	; mov al, 00000011b
+	; mov bl, 00001000b
+	; mul bl
+
+	; mov al, 00000011b
+	; mov bl, 00001000b
+	; imul bl
+
+	; mov al, 00000011b
+	; mov bl, 10000000b
+	; mul bl
+
+	; mov al, 00000011b
+	; mov bl, 10000000b
+	; imul bl
+
+	;hlt
+
 	; Set up initial stack to F000:F000
 	mov	sp, 0xf000
 	mov	ss, sp
@@ -360,7 +378,7 @@ next_out:
 	int	13h ; RUN 65645
 
 ; Jump to boot sector
-
+	;hlt
 	jmp	0:0x7c00
 
 ; ************************* INT 7h handler - keyboard driver (8086tiny internal)
