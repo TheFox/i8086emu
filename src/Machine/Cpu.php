@@ -998,13 +998,22 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         // XOR
                         case 6:
-                            $this->debugOp(sprintf('XOR %s %s', $this->instr['to'], $this->instr['from']));
-                            if ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
-                                $this->op['res'] = $this->instr['from']->toInt() ^ $this->instr['to']->toInt();
-                                $this->instr['to']->setData($this->op['res']);
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('XOR %s %s', $tmpTo, $tmpFrom));
+
+                            if ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom->toInt();
+                                $this->op['dst'] = $tmpTo->toInt() ^ $this->op['src'];
                             } else {
                                 throw new UnknownTypeException();
                             }
+
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['res']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
                             break;
 
                         // CMP reg, imm
