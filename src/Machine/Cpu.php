@@ -18,7 +18,6 @@ use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
-use TheFox\I8086emu\Components\ChildRegister;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Memory;
 use TheFox\I8086emu\Components\Register;
@@ -834,11 +833,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             }
                             break;
 
-                        // IMUL
-                        case 5:
-                            throw new NotImplementedException('IMUL');
-                            break;
-
                         // DIV
                         case 6:
                             throw new NotImplementedException('DIV');
@@ -942,13 +936,70 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             break;
 
                         // ADC
-                        case 2:// @todo
-                            throw new NotImplementedException('ADC');
+                        case 2:
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('ADC %s %s', $tmpTo, $tmpFrom));
+
+                            if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt() + $this->flags->getByName('CF') + $this->op['src'];
+                            } else {
+                                throw new UnknownTypeException();
+                            }
+
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // CF
+                            $uiDst = $this->op['dst'] & 0xFFFF;
+                            $tmpCf1 = $this->flags->getByName('CF') && ($this->op['res'] == $uiDst);
+                            $tmpCf2 = +$this->op['res'] < +$this->op['dst'];
+                            $tmpCf = $tmpCf1 || $tmpCf2;
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+
+                            // AF/OF
+                            $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
+                            $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
+
+                            $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                            $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                             break;
 
                         // SBB
-                        case 3: // @todo
-                            throw new NotImplementedException('SBB');
+                        case 3:
+                            $tmpFrom = $this->instr['from'];
+                            $tmpTo = $this->instr['to'];
+
+                            $this->debugOp(sprintf('SBB %s %s', $tmpTo, $tmpFrom));
+
+                            if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt() - $this->flags->getByName('CF') + $this->op['src'];
+                            } else {
+                                throw new UnknownTypeException();
+                            }
+
+                            $this->op['res'] = $this->op['dst'];
+
+                            $tmpTo->setData($this->op['dst']);
+                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // CF
+                            $uiDst = $this->op['dst'] & 0xFFFF;
+                            $tmpCf1 = $this->flags->getByName('CF') && ($this->op['res'] == $uiDst);
+                            $tmpCf2 = -$this->op['res'] < -$this->op['dst'];
+                            $tmpCf = $tmpCf1 || $tmpCf2;
+                            $this->flags->setByName('CF', $tmpCf);
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+
+                            // AF/OF
+                            $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
+                            $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
                             break;
 
                         // AND
