@@ -10,6 +10,7 @@ use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\DebugAwareInterface;
+use TheFox\I8086emu\Blueprint\DiskInterface;
 use TheFox\I8086emu\Blueprint\MachineInterface;
 use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
@@ -72,7 +73,7 @@ final class Machine implements MachineInterface, DebugAwareInterface
     public function __construct()
     {
         $this->ram = new Ram(0x00100000); // 1 MB
-        $this->cpu = new Cpu();
+        $this->cpu = new Cpu($this);
         $this->tty = new NullOutputDevice();
 
         $this->output = new NullOutput();
@@ -150,5 +151,17 @@ final class Machine implements MachineInterface, DebugAwareInterface
         $this->output = $output;
 
         $this->cpu->setOutput($this->output);
+    }
+
+    public function getDiskByNum(int $diskId): DiskInterface
+    {
+        switch ($diskId) {
+            case 2:
+                return $this->hardDisk;
+            case 1:
+                return $this->floppyDisk;
+            case 0:
+                return $this->bios;
+        }
     }
 }

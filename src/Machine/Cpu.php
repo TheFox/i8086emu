@@ -14,6 +14,7 @@ use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use TheFox\I8086emu\Blueprint\CpuInterface;
 use TheFox\I8086emu\Blueprint\DebugAwareInterface;
+use TheFox\I8086emu\Blueprint\MachineInterface;
 use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
@@ -55,6 +56,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
     public const FLAGS_UPDATE_SZP = 1;
     public const FLAGS_UPDATE_AO_ARITH = 2;
     public const FLAGS_UPDATE_OC_LOGIC = 4;
+
+    /**
+     * @var MachineInterface
+     */
+    private $machine;
 
     /**
      * Debug
@@ -228,8 +234,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
      */
     private $int8;
 
-    public function __construct()
+    public function __construct(MachineInterface $machine)
     {
+        $this->machine=$machine;
+
         $this->output = new NullOutput();
         $this->runLoop = 0;
 
@@ -1812,7 +1820,26 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $size = count($tmFlatten);
 
                             $this->ram->write($tmFlatten, $offset, $size);
+                            break;
 
+                        // DISK_READ
+                        case 2:
+                            // @todo
+                            $dl=$this->dx->getChildRegister();
+                            $disk=$this->machine->getDiskByNum($dl->toInt());
+
+                            $this->debugOp(sprintf('DISK_READ %s',$disk));
+
+
+                            throw new NotImplementedException('DISK_READ');
+                            break;
+
+                        // DISK_WRITE
+                        case 3:
+                            // @todo
+                            $this->debugOp(sprintf('DISK_WRITE'));
+
+                            throw new NotImplementedException('DISK_WRITE');
                             break;
 
                         default:
