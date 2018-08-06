@@ -51,19 +51,19 @@ class RunCommand extends Command
 
         if (isset($biosFilePath)) {
             $biosDisk = new Disk('bios');
-            $biosDisk->setSourceFilePath($biosFilePath);
+            $biosDisk->setFilePath($biosFilePath);
 
             $machine->setBios($biosDisk);
         }
         if (isset($floppyFilePath)) {
             $floppyDisk = new Disk('floppy');
-            $floppyDisk->setSourceFilePath($floppyFilePath);
+            $floppyDisk->setFilePath($floppyFilePath);
 
             $machine->setFloppyDisk($floppyDisk);
         }
         if (isset($harddiskFilePath)) {
             $hardDisk = new Disk('hdd');
-            $hardDisk->setSourceFilePath($harddiskFilePath);
+            $hardDisk->setFilePath($harddiskFilePath);
 
             $machine->setHardDisk($hardDisk);
         }

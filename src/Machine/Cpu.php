@@ -236,7 +236,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
     public function __construct(MachineInterface $machine)
     {
-        $this->machine=$machine;
+        $this->machine = $machine;
 
         $this->output = new NullOutput();
         $this->runLoop = 0;
@@ -1040,8 +1040,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
-                            } else {
-                                throw new UnknownTypeException();
+                            }
+                            // elseif ($tmpFrom instanceof AbsoluteAddress &&)
+                            else {
+                                throw new UnknownTypeException(sprintf('from=%s to=%s',gettype($tmpFrom),gettype($tmpTo)));
                             }
 
                             $this->op['res'] = $this->op['dst'];
@@ -1824,14 +1826,35 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         // DISK_READ
                         case 2:
-                            // @todo
-                            $dl=$this->dx->getChildRegister();
-                            $disk=$this->machine->getDiskByNum($dl->toInt());
+                            $dl = $this->dx->getChildRegister();
+                            $disk = $this->machine->getDiskByNum($dl->toInt());
+                            $fd = $disk->getFd();
 
-                            $this->debugOp(sprintf('DISK_READ %s',$disk));
+                            // BP
+                            $bpEa = $this->bp->toInt() << 9;
 
+                            // Seek
+                            $seek = fseek($fd, $bpEa, SEEK_SET);
 
-                            throw new NotImplementedException('DISK_READ');
+                            $this->debugOp(sprintf('DISK_READ %s %d', $disk, $bpEa));
+
+                            if ($seek) {
+                                break;
+                            }
+
+                            $esBxEa = $this->getEffectiveEsBxAddress();
+                            $offset = $esBxEa->toInt();
+                            $length = $this->ax->toInt();
+
+                            $this->output->writeln(sprintf(' -> read from %d %s %d', $offset, $esBxEa, $length));
+
+                            $data = fread($fd, $length);
+                            $dataLen = strlen($data);
+                            $this->ram->write($data, $offset, $length);
+
+                            $al = $this->ax->getChildRegister();
+                            $al->setData($dataLen);
+                            $this->output->writeln(sprintf(' -> AL %s', $al));
                             break;
 
                         // DISK_WRITE

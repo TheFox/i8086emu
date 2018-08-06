@@ -14,7 +14,9 @@ class Disk implements DiskInterface
     /**
      * @var string
      */
-    private $sourceFilePath;
+    private $filePath;
+
+    private $fd;
 
     public function __construct(?string $name = null)
     {
@@ -34,18 +36,26 @@ class Disk implements DiskInterface
         $this->name = $name;
     }
 
-    public function setSourceFilePath(string $sourceFilePath): void
+    public function setFilePath(string $sourceFilePath): void
     {
-        $this->sourceFilePath = $sourceFilePath;
+        $this->filePath = $sourceFilePath;
     }
 
     public function getContent(?int $length = null): \SplFixedArray
     {
-        $content = file_get_contents($this->sourceFilePath, false, null, 0, $length);
+        $content = file_get_contents($this->filePath, false, null, 0, $length);
         $data = str_split($content);
         unset($content);
         $data = array_map('ord', $data);
         $data = \SplFixedArray::fromArray($data);
         return $data;
+    }
+
+    public function getFd()
+    {
+        if (null === $this->fd) {
+            $this->fd = fopen($this->filePath, 'a+');
+        }
+        return $this->fd;
     }
 }
