@@ -524,8 +524,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 --$this->repOverrideInt;
             }
 
-            $debug = null;
-
             // $this->instr['has_modregrm'] > 0 indicates that opcode uses Mod/Reg/RM, so decode them.
             if ($this->instr['has_modregrm']) {
                 $this->instr['mode'] = $this->instr['data_b'][0] >> 6;     // 11xxxxxx
@@ -541,10 +539,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // if mod = 10 then DISP = disp-high; disp-low
                             $this->instr['data_w'][2] = $this->instr['data_w'][3];
                             $this->instr['data_b'][2] = $this->instr['data_w'][2] & 0xFF;
-                        } else { // $this->$this->instr['mode == 1
-                            // If i_mod is 1, operand is (usually) 8 bits rather than 16 bits
-                            //$this->instr['data_w'][1] = $data[1]; // @todo activate this if needed
-                            $debug = "set \$this->instr['data_w'][1] = \$data[1]";
+                        } else { // $this->instr['mode'] == 1
+                            // If i_mod is 1, operand is (usually) 8 bits rather than 16 bits.
+                            $this->instr['data_w'][1] = $this->instr['data_b'][1];
                         }
                         break;
 
