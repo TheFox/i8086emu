@@ -1037,10 +1037,22 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
-                            }
-                            // elseif ($tmpFrom instanceof AbsoluteAddress &&)
-                            else {
-                                throw new UnknownTypeException(sprintf('from=%s to=%s',gettype($tmpFrom),gettype($tmpTo)));
+                            } elseif ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof Register) {
+                                $this->output->writeln(sprintf(' -> from %s', $tmpFrom));
+                                $this->output->writeln(sprintf(' ->   to %s', $tmpTo));
+
+                                $data = $this->ram->read($tmpFrom->toInt(), $this->instr['size']);
+
+                                $this->op['src'] = DataHelper::arrayToInt($data);
+                                $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
+                            } elseif ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
+                                $this->output->writeln(sprintf(' -> from %s', $tmpFrom));
+                                $this->output->writeln(sprintf(' ->   to %s', $tmpTo));
+
+                                $this->op['src'] = $tmpFrom->toInt();
+                                $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
+                            } else {
+                                throw new UnknownTypeException(sprintf('from=%s to=%s', gettype($tmpFrom), gettype($tmpTo)));
                             }
 
                             $this->op['res'] = $this->op['dst'];
