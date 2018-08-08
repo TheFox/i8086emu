@@ -73,6 +73,7 @@ final class Machine implements MachineInterface, DebugAwareInterface
     public function __construct()
     {
         $this->ram = new Ram(0x00100000); // 1 MB
+        // $this->ram = new DebugRam(0x00100000); // 1 MB
         $this->cpu = new Cpu($this);
         $this->tty = new NullOutputDevice();
 

@@ -19,6 +19,7 @@ use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
+use TheFox\I8086emu\Components\Event;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Memory;
 use TheFox\I8086emu\Components\Register;
@@ -74,7 +75,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
     private $runLoop;
 
     /**
-     * @var RamInterface
+     * @var RamInterface|Ram|DebugRam
      */
     private $ram;
 
@@ -365,6 +366,29 @@ class Cpu implements CpuInterface, DebugAwareInterface
     public function setRam(RamInterface $ram)
     {
         $this->ram = $ram;
+
+        // Debug int1e SPT
+        // $fn = function (array $eventData) {
+        //     // $this->output->writeln(sprintf(' -> EVENT_CALLBACK'));
+        //     [
+        //         'offset' => $offset,
+        //         'length' => $length,
+        //     ] = $eventData;
+        //     // $this->output->writeln(sprintf(' -> offset %x', $offset));
+        //     // $this->output->writeln(sprintf(' -> length %d', $length));
+        //
+        //     $sptAddr = 0xf1039; // Prod
+        //     // $sptAddr = 0xf1044; // Dev
+        //     $end = $offset + $length;
+        //     if ($sptAddr >= $offset && $sptAddr <= $end) {
+        //         $this->output->writeln(sprintf(' -> EVENT_CALLBACK OK'));
+        //     }
+        // };
+        // $event = new Event(DebugRam::EVENT_WRITE_POST, $fn);
+        // $this->ram->addEvent($event);
+        //
+        // $event = new Event(DebugRam::EVENT_READ_PRE, $fn);
+        // $this->ram->addEvent($event);
     }
 
     /**
@@ -422,7 +446,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             $data = $this->ram->read($offset, self::SIZE_BYTE);
             $addr = ($data[1] << 8) | $data[0];
 
-            $this->output->writeln(sprintf('table %d', $i));
+            // $this->output->writeln(sprintf('table %d', $i));
 
             if (isset(self::TABLE_LENGTHS[$i])) {
                 $tableLength = self::TABLE_LENGTHS[$i];
@@ -444,7 +468,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
     private function printXlatOpcodes()
     {
-        $this->output->writeln('XLAT');
+        // $this->output->writeln('XLAT');
 
         $codes = $this->biosDataTables[self::TABLE_XLAT_OPCODE];
 
@@ -480,6 +504,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
         // Debug
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
+
+        // $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug2.log", "w");
+        $loopStop = 65690; // for debugging
 
         while ($this->instr['raw'] = $this->getOpcode()) {
             $this->initInstruction();
@@ -1235,12 +1262,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     if ($this->instr['dir']) {
                         // Accumulator to Memory.
-                        $this->debugOp(sprintf('MOV %x %s', $offset, $register));
+                        $this->debugOp(sprintf('MOV [0x%x] %s', $offset, $register));
                         $data = $register->getData();
                         $this->ram->write($data, $offset, $this->instr['size']);
                     } else {
                         // Memory to Accumulator.
-                        $this->debugOp(sprintf('MOV %s %x', $register, $offset));
+                        $this->debugOp(sprintf('MOV %s [0x%x]', $register, $offset));
                         $data = $this->ram->read($offset, $this->instr['size']);
                         $register->setData($data);
                         $this->output->writeln(sprintf(' -> %s', $register));
@@ -1720,7 +1747,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     }
                     $this->instr['reg'] = ($this->instr['raw'] >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
 
-                    $this->debugOp(sprintf('SEG override: %d %02b [%d %02b]', $this->instr['extra'], $this->instr['extra'], $this->instr['reg'], $this->instr['reg']));
+                    // Debug
+                    $tmpReg = $this->getRegisterByNumber(true, $this->segOverrideReg);
+
+                    $this->debugOp(sprintf('SEG override: %s', $tmpReg));
                     break;
 
                 // PUSHF - OpCodes: 9c
@@ -1971,6 +2001,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 }
             }
 
+            // Debug
+            // fwrite($fh, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
+            // fwrite($fh, sprintf("%s\n", $this->flags));
 
             // Update Instruction counter.
             ++$this->runLoop;

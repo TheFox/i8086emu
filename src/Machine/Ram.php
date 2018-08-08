@@ -31,7 +31,7 @@ class Ram implements RamInterface
      * @param int $offset
      * @param int $length
      */
-    public function write($data, int $offset, int $length)
+    public function write($data, int $offset, int $length): void
     {
         $pos = $offset;
         $maxPos = $pos + $length;

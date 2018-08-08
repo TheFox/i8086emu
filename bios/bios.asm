@@ -106,6 +106,10 @@ bios_entry:
 
 	; Now we can do whatever we want! DL starts off being the boot disk.
 
+	;mov byte [cs:int1e_spt], 21
+	;mov al, [cs:int1e_spt]
+	;hlt
+
 	mov	[cs:boot_device], dl
 
 	; Set up Hercules graphics support. We start with the adapter in text mode
@@ -2177,6 +2181,7 @@ int13:
 
 	push	ax
 
+	; RUN 65729
 	mov	al, [es:bx+24]	; Number of SPT in floppy disk BPB
 
 	; cmp	al, 0		; If disk is unformatted, do not update the table
