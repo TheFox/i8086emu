@@ -64,21 +64,9 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 
-	; mov al, 00000011b
-	; mov bl, 00001000b
-	; mul bl
-
-	; mov al, 00000011b
-	; mov bl, 00001000b
-	; imul bl
-
-	; mov al, 00000011b
-	; mov bl, 10000000b
-	; mul bl
-
-	; mov al, 00000011b
-	; mov bl, 10000000b
-	; imul bl
+	;mov ax, 0x200
+	;cmp ax, 18
+	;hlt
 
 	; Set up initial stack to F000:F000
 	mov	sp, 0xf000
@@ -97,7 +85,6 @@ bios_entry:
 
 	;mov ax, 2
 	;sub di, ax
-	;hlt
 
 	; The emulator requires a few control registers in memory to always be zero for correct
 	; instruction decoding (in particular, register look-up operations). These are the

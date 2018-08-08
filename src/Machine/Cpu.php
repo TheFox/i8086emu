@@ -194,8 +194,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
      */
     private $segOverrideReg;
 
-    // Repeat
-
     /**
      * Repeat Enabled?
      *
@@ -560,6 +558,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $this->instr['to']));
             }
 
+            // fwrite(STDERR, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
+
+            if ($this->runLoop >= 65753) {
+                exit(0);
+            }
+
             switch ($this->instr['xlat']) {
                 // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
                 case 0:
@@ -567,10 +571,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     // For example, $this->instr['is_word'] == 0 means JAE, $this->instr['is_word'] == 1 means JNAE
 
                     $this->debugOp(sprintf(
-                        'JMP %d/%x %d/%x',
+                        'JMP b=%x w=%x',
                         $this->instr['data_b'][0],
-                        $this->instr['data_b'][0],
-                        $this->instr['data_w'][0],
                         $this->instr['data_w'][0]
                     ));
 
@@ -591,10 +593,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $flagC = $this->flags->get($realFlagIdC);
                     $flagD = $this->flags->get($realFlagIdD);
 
-                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
-                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
-                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
-                    // $this->debugInfo(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
+                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
+                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
+                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
+                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
 
                     $data = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
 
@@ -855,6 +857,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // CMP reg, imm - OpCodes: 04 05 0c 0d 14 15 1c 1d 24 25 2c 2d 34 35 3c 3d
                 case 7:
+                    $this->debugOp(sprintf('CMP[7]'));
+
                     $this->instr['rm_o'] = $this->ax;
                     $this->instr['data_b'][2] = $this->instr['data_b'][0];
                     $this->instr['data_w'][2] = $this->instr['data_w'][0];
@@ -869,7 +873,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // CMP reg, imm - OpCodes: 80 81 82 83
                 case 8:
                     $this->instr['to'] = $this->instr['rm_o'];
-                    $this->debugOp(sprintf('CMP f=%s t=%s s=%d w=%d d=%d',
+
+                    $this->debugOp(sprintf('CMP[8] from=%s to=%s size=%d word=%d dir=%d',
                         $this->instr['from'], $this->instr['to'], $this->instr['size'], $this->instr['is_word'], $this->instr['dir']));
 
                     $this->instr['dir'] |= !$this->instr['is_word'];
@@ -1088,7 +1093,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         // CMP reg, imm
                         case 7:
-                            $this->debugOp(sprintf('CMP %s %s', $this->instr['to'], $this->instr['from']));
+                            $this->debugOp(sprintf('CMP reg=%s imm=%s', $this->instr['to'], $this->instr['from']));
 
                             if ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
                                 // FROM  Register
@@ -1135,11 +1140,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             }
 
                             // Calc CF
-                            $dst = $tmpUiOpResult > $this->op['dst'];
+                            $tmpCf = $tmpUiOpResult > $this->op['dst'];
 
                             // Set new CF.
-                            $this->flags->setByName('CF', $dst);
+                            $this->flags->setByName('CF', $tmpCf);
 
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
                         // MOV
@@ -1461,7 +1467,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     if ($add) {
                         $this->ip->add($add);
                     }
-                    $this->debugCsIpRegister();
+                    $this->debugCsIpRegister($add);
                     break;
 
                 // TEST reg, r/m - OpCodes: 84 85
@@ -1898,6 +1904,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     ));
             } // switch $this->instr['xlat']
 
+            $this->output->writeln(sprintf(' -> %s', $this->flags));
+
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
             $baseInstrSize = $this->biosDataTables[self::TABLE_BASE_INST_SIZE][$this->instr['raw']];
@@ -1963,8 +1971,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 }
             }
 
-            // Debug Flags
-            // $this->output->writeln(sprintf(' -> %s set=%b', $this->flags, $setFlagsType));
 
             // Update Instruction counter.
             ++$this->runLoop;
@@ -2356,9 +2362,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf(' -> %s %s -> %04x [%020b] -> 0=%02x 1=%02x', $this->ss, $this->sp, $offset, $offset, $data[0], $data[1]));
     }
 
-    private function debugCsIpRegister()
+    private function debugCsIpRegister(int $add = 0)
     {
-        $this->output->writeln(sprintf(' -> %s %s', $this->cs, $this->ip));
+        if (0 === $add) {
+            $this->output->writeln(sprintf(' -> %s %s', $this->cs, $this->ip));
+        } else {
+            $this->output->writeln(sprintf(' -> %s %s (+%d)', $this->cs, $this->ip, $add));
+        }
     }
 
     private function debugInfo(string $text)
