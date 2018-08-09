@@ -1065,8 +1065,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('AND %s %s', $tmpTo, $tmpFrom));
 
                             if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                // FROM  numeric
+                                //   TO  Register
+
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() & $this->op['src'];
+                            } elseif (is_numeric($tmpFrom) && $tmpTo instanceof AbsoluteAddress) {
+                                // FROM  numeric
+                                //   TO  Absolute Address
+
+                                throw new NotImplementedException();
                             } else {
                                 throw new UnknownTypeException();
                             }
@@ -1085,9 +1093,15 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('SUB %s %s', $tmpTo, $tmpFrom));
 
                             if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                // FROM  numeric
+                                //   TO  Register
+
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
                             } elseif ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof Register) {
+                                // FROM  Absolute Address
+                                //   TO  Register
+
                                 $this->output->writeln(sprintf(' -> from %s', $tmpFrom));
                                 $this->output->writeln(sprintf(' ->   to %s', $tmpTo));
 
@@ -1096,6 +1110,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['src'] = DataHelper::arrayToInt($data);
                                 $this->op['dst'] = $tmpTo->toInt() - $this->op['src'];
                             } elseif ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
+                                // FROM  Register
+                                //   TO  Register
+
                                 $this->output->writeln(sprintf(' -> from %s', $tmpFrom));
                                 $this->output->writeln(sprintf(' ->   to %s', $tmpTo));
 
@@ -1124,6 +1141,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('XOR %s %s', $tmpTo, $tmpFrom));
 
                             if ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
+                                // FROM  Register
+                                //   TO  Register
+
                                 $this->op['src'] = $tmpFrom->toInt();
                                 $this->op['dst'] = $tmpTo->toInt() ^ $this->op['src'];
                             } else {
