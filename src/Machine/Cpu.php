@@ -1677,7 +1677,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     // $this->output->writeln(sprintf(' -> segovr %s', $this->segDefaultReg));
 
                     if ($scratch) {
-                        $subloopCount=0;
+                        $subloopCount = 0;
                         for (; $scratch; $this->repOverrideEn || --$scratch) {
                             ++$subloopCount;
 
@@ -1715,9 +1715,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->op['res'] = $this->op['dst'] - $this->op['src'];
                             $notRes = !boolval($this->op['res']);
 
-                            $this->output->writeln(sprintf(' -> subrun %d (%d)', $scratch,$subloopCount));
+                            $this->output->writeln(sprintf(' -> subrun %d (%d)', $scratch, $subloopCount));
                             $this->output->writeln(sprintf(' -> FROM %x (%x)', $tmpFrom, $fromData));
-                            $this->output->writeln(sprintf(' ->   TO %x (%x)', $tmpTo,$toData));
+                            $this->output->writeln(sprintf(' ->   TO %x (%x)', $tmpTo, $toData));
 
                             $this->si->sub($siAdd);
                             $this->di->sub($add);
@@ -1898,6 +1898,36 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->ip->add(2);
                     // $this->output->writeln(sprintf(' -> %s', $this->ip));
                     $this->interrupt($this->instr['data_b'][0]);
+                    break;
+
+                // AAM
+                case 41:
+                    $this->debugOp(sprintf('AAM %x', $this->instr['data_w'][0]));
+
+                    $data = $this->instr['data_w'][0];
+                    $data &= 0xFF;
+                    $this->output->writeln(sprintf(' -> data: %x (%x)', $data, $this->instr['data_w'][0]));
+
+                    $data = $this->instr['data_b'][0];
+                    $this->output->writeln(sprintf(' -> data: %x', $data));
+
+                    if ($data) {
+                        $al = $this->ax->getChildRegister();
+                        $ah = $this->ax->getChildRegister(true);
+
+                        $this->output->writeln(sprintf(' -> %s', $this->ax));
+                        $this->output->writeln(sprintf(' -> %s', $ah));
+                        $this->output->writeln(sprintf(' -> %s', $al));
+
+                        // AH
+                        $tmpAh = intval($al->toInt() / $data);
+                        $ah->setData($tmpAh);
+
+                        // Res
+                        $this->op['res'] = $al->toInt() % $data;
+                    } else {
+                        $this->interrupt(0);
+                    }
                     break;
 
                 // XLAT - OpCodes: d7
