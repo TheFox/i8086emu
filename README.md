@@ -1,6 +1,6 @@
 # Intel 8086 CPU Emulator
 
-A Intel 8086 CPU Emulator written in pure PHP.
+An Intel 8086 CPU Emulator written in pure PHP.
 
 ## Compile the BIOS
 

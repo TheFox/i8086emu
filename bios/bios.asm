@@ -2164,7 +2164,7 @@ int13:
 	cpu	186
 	shl	ax, 9
 	extended_read_disk
-	shr	ax, 9
+	shr	ax, 9 ; Maybe this is not needed, see https://github.com/adriancable/8086tiny/issues/7
 	cpu	8086
 	mov	ah, 0x02	; Put read code back
 

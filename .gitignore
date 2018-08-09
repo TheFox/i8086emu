@@ -4,3 +4,5 @@
 /.vagrant/
 .env
 /log/
+test.php
+test.txt

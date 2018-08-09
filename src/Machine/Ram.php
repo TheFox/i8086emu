@@ -7,6 +7,7 @@
 namespace TheFox\I8086emu\Machine;
 
 use TheFox\I8086emu\Blueprint\RamInterface;
+use TheFox\I8086emu\Exception\UnknownTypeException;
 
 class Ram implements RamInterface
 {
@@ -49,6 +50,12 @@ class Ram implements RamInterface
             for (; $data > 0 && $pos < $maxPos; ++$pos, $data >>= 8) {
                 $this->data[$pos] = $data & 0xFF;
             }
+        } elseif (is_string($data)) {
+            $data = str_split($data);
+            $data = array_map('ord', $data);
+            $this->write($data, $offset, $length);
+        } else {
+            throw new UnknownTypeException();
         }
     }
 

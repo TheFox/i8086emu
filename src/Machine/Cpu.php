@@ -506,7 +506,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
         // $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug2.log", "w");
-        $loopStop = 65690; // for debugging
+        $loopStop = 65721; // for debugging
 
         while ($this->instr['raw'] = $this->getOpcode()) {
             $this->initInstruction();
@@ -552,8 +552,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
             // $this->instr['has_modregrm'] > 0 indicates that opcode uses Mod/Reg/RM, so decode them.
             if ($this->instr['has_modregrm']) {
                 $this->instr['mode'] = $this->instr['data_b'][0] >> 6;     // 11xxxxxx
-                $this->instr['reg'] = $this->instr['data_b'][0] >> 3 & 7; // xx111xxx
-                $this->instr['rm_i'] = $this->instr['data_b'][0] & 7;       // xxxxx111
+                $this->instr['reg'] = $this->instr['data_b'][0] >> 3 & 7;  // xx111xxx
+                $this->instr['rm_i'] = $this->instr['data_b'][0] & 7;      // xxxxx111
 
                 switch ($this->instr['mode']) {
                     case 0: // 00
@@ -587,9 +587,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             // fwrite(STDERR, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
 
-            if ($this->runLoop >= 65753) {
-                exit(0);
-            }
+            // if ($this->runLoop >= 65753) {
+            //     exit(0);
+            // }
 
             switch ($this->instr['xlat']) {
                 // JMP Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
@@ -1177,6 +1177,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->flags->setByName('CF', $tmpCf);
 
                             $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                             break;
 
                         // MOV
@@ -1294,8 +1295,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $scratch2 = $to->toInt() < 0;
 
                     $this->debugOp(sprintf('[80186] SHL|SHR|... %s', $to));
-                    $this->output->writeln(sprintf(' -> is_word %d', $this->instr['is_word']));
-                    $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
+                    // $this->output->writeln(sprintf(' -> is_word %d', $this->instr['is_word']));
+                    // $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
 
                     if ($this->instr['extra']) {
                         // xxx reg/mem, imm
@@ -1310,10 +1311,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         // xxx reg/mem, 1
                         $scratch = 1;
                     }
-                    $this->output->writeln(sprintf(' -> scratch %d', $scratch));
+                    // $this->output->writeln(sprintf(' -> scratch %d', $scratch));
 
                     $ireg = $this->instr['reg'];
-                    $this->output->writeln(sprintf(' -> ireg %s', $ireg));
+                    // $this->output->writeln(sprintf(' -> ireg %s', $ireg));
 
                     // $register = $this->getRegisterByNumber($this->instr['is_word'], $ireg);
                     // $this->output->writeln(sprintf(' -> register %s', $register));
@@ -1323,8 +1324,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         if ($ireg < 4) {
                             $scratch %= ($ireg >> 1) + $this->instr['bsize'];
 
-                            $this->output->writeln(sprintf(' -> scratch %d', $scratch));
-                            $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
+                            // $this->output->writeln(sprintf(' -> scratch %d', $scratch));
+                            // $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
                         }
 
                         // Rotate/shift right operations
@@ -1337,11 +1338,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         }
 
                         $to->setData($this->op['res']);
-                        $this->output->writeln(sprintf(' -> %s', $to));
+                        // $this->output->writeln(sprintf(' -> %s', $to));
 
-                        $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
-                        $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
-                        $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
+                        // $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
+                        // $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
+                        // $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
 
                         // Shift operations
                         if ($ireg > 3) {
@@ -1354,8 +1355,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         if ($ireg > 4) {
                             $tmpCf = $this->op['dst'] >> (($scratch - 1) & 1);
                             $this->flags->setByName('CF', $tmpCf);
-
-                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            // $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                         }
                     }
 
@@ -1378,12 +1378,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->flags->setByName('CF', $tmpCf);
                             $this->flags->setByName('OF', $tmpOf);
 
-                            $this->output->writeln(sprintf(' -> %s', $to));
-                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
-                            $this->output->writeln(sprintf(' -> OF %d', $tmpOf));
-                            $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
-                            $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
-                            $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
+                            // $this->output->writeln(sprintf(' -> %s', $to));
+                            // $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            // $this->output->writeln(sprintf(' -> OF %d', $tmpOf));
+                            // $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
+                            // $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
+                            // $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
                             break;
 
                         case 1: // ROR
@@ -1406,12 +1406,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->flags->setByName('CF', $tmpCf);
                             $this->flags->setByName('OF', $tmpOf);
 
-                            $this->output->writeln(sprintf(' -> %s', $to));
-                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
-                            $this->output->writeln(sprintf(' -> OF %d', $tmpOf));
-                            $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
-                            $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
-                            $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
+                            // $this->output->writeln(sprintf(' -> %s', $to));
+                            // $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                            // $this->output->writeln(sprintf(' -> OF %d', $tmpOf));
+                            // $this->output->writeln(sprintf(' -> dst %d', $this->op['dst']));
+                            // $this->output->writeln(sprintf(' -> src %d', $this->op['src']));
+                            // $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
                             break;
 
                         case 2: // RCL
@@ -1430,11 +1430,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('[80186] SHL %s', $to));
 
                             $tmpDst = $this->op['dst'] << ($scratch - 1);
+
+                            // CF
                             $tmpCf1 = $tmpDst < 0;
                             $tmpCf2 = $this->op['dst'] < 0;
                             $tmpCf = $tmpCf1 ^ $tmpCf2;
                             $this->flags->setByName('CF', $tmpCf);
-                            $this->output->writeln(sprintf(' -> tmpCF %d', $tmpCf));
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
                         case 5: // SHR
@@ -1442,13 +1444,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpCf = $this->op['dst'] < 0;
                             $this->flags->setByName('CF', $tmpCf);
-                            $this->output->writeln(sprintf(' -> tmpCF %d', $tmpCf));
+                            $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
                         case 7: // SAR
                             $this->debugOp(sprintf('[80186] SAR %s', $to));
 
-                            $this->output->writeln(sprintf(' -> bsize %d', $this->instr['bsize']));
+                            // $this->output->writeln(sprintf(' -> bsize %d', $this->instr['bsize']));
                             if ($scratch < $this->instr['bsize']) {
                                 $this->flags->setByName('CF', $scratch);
                             }
@@ -1471,7 +1473,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                              * op_result = $to->toInt() += $scratch2;
                              */
 
-                            $this->output->writeln(sprintf(' -> %s', $to));
+                            // $this->output->writeln(sprintf(' -> %s', $to));
                             break;
 
                         default:
@@ -1492,7 +1494,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         } else {
                             // CALL
                             $this->debugOp(sprintf('CALL'));
-                            $this->output->writeln(sprintf(' -> %s', $this->ip));
+                            // $this->output->writeln(sprintf(' -> %s', $this->ip));
                             $this->pushRegisterToStack($this->ip);
                         }
                     }
@@ -1539,13 +1541,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     if ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
                         if ('AX' !== $this->instr['from']->getName()) { // Not NOP
                             // XCHG AX, reg
-                            $this->output->writeln(sprintf(' -> OK REG'));
+                            // $this->output->writeln(sprintf(' -> OK REG'));
 
                             $tmp = $this->instr['from']->getData();
                             $this->instr['from']->setData($this->instr['to']->getData());
                             $this->instr['to']->setData($tmp);
-
-                            $this->output->writeln(sprintf(' -> OK REG to=%s from=%s', $this->instr['to'], $this->instr['from']));
+                            // $this->output->writeln(sprintf(' -> OK REG to=%s from=%s', $this->instr['to'], $this->instr['from']));
                         }
                     } elseif ($this->instr['from'] instanceof AbsoluteAddress && $this->instr['to'] instanceof Register) {
                         // XCHG reg, r/m
@@ -1662,9 +1663,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $scratch2 = 11; // DS Register
                     }
 
-                    $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
-                    $this->output->writeln(sprintf(' -> scratch %d', $scratch));
-                    $this->output->writeln(sprintf(' -> segovr %s', $this->segDefaultReg));
+                    // $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
+                    // $this->output->writeln(sprintf(' -> scratch %d', $scratch));
+                    // $this->output->writeln(sprintf(' -> segovr %s', $this->segDefaultReg));
 
                     if ($scratch) {
                         for (; $scratch; $this->repOverrideEn || --$scratch) {
@@ -1678,7 +1679,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpFrom = $this->getEffectiveEsDiAddress()->toInt();
 
-                            $this->output->writeln(sprintf(' -> scratch %d  %x -> %x', $scratch, $tmpFrom, $tmpTo));
+                            // $this->output->writeln(sprintf(' -> scratch %d  %x -> %x', $scratch, $tmpFrom, $tmpTo));
 
                             // Copy Memory
                             $this->op['src'] = $this->ram->read($tmpFrom, $this->instr['size']);
@@ -1805,8 +1806,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $stackData = $this->popFromStack($register->getSize());
                     $register->setData($stackData);
 
-                    $this->debugOp(sprintf('POP %s reg=%d e=%d', $register, $this->instr['reg'], $this->instr['extra']));
-                    $this->debugSsSpRegister();
+                    // $this->debugOp(sprintf('POP %s reg=%d e=%d', $register, $this->instr['reg'], $this->instr['extra']));
+                    // $this->debugSsSpRegister();
 
                     break;
 
@@ -1852,7 +1853,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     $this->debugOp(sprintf('INT %x', $this->instr['data_b'][0]));
                     $this->ip->add(2);
-                    $this->output->writeln(sprintf(' -> %s', $this->ip));
+                    // $this->output->writeln(sprintf(' -> %s', $this->ip));
                     $this->interrupt($this->instr['data_b'][0]);
                     break;
 
@@ -1870,7 +1871,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     $this->ax->setLowInt((int)$data[0]);
 
-                    $this->output->writeln(sprintf(' -> AL: %x', $this->ax->getLowInt()));
+                    // $this->output->writeln(sprintf(' -> AL: %x', $this->ax->getLowInt()));
                     //$this->output->writeln(sprintf(' -> AH: %x', $this->ax->getHighInt()));
                     break;
 
@@ -1895,7 +1896,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->debugOp(sprintf('TEST w=%s %s %04x', $this->instr['is_word'] ? 'Y' : 'N', $register, $data));
 
                     $this->op['res'] = $register->toInt() & $data;
-                    $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
+                    // $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
 
                     break;
 
@@ -1954,7 +1955,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             // From
                             $tmpFrom = $this->bp->toInt() << 9;
-                            $this->output->writeln(sprintf(' -> FROM %x', $tmpFrom));
+                            $this->output->writeln(sprintf(' -> DISK FROM %x', $tmpFrom));
 
                             // Seek
                             $seek = fseek($fd, $tmpFrom, SEEK_SET);
@@ -1972,14 +1973,14 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             // To
                             $tmpTo = $this->getEffectiveEsBxAddress()->toInt();
-                            $this->output->writeln(sprintf(' -> TO %x', $tmpTo));
+                            $this->output->writeln(sprintf(' -> RAM TO %x', $tmpTo));
 
                             // Write
                             $this->ram->write($data, $tmpTo, $length);
 
                             // Reached EOF?
                             $al = $this->ax->getChildRegister();
-                            $al->setData($dataLen);
+                            $al->setData(intval($dataLen > 0));
                             $this->output->writeln(sprintf(' -> AL %s', $al));
 
                             // Debug
