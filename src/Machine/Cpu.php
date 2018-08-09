@@ -1630,6 +1630,65 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     }
                     break;
 
+                // CMPSx (extra=0)|SCASx (extra=1)
+                case 18:
+                    $this->debugOp(sprintf('CMPSx|SCASx e=%d', $this->instr['extra']));
+
+                    if ($this->repOverrideMode) {
+                        $scratch = $this->cx->toInt();
+                        if (0 === $scratch) {
+                            break;
+                        }
+                    } else {
+                        $scratch = 1;
+                    }
+
+                    if ($this->segOverrideEn) {
+                        $scratch2 = $this->segOverrideReg;
+                    } else {
+                        $scratch2 = 11; // DS Register
+                    }
+
+                    $this->output->writeln(sprintf(' -> scratch2 %d', $scratch2));
+                    $this->output->writeln(sprintf(' -> scratch %d', $scratch));
+                    $this->output->writeln(sprintf(' -> segovr %s', $this->segDefaultReg));
+
+                    if ($scratch) {
+                        for (; $scratch; $this->repOverrideEn || --$scratch) {
+                            if ($this->instr['extra']) {
+                                $tmpTo = 0;//@todo
+                                $siAdd = 0;
+                            } else {
+                                $tmpTo = ($this->segDefaultReg->toInt() << 4) + $this->si->toInt();
+                                $siAdd = 0;
+                            }
+
+                            $tmpFrom = $this->getEffectiveEsDiAddress()->toInt();
+
+                            $this->output->writeln(sprintf(' -> scratch %d  %x -> %x', $scratch, $tmpFrom, $tmpTo));
+
+                            // Copy Memory
+                            $this->op['src'] = $this->ram->read($tmpFrom, $this->instr['size']);
+                            // $this->op['dst']=
+
+                            if ($siAdd) {
+                                $this->si->add($siAdd);
+                            }
+
+                            $diAdd = 0;
+                            $this->di->add($diAdd);
+
+                            $cx = $this->cx->add(-1);
+                            // if ($this->repOverrideEn&&!($cx&&()))
+                        }
+
+                        $setFlagsType = self::FLAGS_UPDATE_SZP | self::FLAGS_UPDATE_AO_ARITH;
+                        $tmpCf = $this->op['res'] > $this->op['dst'];
+                    }
+
+                    throw new NotImplementedException();
+                    break;
+
                 // RET|RETF|IRET - OpCodes: c2 c3 ca cb cf
                 case 19:
                     $this->debugOp(sprintf('RET %b %s', $this->instr['extra'], $this->ip));
