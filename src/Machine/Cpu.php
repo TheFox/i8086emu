@@ -1871,35 +1871,47 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         // DISK_READ
                         case 2:
+                            // Disk ID is stored in DL.
                             $dl = $this->dx->getChildRegister();
                             $disk = $this->machine->getDiskByNum($dl->toInt());
+
+                            // File Descriptor
                             $fd = $disk->getFd();
 
-                            // BP
-                            $bpEa = $this->bp->toInt() << 9;
+                            $this->debugOp(sprintf('DISK_READ %s', $disk));
+
+                            // From
+                            $tmpFrom = $this->bp->toInt() << 9;
+                            $this->output->writeln(sprintf(' -> FROM %x', $tmpFrom));
 
                             // Seek
-                            $seek = fseek($fd, $bpEa, SEEK_SET);
-
-                            $this->debugOp(sprintf('DISK_READ %s %d', $disk, $bpEa));
+                            $seek = fseek($fd, $tmpFrom, SEEK_SET);
 
                             if ($seek) {
                                 break;
                             }
 
-                            $esBxEa = $this->getEffectiveEsBxAddress();
-                            $offset = $esBxEa->toInt();
+                            // Length to read is stored in AX.
                             $length = $this->ax->toInt();
 
-                            $this->output->writeln(sprintf(' -> read from %d %s %d', $offset, $esBxEa, $length));
-
+                            // Read
                             $data = fread($fd, $length);
                             $dataLen = strlen($data);
-                            $this->ram->write($data, $offset, $length);
 
+                            // To
+                            $tmpTo = $this->getEffectiveEsBxAddress()->toInt();
+                            $this->output->writeln(sprintf(' -> TO %x', $tmpTo));
+
+                            // Write
+                            $this->ram->write($data, $tmpTo, $length);
+
+                            // Reached EOF?
                             $al = $this->ax->getChildRegister();
                             $al->setData($dataLen);
                             $this->output->writeln(sprintf(' -> AL %s', $al));
+
+                            // Debug
+                            $this->output->writeln(sprintf(' -> AX %s', $this->ax));
                             break;
 
                         // DISK_WRITE
