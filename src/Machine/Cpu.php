@@ -620,10 +620,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $flagC = $this->flags->get($realFlagIdC);
                     $flagD = $this->flags->get($realFlagIdD);
 
-                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
-                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
-                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
-                    $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
+                    // $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdA, $this->flags->getName($realFlagIdA), $flagA));
+                    // $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdB, $this->flags->getName($realFlagIdB), $flagB));
+                    // $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdC, $this->flags->getName($realFlagIdC), $flagC));
+                    // $this->output->writeln(sprintf(' -> flag %2d %s = %d', $realFlagIdD, $this->flags->getName($realFlagIdD), $flagD));
 
                     $data = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
 
@@ -636,11 +636,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     $this->output->writeln(sprintf(' -> ADD %d %x', $add, $add));
 
-                    $this->debugCsIpRegister();
+                    // $this->debugCsIpRegister();
                     if ($add) {
                         $this->ip->add($add);
                     }
-                    $this->debugCsIpRegister();
+                    // $this->debugCsIpRegister();
                     break;
 
                 // MOV reg, imm - OpCodes: b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
@@ -665,7 +665,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     $register = $this->getRegisterByNumber($this->instr['is_word'], $this->instr['raw_low3']);
 
-                    $this->debugOp(sprintf('%s %s', $this->instr['dir'] ? 'DEC' : 'INC', $register));
+                    if ($this->instr['dir']) {
+                        $this->debugOp(sprintf('DEC %s', $register));
+                    } else {
+                        $this->debugOp(sprintf('INC %s', $register));
+                    }
 
                     $this->op['dst'] = $register->toInt();
                     $add = 1 - ($this->instr['dir'] << 1);
@@ -676,9 +680,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $af = $this->setAuxiliaryFlagArith(1, $this->op['dst'], $this->op['res']);
                     $of = $this->setOverflowFlagArith2($this->op['dst'], $this->instr['size'], $this->instr['dir']);
 
-                    $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $af, $of));
-                    $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
-                    $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
+                    // $this->output->writeln(sprintf(' -> REG %s add=%d AF=%d OF=%d', $register, $add, $af, $of));
+                    // $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    // $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                     break;
 
                 // INC|DEC|JMP|CALL|PUSH - OpCodes: fe ff
@@ -777,7 +781,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('TEST %s %04x', $tmpTo, $data));
 
                             $this->op['res'] = $tmpTo->toInt() & $data;
-                            $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
+                            // $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
                             break;
 
                         // NOT
@@ -794,7 +798,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
-                            $this->output->writeln(sprintf(' -> %s', $tmpTo));
+                            // $this->output->writeln(sprintf(' -> %s', $tmpTo));
                             break;
 
                         // NEG
@@ -836,7 +840,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $multiplicand = $this->ax->getChildRegister();
                             }
 
-                            $this->output->writeln(sprintf(' -> %s', $multiplicand));
+                            // $this->output->writeln(sprintf(' -> %s', $multiplicand));
 
                             if ($tmpTo instanceof Register) {
 
@@ -844,14 +848,14 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 $this->op['res'] = $this->op['src'] * $multiplicand->toInt();
 
                                 $multiplicand->setData($this->op['res']);
-                                $this->output->writeln(sprintf(' -> %s %d', $multiplicand, $multiplicand->toInt()));
+                                // $this->output->writeln(sprintf(' -> %s %d', $multiplicand, $multiplicand->toInt()));
 
                                 if ($this->instr['is_word']) {
                                     // Touch DX only when a word operator is used.
                                     $tmpDx = $this->op['res'] >> 16;
                                     $this->dx->setData($tmpDx);
                                 }
-                                $this->output->writeln(sprintf(' -> %s %d', $this->dx, $this->dx->toInt()));
+                                // $this->output->writeln(sprintf(' -> %s %d', $this->dx, $this->dx->toInt()));
 
                                 // if ($this->instr['reg']==4)
                                 if ($this->instr['is_word']) {
@@ -861,7 +865,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 }
 
                                 $this->flags->setByName('CF', $tmpCf);
-                                $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                                // $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             } else {
                                 throw new UnknownTypeException();
                             }
@@ -1215,16 +1219,25 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $this->debugOp(sprintf('MOV %s %s', $this->instr['to'], $this->instr['from']));
 
                         if ($this->instr['from'] instanceof AbsoluteAddress && $this->instr['to'] instanceof Register) {
+                            // FROM  Absolute Address
+                            //   TO  Register
+
                             $offset = $this->instr['from']->toInt();
                             $data = $this->ram->read($offset, $this->instr['to']->getSize());
                             $this->instr['to']->setData($data);
                             $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                         } elseif ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof AbsoluteAddress) {
+                            // FROM  Register
+                            //   TO  Absolute Address
+
                             $offset = $this->instr['to']->toInt();
                             $data = $this->instr['from']->getData();
                             $this->ram->write($data, $offset, $this->instr['from']->getSize());
                             $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                         } elseif ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
+                            // FROM  Register
+                            //   TO  Register
+
                             $this->instr['to']->setData($this->instr['from']->toInt());
                             $this->output->writeln(sprintf(' -> REG %s', $this->instr['to']));
                         } else {
@@ -1241,7 +1254,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $this->instr['to'], $this->instr['from'], $this->instr['rm_o']));
 
                         $this->instr['to']->setData($this->instr['from']->toInt());
-                        $this->output->writeln(sprintf(' -> to=%s', $this->instr['to']));
+                        // $this->output->writeln(sprintf(' -> to=%s', $this->instr['to']));
                     } else {
                         // POP
                         $this->debugOp(sprintf('POP'));
