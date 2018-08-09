@@ -223,8 +223,20 @@ class Address implements AddressInterface
 
     public function add(int $i): int
     {
-        $endVal = $this->dataInt + $i;
-        $this->setData($endVal);
+        if (0 !== $i) {
+            $endVal = $this->dataInt + $i;
+            $this->setData($endVal);
+        }
+
+        return $this->dataInt;
+    }
+
+    public function sub(int $i): int
+    {
+        if (0 !== $i) {
+            $endVal = $this->dataInt - $i;
+            $this->setData($endVal);
+        }
 
         return $this->dataInt;
     }

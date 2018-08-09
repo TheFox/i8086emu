@@ -20,6 +20,8 @@ interface AddressInterface
 
     public function add(int $i): int;
 
+    public function sub(int $i): int;
+
     public function setLowInt(int $low): int;
 
     public function getLowInt(): int;

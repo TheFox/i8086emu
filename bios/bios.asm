@@ -106,9 +106,6 @@ bios_entry:
 
 	; Now we can do whatever we want! DL starts off being the boot disk.
 
-	;mov byte [cs:int1e_spt], 21
-	;mov al, [cs:int1e_spt]
-	;hlt
 
 	mov	[cs:boot_device], dl
 

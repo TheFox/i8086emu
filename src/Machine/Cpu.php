@@ -252,6 +252,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             'raw_low3' => 0,
             'data_b' => null, // Byte
             'data_w' => null, // Word
+            'set_flags_type' => 0,
 
             'xlat' => 0,
             'extra' => 0,
@@ -1668,39 +1669,73 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     // $this->output->writeln(sprintf(' -> segovr %s', $this->segDefaultReg));
 
                     if ($scratch) {
+                        $subloopCount=0;
                         for (; $scratch; $this->repOverrideEn || --$scratch) {
+                            ++$subloopCount;
+
+                            $add = ($this->flags->getByName('DF') << 1) - 1;
+                            if ($this->instr['is_word']) {
+                                $add <<= 1;
+                            }
+
+                            // TO Address
                             if ($this->instr['extra']) {
                                 $tmpTo = 0;//@todo
                                 $siAdd = 0;
                             } else {
                                 $tmpTo = ($this->segDefaultReg->toInt() << 4) + $this->si->toInt();
-                                $siAdd = 0;
+                                $siAdd = $add;
                             }
 
+                            // FROM Address
                             $tmpFrom = $this->getEffectiveEsDiAddress()->toInt();
 
-                            // $this->output->writeln(sprintf(' -> scratch %d  %x -> %x', $scratch, $tmpFrom, $tmpTo));
+                            // FROM Read
+                            $fromData = DataHelper::arrayToInt($this->ram->read($tmpFrom, 1));
 
-                            // Copy Memory
-                            $this->op['src'] = $this->ram->read($tmpFrom, $this->instr['size']);
-                            // $this->op['dst']=
+                            // TO Read
+                            $toData = DataHelper::arrayToInt($this->ram->read($tmpTo, 1));
 
-                            if ($siAdd) {
-                                $this->si->add($siAdd);
+                            // Write
+                            if ($fromData !== $toData) {
+                                $this->ram->write($fromData, $this->op['dst'], 1);
                             }
 
-                            $diAdd = 0;
-                            $this->di->add($diAdd);
+                            // OP
+                            $this->op['src'] = $fromData;
+                            $this->op['dst'] = $toData;
+                            $this->op['res'] = $this->op['dst'] - $this->op['src'];
+                            $notRes = !boolval($this->op['res']);
 
-                            $cx = $this->cx->add(-1);
-                            // if ($this->repOverrideEn&&!($cx&&()))
+                            $this->output->writeln(sprintf(' -> subrun %d (%d)', $scratch,$subloopCount));
+                            $this->output->writeln(sprintf(' -> FROM %x (%x)', $tmpFrom, $fromData));
+                            $this->output->writeln(sprintf(' ->   TO %x (%x)', $tmpTo,$toData));
+
+                            $this->si->sub($siAdd);
+                            $this->di->sub($add);
+                            $this->output->writeln(sprintf(' -> %s', $this->si));
+                            $this->output->writeln(sprintf(' -> %s', $this->di));
+
+                            $cx = $this->cx->sub(1);
+                            $this->output->writeln(sprintf(' -> %s', $this->cx));
+
+                            if ($this->repOverrideEn && !($cx && ($notRes == $this->repOverrideMode))) {
+                                $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
+                                $this->output->writeln(sprintf(' -> rep %d', $this->repOverrideMode));
+                                break;
+                            }
+
+                            $this->output->writeln(''); // Debug
                         }
 
-                        $setFlagsType = self::FLAGS_UPDATE_SZP | self::FLAGS_UPDATE_AO_ARITH;
-                        $tmpCf = $this->op['res'] > $this->op['dst'];
-                    }
+                        // Flags Type
+                        $this->instr['set_flags_type'] = self::FLAGS_UPDATE_SZP | self::FLAGS_UPDATE_AO_ARITH;
 
-                    throw new NotImplementedException();
+                        // CF
+                        $tmpCf = $this->op['res'] > $this->op['dst'];
+                        $this->flags->setByName('CF', $tmpCf);
+                        $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+                    }
                     break;
 
                 // RET|RETF|IRET - OpCodes: c2 c3 ca cb cf
@@ -2044,8 +2079,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
-            $setFlagsType = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
-            if ($setFlagsType & self::FLAGS_UPDATE_SZP) {
+            if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_SZP) {
                 if (null === $this->op['res']) {
                     throw new NotImplementedException('op result has not been set, but maybe it needs to be.');
                 }
@@ -2061,26 +2095,26 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // Sign Flag
                 $tmpSign = $this->op['res'] < 0;
                 $this->flags->setByName('SF', $tmpSign);
-                // $this->debugInfo(sprintf(' -> SF %d', $this->flags->getByName('SF')));
+                $this->debugInfo(sprintf(' -> SF %d', $this->flags->getByName('SF')));
 
                 // Zero Flag
                 $tmpZero = $this->op['res'] == 0;
                 $this->flags->setByName('ZF', $tmpZero);
-                // $this->debugInfo(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
+                $this->debugInfo(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
                 $this->flags->setByName('PF', $tmpParity);
-                // $this->debugInfo(sprintf(' -> PF %d', $this->flags->getByName('PF')));
+                $this->debugInfo(sprintf(' -> PF %d', $this->flags->getByName('PF')));
 
-                if ($setFlagsType & self::FLAGS_UPDATE_AO_ARITH) {
+                if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
                     $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
 
-                    // $this->debugInfo(sprintf(' -> AF %d', $this->flags->getByName('AF')));
-                    // $this->debugInfo(sprintf(' -> OF %d', $this->flags->getByName('OF')));
+                    $this->debugInfo(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    $this->debugInfo(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                 }
-                if ($setFlagsType & self::FLAGS_UPDATE_OC_LOGIC) {
+                if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
                     $this->flags->setByName('OF', false);
                 }
@@ -2126,6 +2160,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
         $this->instr['extra'] = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$this->instr['raw']];
         $this->instr['has_modregrm'] = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$this->instr['raw']];
+        $this->instr['set_flags_type'] = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
 
         // 0-7 number of the 8-bit Registers.
         $this->instr['raw_low3'] = $this->instr['raw'] & 7; // xxxx111
