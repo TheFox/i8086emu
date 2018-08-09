@@ -186,7 +186,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
      *
      * @var int
      */
-    private $segOverrideInt;
+    private $segOverrideEn;
 
     /**
      * Register ID
@@ -200,7 +200,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
      *
      * @var int
      */
-    private $repOverrideInt;
+    private $repOverrideEn;
 
     /**
      * Repeat Mode
@@ -241,10 +241,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->runLoop = 0;
 
         $this->segDefaultReg = null;
-        $this->segOverrideInt = 0;
+        $this->segOverrideEn = 0;
         $this->segOverrideReg = 0;
 
-        $this->repOverrideInt = 0;
+        $this->repOverrideEn = 0;
         $this->repOverrideMode = 0;
 
         $this->instr = [
@@ -538,15 +538,15 @@ class Cpu implements CpuInterface, DebugAwareInterface
             ));
 
             // Segment Register Override
-            if ($this->segOverrideInt) {
-                --$this->segOverrideInt;
+            if ($this->segOverrideEn) {
+                --$this->segOverrideEn;
                 $this->segDefaultReg = $this->getRegisterByNumber(true, $this->segOverrideReg);
             } else {
                 // Set Data Segment as the Default Segment Register.
                 $this->segDefaultReg = $this->ds;
             }
-            if ($this->repOverrideInt) {
-                --$this->repOverrideInt;
+            if ($this->repOverrideEn) {
+                --$this->repOverrideEn;
             }
 
             // $this->instr['has_modregrm'] > 0 indicates that opcode uses Mod/Reg/RM, so decode them.
@@ -592,7 +592,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             switch ($this->instr['xlat']) {
-                // Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
+                // JMP Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
                 case 0:
                     // $this->instr['is_word'] is the invert Flag.
                     // For example, $this->instr['is_word'] == 0 means JAE, $this->instr['is_word'] == 1 means JNAE
@@ -1232,7 +1232,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         }
                     } elseif (!$this->instr['dir']) {
                         // LEA
-                        $this->segOverrideInt = 1;
+                        $this->segOverrideEn = 1;
                         $this->segOverrideReg = 12; // Zero-Register
 
                         // Since the direction in this case is always false we have to swap FROM/TO.
@@ -1552,7 +1552,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // MOVSx (extra=0)|STOSx (extra=1)|LODSx (extra=2) - OpCodes: a4 a5 aa ab ac ad
                 case 17:
-                    if ($this->repOverrideInt) {
+                    if ($this->repOverrideEn) {
                         $tmpCount = $this->cx->toInt();
                     } else {
                         $tmpCount = 1;
@@ -1625,7 +1625,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     }
 
                     // Reset CX on repeat mode.
-                    if ($this->repOverrideInt) {
+                    if ($this->repOverrideEn) {
                         $this->cx->setData(0);
                     }
                     break;
@@ -1703,10 +1703,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // REPxx - OpCodes: f2 f3
                 case 23:
-                    $this->repOverrideInt = 2;
+                    $this->repOverrideEn = 2;
                     $this->repOverrideMode = $this->instr['is_word'];
-                    if ($this->segOverrideInt) {
-                        ++$this->segOverrideInt;
+                    if ($this->segOverrideEn) {
+                        ++$this->segOverrideEn;
                     }
                     $this->debugOp(sprintf('REP %d', $this->repOverrideMode));
                     break;
@@ -1740,10 +1740,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // xS: segment overrides - OpCodes: 26 2e 36 3e
                 case 27:
-                    $this->segOverrideInt = 2;
+                    $this->segOverrideEn = 2;
                     $this->segOverrideReg = $this->instr['extra'];
-                    if ($this->repOverrideInt) {
-                        ++$this->repOverrideInt;
+                    if ($this->repOverrideEn) {
+                        ++$this->repOverrideEn;
                     }
                     $this->instr['reg'] = ($this->instr['raw'] >> 3) & 3; // Segment Override Prefix = 001xx110, xx = Register
 
@@ -2028,7 +2028,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             // If a timer tick is pending, interrupts are enabled, and no overrides/REP are active,
             // then process the tick and check for new keystrokes
-            if ($this->int8 && !$this->segOverrideInt && !$this->repOverrideInt && $this->flags->getByName('IF') && !$this->trapFlag) {
+            if ($this->int8 && !$this->segOverrideEn && !$this->repOverrideEn && $this->flags->getByName('IF') && !$this->trapFlag) {
                 $this->interrupt(0xA);
                 $this->int8 = false;
             }
@@ -2081,7 +2081,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             case 1:
             case 2:
-                if ($this->segOverrideInt) {
+                if ($this->segOverrideEn) {
                     $defaultSegId = $this->segOverrideReg;
                 } else {
                     /**
