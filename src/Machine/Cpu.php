@@ -1977,7 +1977,14 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 case 48:
                     $subOpCode = NumberHelper::unsignedIntToChar($this->instr['data_b'][0]);
                     switch ($subOpCode) {
-                        case 1: // Get RTC
+                        // PUTCHAR_AL
+                        case 0:
+                            // throw new NotImplementedException('PUTCHAR_AL');
+                            // @todo PUTCHAR_AL
+                            break;
+
+                        // Get RTC
+                        case 1:
                             $this->debugOp(sprintf('GET RTC'));
                             $now = Carbon::now();
 
