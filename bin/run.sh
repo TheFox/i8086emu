@@ -9,8 +9,8 @@ cd "${SCRIPT_BASEDIR}/.."
 
 set -x
 ./bin/i8086emu run \
-	--bios "${BIOS}" \
+	--bios   "${BIOS}"             \
 	--floppy ./opt/8086tiny/fd.img \
-	--tty /tmp/i8086TTY \
-	--socat /usr/bin/socat \
+	--tty    /tmp/i8086TTY         \
+	--socat  /usr/bin/socat        \
 	-vv

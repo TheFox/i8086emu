@@ -923,6 +923,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     // Decode
                     $this->instr['raw'] = 0x8 * $this->instr['reg'];
                     $this->instr['extra'] = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$this->instr['raw']];
+                    $this->instr['set_flags_type'] = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
                 // no break
 
                 // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m
@@ -1361,7 +1362,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     }
 
                     switch ($ireg) {
-                        case 0: // ROL
+                        // ROL
+                        case 0:
                             $this->debugOp(sprintf('[80186] ROL %s', $to));
 
                             $toInt = $to->toInt();
@@ -1387,7 +1389,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
                             break;
 
-                        case 1: // ROR
+                        // ROR
+                        case 1:
                             $this->debugOp(sprintf('[80186] ROR %s', $to));
 
                             $scratch2 = intval($scratch2) & (1 << $scratch) - 1;
@@ -1415,19 +1418,22 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
                             break;
 
-                        case 2: // RCL
+                        // RCL
+                        case 2:
                             // @todo FINISH IMPLEMENTATION
                             $this->debugOp(sprintf('[80186] RCL %s', $to));
                             throw new NotImplementedException(sprintf('ireg %d', $ireg));
                             break;
 
-                        case 3: // RCR
+                        // RCR
+                        case 3:
                             // @todo FINISH IMPLEMENTATION
                             $this->debugOp(sprintf('[80186] RCR %s', $to));
                             throw new NotImplementedException(sprintf('ireg %d', $ireg));
                             break;
 
-                        case 4: // SHL
+                        // SHL
+                        case 4:
                             $this->debugOp(sprintf('[80186] SHL %s', $to));
 
                             $tmpDst = $this->op['dst'] << ($scratch - 1);
@@ -1440,7 +1446,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
-                        case 5: // SHR
+                        // SHR
+                        case 5:
                             $this->debugOp(sprintf('[80186] SHR %s', $to));
 
                             $tmpCf = $this->op['dst'] < 0;
@@ -1448,7 +1455,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
                             break;
 
-                        case 7: // SAR
+                        // SAR
+                        case 7:
                             $this->debugOp(sprintf('[80186] SAR %s', $to));
 
                             // $this->output->writeln(sprintf(' -> bsize %d', $this->instr['bsize']));
@@ -2079,6 +2087,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
+            $this->output->writeln(sprintf(' -> Set Flags Type: %d', $this->instr['set_flags_type']));
             if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_SZP) {
                 if (null === $this->op['res']) {
                     throw new NotImplementedException('op result has not been set, but maybe it needs to be.');
@@ -2131,9 +2140,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 break;
             }
 
-            //if (0 === $this->$this->runLoop % self::GRAPHICS_UPDATE_DELAY) {
-            //    $this->updateGraphics();
-            //}
+            if (0 === $this->runLoop % self::GRAPHICS_UPDATE_DELAY) {
+                $this->updateGraphics();
+            }
 
             if ($this->trapFlag) {
                 $this->interrupt(1);
@@ -2146,10 +2155,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             // If a timer tick is pending, interrupts are enabled, and no overrides/REP are active,
-            // then process the tick and check for new keystrokes
+            // then process the tick and check for new keystrokes.
             if ($this->int8 && !$this->segOverrideEn && !$this->repOverrideEn && $this->flags->getByName('IF') && !$this->trapFlag) {
                 $this->interrupt(0xA);
                 $this->int8 = false;
+                // @todo here KEYBOARD_DRIVER
             }
         } // while $this->instr['raw']
     } // run()
