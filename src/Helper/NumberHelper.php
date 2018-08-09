@@ -12,17 +12,13 @@ class NumberHelper
      */
     public static function unsignedIntToChar(int $i): int
     {
-        // signed char is from -127 to +127.
-        if ($i > 127 || $i < -128) {
-            //$r = $i % 256;
-            $r = $i & 0xFF;
+        $signed = $i & 0x80;
 
-            if ($r > 127) {
-                $r -= 0x100;
-            }
-            return $r;
+        $x = $i & 0x7F;
+        if ($signed) {
+            return $x - 0x80;
         }
 
-        return $i;
+        return $x;
     }
 }

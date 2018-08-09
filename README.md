@@ -15,7 +15,7 @@ Optional, to use a different installation path for the `socat` binary you can sp
 ## Pseudo-TTY Test
 
 1. Install `socat`.
-2. Open a shell and run `./bin/screen_pipe.sh`.
+2. Open a shell and run `./bin/screen.sh`.
 3. Open another shell and run `php ./bin/ptty_test.php`.
 4. Open ANOTHER shell and run `screen /dev/csTTY1`.
 

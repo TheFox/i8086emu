@@ -12,5 +12,5 @@ set -x
 	--bios   "${BIOS}"             \
 	--floppy ./opt/8086tiny/fd.img \
 	--tty    /tmp/i8086TTY         \
-	--socat  /usr/bin/socat        \
+	--socat  /usr/local/bin/socat  \
 	-vv

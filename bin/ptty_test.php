@@ -48,7 +48,8 @@ $pipePath = '/tmp/emu_pipe';
 //fclose($fh);
 #unlink($pipePath);
 
-$cmd = 'socat PTY,link=/dev/csTTY1,rawer,wait-slave STDIO';
+// $cmd = 'socat PTY,link=/dev/csTTY1,rawer,wait-slave STDIO';
+$cmd = 'socat PTY,link=/tmp/csTTY1,rawer,wait-slave STDIO';
 $fds = [
     0 => ['pipe', 'rb'], // STDIN
     1 => ['pipe', 'wb'], // STDOUT
@@ -93,7 +94,7 @@ for ($i = 0; $i < 60; ++$i) {
                     break;
                 }
                 $c = $data[$i];
-                printf(" -> %x\n", ord($c));
+                printf(" -> 0x%x\n", ord($c));
             }
         }
     }

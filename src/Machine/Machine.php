@@ -61,7 +61,7 @@ final class Machine implements MachineInterface, DebugAwareInterface
     private $cpu;
 
     /**
-     * @var NullOutputDevice|TtyOutputDevice
+     * @var null|OutputDeviceInterface|TtyOutputDevice
      */
     private $tty;
 
@@ -142,6 +142,14 @@ final class Machine implements MachineInterface, DebugAwareInterface
     public function setTty(OutputDeviceInterface $tty): void
     {
         $this->tty = $tty;
+    }
+
+    /**
+     * @return OutputDeviceInterface|null
+     */
+    public function getTty(): ?OutputDeviceInterface
+    {
+        return $this->tty;
     }
 
     /**

@@ -17,6 +17,8 @@ set -x
 #socat READLINE,history:/tmp/serial.cmds OPEN:/dev/ttyS0,ispeed=9600,ospeed=9600,crnl,raw,sane,echo=false
 #socat READLINE OPEN:${SRC_PATH},ispeed=9600,ospeed=9600,crnl,raw,sane,echo=false
 
+screen /tmp/i8086TTY
+
 status=$?
 echo "status: $status"
 

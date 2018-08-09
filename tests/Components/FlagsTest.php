@@ -59,12 +59,12 @@ class FlagsTest extends TestCase
         $this->assertTrue($flags->get(10));
         $this->assertTrue($flags->get(11));
 
-        $this->assertTrue($flags->get(12));
+        $this->assertFalse($flags->get(12));
         $this->assertTrue($flags->get(13));
         $this->assertTrue($flags->get(14));
         $this->assertTrue($flags->get(15));
 
         $data = $flags->getData()->toArray();
-        $this->assertEquals([0xAA, 0xFF], $data);
+        $this->assertEquals([0xAA, 0xEF], $data);
     }
 }

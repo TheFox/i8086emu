@@ -113,7 +113,7 @@ class Flags implements FlagsInterface
 
     public function get(int $flagId): bool
     {
-        $f = (bool)$this->data[$flagId];
+        $f = boolval($this->data[$flagId]);
         return $f;
     }
 

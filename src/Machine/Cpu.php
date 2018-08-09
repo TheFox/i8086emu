@@ -19,7 +19,6 @@ use TheFox\I8086emu\Blueprint\OutputDeviceInterface;
 use TheFox\I8086emu\Blueprint\RamInterface;
 use TheFox\I8086emu\Components\AbsoluteAddress;
 use TheFox\I8086emu\Components\Address;
-use TheFox\I8086emu\Components\Event;
 use TheFox\I8086emu\Components\Flags;
 use TheFox\I8086emu\Components\Memory;
 use TheFox\I8086emu\Components\Register;
@@ -33,7 +32,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 {
     public const SIZE_BYTE = 2;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
-    public const GRAPHICS_UPDATE_DELAY = 360000;
+    public const GRAPHICS_UPDATE_DELAY = 3600; // Original 360000
     // Lookup tables in the BIOS binary.
     public const TABLE_XLAT_OPCODE = 8;
     public const TABLE_XLAT_SUBFUNCTION = 9;
@@ -483,15 +482,15 @@ class Cpu implements CpuInterface, DebugAwareInterface
         }
 
         ksort($groupped);
-        foreach ($groupped as $xlatId => $opcodes) {
-            $s = array_map(function ($c) {
-                return sprintf('%02x', $c);
-            }, $opcodes);
-            $s = join(' ', $s);
-            $this->output->writeln(sprintf('-> %d = %s', $xlatId, $s));
-        }
+        // foreach ($groupped as $xlatId => $opcodes) {
+        //     // $s = array_map(function ($c) {
+        //     //     return sprintf('%02x', $c);
+        //     // }, $opcodes);
+        //     // $s = join(' ', $s);
+        //     // $this->output->writeln(sprintf('-> %d = %s', $xlatId, $s));
+        // }
 
-        $this->output->writeln('XLAT END');
+        // $this->output->writeln('XLAT END');
     }
 
     public function run()
@@ -507,7 +506,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
         // $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug2.log", "w");
-        $loopStop = 65721; // for debugging
 
         while ($this->instr['raw'] = $this->getOpcode()) {
             $this->initInstruction();
@@ -938,9 +936,15 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('ADD %s %s', $tmpTo, $tmpFrom));
 
                             if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                // FROM  numeric
+                                //   TO  Register
+
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
                             } elseif ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
+                                // FROM  Register
+                                //   TO  Register
+
                                 $this->op['src'] = $tmpFrom->toInt();
                                 $this->op['dst'] = $tmpTo->toInt() + $this->op['src'];
                             } else {
@@ -986,8 +990,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('ADC %s %s', $tmpTo, $tmpFrom));
 
                             if (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                // FROM  numeric
+                                //   TO  Register
+
                                 $this->op['src'] = $tmpFrom;
                                 $this->op['dst'] = $tmpTo->toInt() + $this->flags->getByName('CF') + $this->op['src'];
+                            } elseif ($tmpFrom instanceof Register && $tmpTo instanceof AbsoluteAddress) {
+                                // FROM  Register
+                                //   TO  Absolute Address
+
+                                throw new NotImplementedException();
                             } else {
                                 throw new UnknownTypeException();
                             }
@@ -1509,16 +1521,17 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     }
 
                     if ($this->instr['dir'] && $this->instr['is_word']) {
-                        $add = $this->instr['data_b'][0];
+                        // $add = $this->instr['data_b'][0] - 0x100; // Signed Char
+                        $add = NumberHelper::unsignedIntToChar($this->instr['data_w'][0]);
                     } else {
                         $add = $this->instr['data_w'][0];
                     }
 
-                    $this->debugCsIpRegister();
+                    // $this->debugCsIpRegister();
                     if ($add) {
                         $this->ip->add($add);
                     }
-                    $this->debugCsIpRegister($add);
+                    // $this->debugCsIpRegister($add);
                     break;
 
                 // TEST reg, r/m - OpCodes: 84 85
@@ -1942,7 +1955,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     //$this->output->writeln(sprintf(' -> AL: %x', $this->ax->getLowInt()));
                     //$this->output->writeln(sprintf(' -> AH: %x', $this->ax->getHighInt()));
 
-                    $this->ax->setLowInt((int)$data[0]);
+                    $this->ax->setLowInt(intval($data[0]));
 
                     // $this->output->writeln(sprintf(' -> AL: %x', $this->ax->getLowInt()));
                     //$this->output->writeln(sprintf(' -> AH: %x', $this->ax->getHighInt()));
@@ -1979,8 +1992,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     switch ($subOpCode) {
                         // PUTCHAR_AL
                         case 0:
-                            // throw new NotImplementedException('PUTCHAR_AL');
-                            // @todo PUTCHAR_AL
+                            $al = $this->ax->getChildRegister();
+                            $char = chr($al->toInt());
+                            $this->debugOp(sprintf('PUTCHAR_AL %s %s', $al, $char));
+                            $this->tty->putChar($char);
                             break;
 
                         // Get RTC
@@ -2141,24 +2156,24 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // Sign Flag
                 $tmpSign = $this->op['res'] < 0;
                 $this->flags->setByName('SF', $tmpSign);
-                $this->debugInfo(sprintf(' -> SF %d', $this->flags->getByName('SF')));
+                $this->output->writeln(sprintf(' -> SF %d', $this->flags->getByName('SF')));
 
                 // Zero Flag
                 $tmpZero = $this->op['res'] == 0;
                 $this->flags->setByName('ZF', $tmpZero);
-                $this->debugInfo(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
+                $this->output->writeln(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
                 $this->flags->setByName('PF', $tmpParity);
-                $this->debugInfo(sprintf(' -> PF %d', $this->flags->getByName('PF')));
+                $this->output->writeln(sprintf(' -> PF %d', $this->flags->getByName('PF')));
 
                 if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
                     $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
 
-                    $this->debugInfo(sprintf(' -> AF %d', $this->flags->getByName('AF')));
-                    $this->debugInfo(sprintf(' -> OF %d', $this->flags->getByName('OF')));
+                    $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                 }
                 if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
@@ -2196,7 +2211,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
             if ($this->int8 && !$this->segOverrideEn && !$this->repOverrideEn && $this->flags->getByName('IF') && !$this->trapFlag) {
                 $this->interrupt(0xA);
                 $this->int8 = false;
-                // @todo here KEYBOARD_DRIVER
+
+                // @TODO run keyboard driver
+                // KEYBOARD_DRIVER read(0, mem + 0x4A6, 1) && (int8_asap = (mem[0x4A6] == 0x1B), pc_interrupt(7))
             }
         } // while $this->instr['raw']
     } // run()
@@ -2347,7 +2364,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
     {
         // @todo use separate framebuffer, or tty, or whatever.
         $this->output->writeln('Update Graphics');
-        throw new NotImplementedException('Update Graphics');
+        // throw new NotImplementedException('Update Graphics');
+
+        // Run TTY.
+        /** @var TtyOutputDevice $tty */
+        $tty = $this->machine->getTty();
+        $tty->run();
     }
 
     /**
@@ -2567,7 +2589,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         if (0 === $add) {
             $this->output->writeln(sprintf(' -> %s %s', $this->cs, $this->ip));
         } else {
-            $this->output->writeln(sprintf(' -> %s %s (+%d)', $this->cs, $this->ip, $add));
+            $this->output->writeln(sprintf(' -> %s %s (%d)', $this->cs, $this->ip, $add));
         }
     }
 
