@@ -48,6 +48,11 @@ final class TtyOutputDevice extends OutputDevice
      */
     private $outputBuffer;
 
+    /**
+     * @var array
+     */
+    private $inputBuffer;
+
     public function __construct()
     {
         $this->socatFilePath = 'socat';
@@ -58,6 +63,7 @@ final class TtyOutputDevice extends OutputDevice
         ];
         $this->pipes = [];
         $this->isRunning = false;
+        $this->inputBuffer = [];
     }
 
     public function __destruct()
@@ -139,36 +145,40 @@ final class TtyOutputDevice extends OutputDevice
         $writeHandles = [];
         $exceptHandles = [];
         $handlesChanged = stream_select($readHandles, $writeHandles, $exceptHandles, 0);
-        printf("streams: %d\n", $handlesChanged);
+        // printf("streams: %d\n", $handlesChanged);
 
         if (!$handlesChanged) {
             return;
         }
 
-        printf("changed streams: %d %d\n", count($readHandles), count($writeHandles));
+        // printf("changed streams: %d %d\n", count($readHandles), count($writeHandles));
 
-        $buffer = [];
         foreach ($readHandles as $readableHandle) {
-            printf(" -> readable\n");
+            // printf(" -> readable\n");
             //$data=stream_socket_recvfrom($readableHandle, 2048);
             $maxLen = 2048;
             $data = fread($readableHandle, 2048);
 
             for ($i = 0; $i < $maxLen; ++$i) {
                 if (!isset($data[$i])) {
-                    printf(" -> break\n");
+                    // printf(" -> break\n");
                     break;
                 }
                 $c = $data[$i];
-                printf(" -> 0x%x\n", ord($c));
-                $buffer[] = $c;
+                // printf(" -> 0x%x\n", ord($c));
+                $this->inputBuffer[] = ord($c);
             }
         }
-        // @todo process $buffer. CPU needs it. but how?
     }
 
     public function putChar(string $char): void
     {
         $this->outputBuffer .= $char;
+    }
+
+    public function getChar(): ?int
+    {
+        $char = array_shift($this->inputBuffer);
+        return $char;
     }
 }
