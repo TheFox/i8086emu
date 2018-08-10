@@ -2289,7 +2289,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             $this->output->writeln(sprintf(' -> Set Flags Type: %d', $this->instr['set_flags_type']));
             if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_SZP) {
                 if (null === $this->op['res']) {
-                    throw new NotImplementedException('op result has not been set, but maybe it needs to be.');
+                    throw new NotImplementedException('op result has not been set, but maybe it needs to be.'); // @todo remove
                 }
 
                 // unsigned int. For example, int -42 = unsigned char 214
@@ -2297,18 +2297,18 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 $ucOpResult = $this->op['res'] & 0xFF;
 
                 if ($ucOpResult < 0 || $ucOpResult > 255) {
-                    throw new ValueExceededException(sprintf('ucOpResult is %d (%x, res=%d/%x). Must be >=0 and < 256.', $ucOpResult, $ucOpResult, $this->op['res'], $this->op['res']));
+                    throw new ValueExceededException(sprintf('ucOpResult is %d (%x, res=%d/%x). Must be >=0 and < 256.', $ucOpResult, $ucOpResult, $this->op['res'], $this->op['res'])); // @todo remove
                 }
 
                 // Sign Flag
                 $tmpSign = $this->op['res'] < 0;
                 $this->flags->setByName('SF', $tmpSign);
-                $this->output->writeln(sprintf(' -> SF %d', $this->flags->getByName('SF')));
+                // $this->output->writeln(sprintf(' -> SF %d', $this->flags->getByName('SF')));
 
                 // Zero Flag
                 $tmpZero = $this->op['res'] == 0;
                 $this->flags->setByName('ZF', $tmpZero);
-                $this->output->writeln(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
+                // $this->output->writeln(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
@@ -2319,8 +2319,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
                     $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
 
-                    $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
-                    $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
+                    // $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
+                    // $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                 }
                 if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_OC_LOGIC) {
                     $this->flags->setByName('CF', false);
