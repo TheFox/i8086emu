@@ -957,6 +957,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
+                            // Write back to RAM.
+                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo);}
+
                             // CF
                             $tmpCf = $this->op['res'] < $this->op['dst'];
                             $this->flags->setByName('CF', $tmpCf);
@@ -981,6 +984,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // Write back to RAM.
+                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo);}
                             break;
 
                         // ADC
@@ -1009,6 +1015,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // Write back to RAM.
+                            if ($tmpTo instanceof AbsoluteAddress) {
+                                $this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);
+                            }
 
                             // CF
                             $uiDst = $this->op['dst'] & 0xFFFF;
@@ -1045,6 +1056,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // Write back to RAM.
+                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo,$this->instr['size']);}
 
                             // CF
                             $uiDst = $this->op['dst'] & 0xFFFF;
@@ -1086,6 +1100,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // Write back to RAM.
+                            if ($tmpTo instanceof AbsoluteAddress) {
+                                $this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);
+                            }
                             break;
 
                         // SUB
@@ -1131,6 +1150,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpTo->setData($this->op['dst']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
+                            // Write back to RAM.
+                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo);
+
                             // CF
                             $tmpCf = $this->op['res'] > $this->op['dst'];
                             $this->flags->setByName('CF', $tmpCf);
@@ -1159,6 +1181,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $tmpTo->setData($this->op['res']);
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                            // Write back to RAM.
+                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo);
                             break;
 
                         // CMP reg, imm
@@ -2586,6 +2611,14 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->sp->add($size);
 
         return $data;
+    }
+
+    private function writeAbsoluteAddressToRam(AbsoluteAddress $address, int $length)
+    {
+        $offset = $address->toInt();
+        $data = $address->getData();
+        // $length = $address->getSize();
+        $this->ram->write($data, $offset, $length);
     }
 
     private function setAuxiliaryFlagArith(int $src, int $dest, int $result): bool
