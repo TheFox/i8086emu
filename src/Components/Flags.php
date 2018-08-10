@@ -11,6 +11,8 @@ use TheFox\I8086emu\Blueprint\FlagsInterface;
 
 class Flags implements FlagsInterface
 {
+    public const FLAG_I = 9;
+
     private const SIZE = 2;
     public const NAMES = [
         'CF' => 0, // carry flag

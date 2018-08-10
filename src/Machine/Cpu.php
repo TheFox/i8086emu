@@ -2355,7 +2355,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             // If a timer tick is pending, interrupts are enabled, and no overrides/REP are active,
             // then process the tick and check for new keystrokes.
-            if ($this->int8 && !$this->segOverrideEn && !$this->repOverrideEn && $this->flags->getByName('IF') && !$this->trapFlag) {
+            $flagI = $this->flags->get(Flags::FLAG_I);
+            if ($this->int8 && !$this->segOverrideEn && !$this->repOverrideEn && $flagI && !$this->trapFlag) {
                 $this->interrupt(0xA);
                 $this->int8 = false;
 
