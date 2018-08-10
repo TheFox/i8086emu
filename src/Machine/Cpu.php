@@ -1592,7 +1592,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // JMP | CALL short/near - OpCodes: e8 e9 ea eb
                 case 14:
                     $this->ip->add(3 - $this->instr['dir']);
-                    if (!$this->instr['is_word']) {
+                    if ($this->instr['is_word']) {
+                        $this->debugOp(sprintf('JMP'));
+                    } else {
                         if ($this->instr['dir']) {
                             // JMP far
                             $this->debugOp(sprintf('JMP far'));
