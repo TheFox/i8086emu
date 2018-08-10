@@ -2292,6 +2292,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             $this->output->writeln(sprintf(' -> %s', $this->flags));
 
+            // Debug
+            // $tmpData = $this->ram->read(0x7c00, 1);
+            // if (null !== $tmpData[0]) {
+            //     $this->output->writeln(sprintf(' -> 0x7c00 OK'));
+            // }
+            // $tmpData = $this->ram->read(0x8100, 1);
+            // if (null !== $tmpData[0]) {
+            //     $this->output->writeln(sprintf(' -> 0x8100 OK'));
+            // }
+
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
             $baseInstrSize = $this->biosDataTables[self::TABLE_BASE_INST_SIZE][$this->instr['raw']];
@@ -2363,10 +2373,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             // Update Instruction counter.
             ++$this->runLoop;
-
-            if ($this->runLoop >= 500000) { // @todo remove
-                break;
-            }
 
             if (0 === $this->runLoop % self::GRAPHICS_UPDATE_DELAY) {
                 $this->updateGraphics();
