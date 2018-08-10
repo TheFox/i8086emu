@@ -1090,7 +1090,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 // FROM  numeric
                                 //   TO  Absolute Address
 
-                                throw new NotImplementedException();
+                                $this->op['src'] = $tmpFrom;
+
+                                $data = $this->ram->read($tmpTo->toInt(), $this->instr['size']);
+                                $this->op['dst'] = DataHelper::arrayToInt($data);
                             } else {
                                 throw new UnknownTypeException();
                             }
