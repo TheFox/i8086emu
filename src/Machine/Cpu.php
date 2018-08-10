@@ -1866,8 +1866,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $this->sp->setData($this->instr['data_w'][0]);
                     }
 
-                    $this->debugCsIpRegister();
-                    $this->debugSsSpRegister();
+                    // $this->debugCsIpRegister();
+                    // $this->debugSsSpRegister();
                     break;
 
                 // MOV r/m, immed - OpCodes: c6 c7
@@ -2348,6 +2348,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // KEYBOARD_DRIVER read(0, mem + 0x4A6, 1) && (int8_asap = (mem[0x4A6] == 0x1B), pc_interrupt(7))
             }
         } // while $this->instr['raw']
+
+        $this->output->writeln(sprintf('Run loop end: %d', $this->instr['raw']));
     } // run()
 
     private function initInstruction()
@@ -2670,7 +2672,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
     {
         $offset = $address->toInt();
         $data = $address->getData();
-        // $length = $address->getSize();
         $this->ram->write($data, $offset, $length);
     }
 
