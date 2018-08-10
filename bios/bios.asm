@@ -28,6 +28,10 @@
 	db	0x0f, 0x03
 %endmacro
 
+%macro	extended_stop 0
+	db	0x0f, 0x04
+%endmacro
+
 org	100h				; BIOS loads at offset 0x0100
 
 main:

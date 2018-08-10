@@ -482,15 +482,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
         }
 
         ksort($groupped);
-        // foreach ($groupped as $xlatId => $opcodes) {
-        //     // $s = array_map(function ($c) {
-        //     //     return sprintf('%02x', $c);
-        //     // }, $opcodes);
-        //     // $s = join(' ', $s);
-        //     // $this->output->writeln(sprintf('-> %d = %s', $xlatId, $s));
-        // }
 
-        // $this->output->writeln('XLAT END');
+        foreach ($groupped as $xlatId => $opcodes) {
+            $s = array_map(function ($c) {
+                return sprintf('%02x', $c);
+            }, $opcodes);
+            $s = join(' ', $s);
+            $this->output->writeln(sprintf('-> %d = %s', $xlatId, $s));
+        }
+
+        $this->output->writeln('XLAT END');
     }
 
     public function run()
@@ -1600,10 +1601,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $data = $this->instr['data_b'][2];
 
-                            $this->output->writeln(sprintf(' -> %s',$this->cs));
+                            $this->output->writeln(sprintf(' -> %s', $this->cs));
                             $this->cs->setData($data);
-                            $this->output->writeln(sprintf(' -> %s (%d)',$this->cs,$data));
-
+                            $this->output->writeln(sprintf(' -> %s (%d)', $this->cs, $data));
                         } else {
                             // CALL
                             $this->debugOp(sprintf('CALL'));
@@ -2237,6 +2237,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             throw new NotImplementedException('DISK_WRITE');
                             break;
 
+                        // STOP
+                        case 4:
+                            $this->debugOp('STOP');
+                            $this->debugAll();
+                            break 3;
+
                         default:
                             throw new NotImplementedException(sprintf('Emulator-specific 0F xx opcodes: %d', $subOpCode));
                     }
@@ -2246,8 +2252,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
                 case 53:
                     $this->debugOp('HLT');
-                    $this->debugAll();
-                    break 2;
+                    break;
 
                 default:
                     throw new NotImplementedException(sprintf(
