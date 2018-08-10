@@ -1964,6 +1964,38 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->debugOp(sprintf('SEG override: %s', $tmpReg));
                     break;
 
+                // AAA/AAS
+                case 29:
+                    $this->debugOp(sprintf('AAA/AAS'));
+
+                    // CF
+                    $al = $this->ax->getChildRegister();
+                    $this->output->writeln(sprintf(' -> %s', $this->ax));
+                    $tmpCf = ($al->toInt() & 0xF) > 9 || $this->flags->getByName('AF');
+                    $this->output->writeln(sprintf(' -> CF %d', $tmpCf));
+
+                    $this->flags->setByName('CF', $tmpCf);
+                    $this->flags->setByName('AF', $tmpCf);
+
+                    // AX
+                    $op = $this->instr['extra'] - 1;
+                    $this->output->writeln(sprintf(' -> %s (%d)', $this->ax, $op));
+                    $add = 262 * $op * $tmpCf;
+                    $this->ax->setData($this->ax->toInt() + $add);
+                    $this->output->writeln(sprintf(' -> %s (%d)', $this->ax, $add));
+
+                    $this->output->writeln(sprintf(' -> %s', $this->ax));
+                    $al = $this->ax->getChildRegister();
+                    $this->output->writeln(sprintf(' -> %s', $this->ax));
+                    $tmpAl = $al->toInt() & 0xF;
+                    $al->setData($tmpAl);
+                    $this->output->writeln(sprintf(' -> %s', $this->ax));
+
+                    // Res
+                    $this->op['res'] = $tmpAl;
+                    $this->output->writeln(sprintf(' -> res %d', $this->op['res']));
+                    break;
+
                 // PUSHF - OpCodes: 9c
                 case 33:
                     $this->debugOp(sprintf('PUSHF %s', $this->flags));
