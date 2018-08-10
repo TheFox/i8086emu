@@ -940,18 +940,18 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 //   TO  Register
 
                                 $this->op['src'] = $tmpFrom;
-                                $this->op['dst'] = $tmpTo->toInt() ;
+                                $this->op['dst'] = $tmpTo->toInt();
                             } elseif ($tmpFrom instanceof Register && $tmpTo instanceof Register) {
                                 // FROM  Register
                                 //   TO  Register
 
                                 $this->op['src'] = $tmpFrom->toInt();
-                                $this->op['dst'] = $tmpTo->toInt() ;
+                                $this->op['dst'] = $tmpTo->toInt();
                             } else {
                                 throw new UnknownTypeException();
                             }
 
-                            $this->op['dst'] +=  $this->op['src'];
+                            $this->op['dst'] += $this->op['src'];
                             $this->op['res'] = $this->op['dst'];
 
                             $tmpTo->setData($this->op['dst']);
@@ -1277,7 +1277,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                                 // FROM  Register
                                 //   TO  Register
 
-                                $data=$this->instr['from']->getData();
+                                $data = $this->instr['from']->getData();
                                 $this->instr['to']->setData($data);
 
                                 // Debug
@@ -1330,7 +1330,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // FROM  Register
                             //   TO  Register
 
-                            $data=$this->instr['from']->toInt();
+                            $data = $this->instr['from']->toInt();
                             $this->instr['to']->setData($data);
 
                             // Debug
