@@ -887,7 +887,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // CMP reg, imm - OpCodes: 04 05 0c 0d 14 15 1c 1d 24 25 2c 2d 34 35 3c 3d
                 case 7:
-                    $this->debugOp(sprintf('CMP[7]'));
+                    $this->debugOp(sprintf('CMP[7] reg, imm'));
 
                     $this->instr['rm_o'] = $this->ax;
                     $this->instr['data_b'][2] = $this->instr['data_b'][0];
@@ -1021,6 +1021,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
                             $this->setOverflowFlagArith1($this->op['src'], $this->op['dst'], $this->op['res'], $this->instr['is_word']);
 
+                            // Debug
                             $this->output->writeln(sprintf(' -> AF %d', $this->flags->getByName('AF')));
                             $this->output->writeln(sprintf(' -> OF %d', $this->flags->getByName('OF')));
                             break;
@@ -1219,17 +1220,27 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('MOV %s %s', $this->instr['to'], $this->instr['from']));
 
                             if ($this->instr['from'] instanceof AbsoluteAddress && $this->instr['to'] instanceof Register) {
+                                // FROM  AbsoluteAddress
+                                //   TO  Register
+
                                 $offset = $this->instr['from']->toInt();
                                 $data = $this->ram->read($offset, $this->instr['to']->getSize());
+
                                 $this->instr['to']->setData($data);
+
+                                // Debug
                                 $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                             } elseif ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof AbsoluteAddress) {
                                 $offset = $this->instr['to']->toInt();
                                 $data = $this->instr['from']->getData();
                                 $this->ram->write($data, $offset, $this->instr['from']->getSize());
+
+                                // Debug
                                 $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                             } elseif ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
                                 $this->instr['to']->setData($this->instr['from']->getData());
+
+                                // Debug
                                 $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                             } else {
                                 throw new UnknownTypeException();
@@ -1259,7 +1270,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $offset = $this->instr['from']->toInt();
                             $data = $this->ram->read($offset, $this->instr['to']->getSize());
+
                             $this->instr['to']->setData($data);
+
+                            // Debug
                             $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                         } elseif ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof AbsoluteAddress) {
                             // FROM  Register
@@ -1268,12 +1282,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $offset = $this->instr['to']->toInt();
                             $data = $this->instr['from']->getData();
                             $this->ram->write($data, $offset, $this->instr['from']->getSize());
+
+                            // Debug
                             $this->output->writeln(sprintf(' -> %s', $this->instr['to']));
                         } elseif ($this->instr['from'] instanceof Register && $this->instr['to'] instanceof Register) {
                             // FROM  Register
                             //   TO  Register
 
                             $this->instr['to']->setData($this->instr['from']->toInt());
+
+                            // Debug
                             $this->output->writeln(sprintf(' -> REG %s', $this->instr['to']));
                         } else {
                             throw new UnknownTypeException();
@@ -1647,6 +1665,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // TO    Address
 
                             $data = $tmpFrom->getData();
+
                             $offset = $tmpTo->toInt();
                             $this->ram->write($data, $offset, $tmpFrom->getSize());
                         } elseif ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof Register) {
@@ -1655,6 +1674,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $offset = $tmpFrom->toInt();
                             $data = $this->ram->read($offset, $tmpTo->getSize());
+
                             $tmpTo->setData($data, true);
                         } elseif ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof AbsoluteAddress) {
                             // FROM  Address
