@@ -2249,9 +2249,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     //throw new NotImplementedException('Emulator-specific 0F xx opcodes');
                     break;
 
-                // HLT OpCodes: 9b d8 d9 da db dc dd de df f0 f4
+                // HLT - OpCodes: f4 (and d8 d9 da db dc dd de df f0)
                 case 53:
                     $this->debugOp('HLT');
+                    $this->debugInstrData();
+                    break;
+
+                // WAIT - OpCodes: 9b
+                case 54:
+                    $this->debugOp('WAIT');
+                    $this->debugInstrData();
                     break;
 
                 default:
@@ -2786,5 +2793,27 @@ class Cpu implements CpuInterface, DebugAwareInterface
         //$this->output->writeln(sprintf(' -> %s', $this->ds));
 
         $this->output->writeln(sprintf(' -> %s', $this->flags));
+
+        $this->debugInstrData();
+    }
+
+    private function debugInstrData()
+    {
+        $fn = function (int $x) {
+            return sprintf('%02x', $x);
+        };
+
+        /** @var \SplFixedArray $data */
+        $data = $this->instr['data_b'];
+        $data = $data->toArray();
+        $data = array_map($fn, $data);
+        $data = join(' ', $data);
+        $this->output->writeln(sprintf(' -> data b: %s', $data));
+
+        $data = $this->instr['data_w'];
+        $data = $data->toArray();
+        $data = array_map($fn, $data);
+        $data = join(' ', $data);
+        $this->output->writeln(sprintf(' -> data w: %s', $data));
     }
 }
