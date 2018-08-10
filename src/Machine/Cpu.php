@@ -2251,8 +2251,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // HLT - OpCodes: f4 (and d8 d9 da db dc dd de df f0)
                 case 53:
-                    $this->debugOp('HLT');
-                    $this->debugInstrData();
+                    if (0xf4 === $this->instr['raw']) {
+                        $this->debugOp('HLT');
+                    } else {
+                        $this->debugInstrData();
+                        throw new NotImplementedException(sprintf(' -> opcode: %x', $this->instr['raw']));
+                    }
                     break;
 
                 // WAIT - OpCodes: 9b
