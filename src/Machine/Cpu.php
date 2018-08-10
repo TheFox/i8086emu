@@ -2251,6 +2251,17 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     //throw new NotImplementedException('Emulator-specific 0F xx opcodes');
                     break;
 
+                case 49: // OpCodes: c8
+                case 50: // OpCodes: c9
+                case 51: // OpCodes: 60
+                    throw new NotImplementedException(sprintf(' -> opcode: %x', $this->instr['raw']));
+                    break;
+
+                // ? UNKNOWN - OpCodes: 62 63 64 65 66 67 6c 6d 6e 6f
+                case 52:
+                    throw new NotImplementedException(sprintf(' -> opcode: %x', $this->instr['raw']));
+                    break;
+
                 // HLT - OpCodes: f4 (and d8 d9 da db dc dd de df f0)
                 case 53:
                     if (0xf4 === $this->instr['raw']) {
@@ -2304,7 +2315,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
-            $this->output->writeln(sprintf(' -> Set Flags Type: %d', $this->instr['set_flags_type']));
+            // $this->output->writeln(sprintf(' -> Set Flags Type: %d', $this->instr['set_flags_type']));
             if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_SZP) {
                 if (null === $this->op['res']) {
                     throw new NotImplementedException('op result has not been set, but maybe it needs to be.'); // @todo remove
