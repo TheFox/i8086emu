@@ -63,7 +63,12 @@ final class TtyOutputDevice extends OutputDevice
     public function __destruct()
     {
         if ($this->isRunning && $this->process) {
-            proc_close($this->process);
+            $process = $this->process;
+
+            $this->isRunning = false;
+            $this->process = null;
+
+            proc_terminate($process, SIGKILL);
         }
     }
 
