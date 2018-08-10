@@ -12,12 +12,9 @@ In order to have a TTY for the in- and output you can specify `--tty <path>`. Th
 
 Optional, to use a different installation path for the `socat` binary you can specify `--socat <path>`.
 
-## Pseudo-TTY Test
-
 1. Install `socat`.
 2. Open a shell and run `./bin/screen.sh`.
-3. Open another shell and run `php ./bin/ptty_test.php`.
-4. Open ANOTHER shell and run `screen /dev/csTTY1`.
+3. Open another shell and run `./bin/run.sh`.
 
 ## Terms
 
