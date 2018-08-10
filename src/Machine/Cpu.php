@@ -776,10 +776,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             }
                             $this->ip->add($add);
 
-                            $data = $this->instr['is_word'] ? $this->instr['data_w'][2] : $this->instr['data_b'][2];
+                            if ($this->instr['is_word']) {
+                                $data = $this->instr['data_w'][2];
+                            } else {
+                                $data = $this->instr['data_b'][2];
+                            }
                             $this->debugOp(sprintf('TEST %s %04x', $tmpTo, $data));
 
-                            $this->op['res'] = $tmpTo->toInt() & $data;
+                            $this->op['src'] = $data;
+                            $this->op['dst'] = $tmpTo->toInt();
+                            $this->op['res'] = $this->op['dst'] & $this->op['src'];
                             // $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
                             break;
 
@@ -1617,8 +1623,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // TEST reg, r/m - OpCodes: 84 85
                 case 15:
                     $this->debugOp(sprintf('TEST %s %s', $this->instr['to'], $this->instr['from']));
-                    $this->op['res'] = $this->instr['to']->toInt() & $this->instr['from']->toInt();
-                    $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
+                    $this->op['src'] = $this->instr['from']->toInt();
+                    $this->op['dst'] = $this->instr['to']->toInt();
+                    $this->op['res'] = $this->op['dst'] & $this->op['src'];
+                    // $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
                     break;
 
                 // NOP|XCHG AX, reg - OpCodes: 90 91 92 93 94 95 96 97
@@ -2111,11 +2119,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $register = $this->getRegisterByNumber($this->instr['is_word'], 0);
                     $data = $this->instr['is_word'] ? $this->instr['data_w'][0] : $this->instr['data_b'][0];
 
-                    $this->debugOp(sprintf('TEST w=%s %s %04x', $this->instr['is_word'] ? 'Y' : 'N', $register, $data));
+                    $this->debugOp(sprintf('TEST %s %04x', $register, $data));
 
-                    $this->op['res'] = $register->toInt() & $data;
+                    $this->op['src'] = $data;
+                    $this->op['dst'] = $register->toInt();
+                    $this->op['res'] = $this->op['dst'] & $this->op['src'];
                     // $this->output->writeln(sprintf(' -> RES %08b', $this->op['res']));
-
                     break;
 
                 // Emulator-specific 0F xx opcodes
