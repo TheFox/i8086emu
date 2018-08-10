@@ -2057,6 +2057,24 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     }
                     break;
 
+                // AAD
+                case 42:
+                    $this->debugOp(sprintf('AAD'));
+                    $this->instr['is_word'] = false;
+
+                    $data = $this->instr['data_w'][0];
+                    $this->output->writeln(sprintf(' -> data %x', $data));
+
+                    $al = $this->ax->getChildRegister();
+                    $ah = $this->ax->getChildRegister(true);
+
+                    $tmpAx = 0xFF & ($al->toint() + $data * $ah->toInt());
+                    $this->ax->setData($tmpAx);
+                    $this->op['res'] = $tmpAx;
+
+                    $this->output->writeln(sprintf(' -> %s', $this->ax));
+                    break;
+
                 // XLAT - OpCodes: d7
                 case 44:
                     $offset = ($this->segDefaultReg->toInt() << 4) + $this->bx->toInt() + $this->ax->getLowInt();
