@@ -60,6 +60,13 @@ final class TtyOutputDevice extends OutputDevice
         $this->isRunning = false;
     }
 
+    public function __destruct()
+    {
+        if ($this->isRunning && $this->process) {
+            proc_close($this->process);
+        }
+    }
+
     /**
      * @param string $ttyFilePath
      */
