@@ -525,7 +525,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
             ]);
 
             $this->debugInfo(sprintf(
-                '[%s] run %d %04x:%04x -> OP %02x %d -> XLAT %02x %d',
+                '[%s] run %d %04x:%04x    OP %02x %d    XLAT %02x %d',
                 'CPU',
                 $this->runLoop,
                 $this->cs->toInt(),
@@ -582,6 +582,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 $this->output->writeln(sprintf(' -> <info>FROM %s</info>', $this->instr['from']));
                 $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $this->instr['to']));
+                $this->output->writeln(sprintf(' -> <info>RM   %s (%d)</info>', $this->instr['rm_o'], $this->instr['rm_i']));
             }
 
             // fwrite(STDERR, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
@@ -2569,7 +2570,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         // Set Flags.
         $this->flags->setByName('TF', false);
         $this->flags->setByName('IF', false);
-        // @TODO something else todo for interrupt? seems like something is missing..?
     }
 
     private function updateGraphics()
