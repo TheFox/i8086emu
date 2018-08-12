@@ -966,7 +966,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
                             // Write back to RAM.
-                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo);}
+                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);}
 
                             // CF
                             $tmpCf = $this->op['res'] < $this->op['dst'];
@@ -994,7 +994,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
                             // Write back to RAM.
-                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo);}
+                            // if ($tmpTo instanceof AbsoluteAddress) {$this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);}
                             break;
 
                         // ADC
@@ -1162,7 +1162,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
                             // Write back to RAM.
-                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo);
+                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);
 
                             // CF
                             $tmpCf = $this->op['res'] > $this->op['dst'];
@@ -1194,7 +1194,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
                             // Write back to RAM.
-                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo);
+                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);
                             break;
 
                         // CMP reg, imm
@@ -1767,7 +1767,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $offset = $tmpTo->toInt();
                             $this->ram->write($data, $offset, $this->instr['size']);
                         } else {
-                            throw new  UnknownTypeException();
+                            throw new UnknownTypeException();
                         }
 
                         if (1 !== $this->instr['extra']) {
