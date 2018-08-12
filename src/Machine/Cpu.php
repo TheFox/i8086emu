@@ -1348,7 +1348,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         }
                     } elseif (!$this->instr['dir']) {
                         // LEA
-                        $this->debugOp(sprintf('LEA'));
+                        // $this->instr['reg'] += 8;
+                        $this->debugOp(sprintf('LEA w=%d reg=%d',$this->instr['is_word'],$this->instr['reg']));
 
                         $tmpFrom = $this->instr['from'];
                         $tmpTo = $this->instr['to'];
@@ -2514,11 +2515,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     + (0xFFFF & $addr1); // cast to "unsigned short".
 
                 $tmpRm = new AbsoluteAddress(self::SIZE_BYTE << 1, $addr2);
+                // $tmpTo = $tmpRm;
                 break;
 
             case 3:
                 // if mod = 11 then r/m is treated as a REG field
                 $tmpRm = $this->getRegisterByNumber($this->instr['is_word'], $this->instr['rm_i']);
+
+                // $regIndex = $this->getRegIndex($this->instr['is_word'], $this->instr['rm_i']);
+                // $tmpRm = $this->getRegisterByNumber($this->instr['is_word'], $regIndex);
+                // $tmpTo = $tmpRm;
                 break;
 
             default:
@@ -2528,6 +2534,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
         if (!isset($tmpRm)) {
             throw new \RuntimeException(sprintf('rm variable has not been set yet. mod=%d', $this->instr['mode']));
         }
+
+        // $tmpFromIndex = $this->getRegIndex($this->instr['is_word'], $this->instr['reg']);
+        // $tmpFrom = $this->getRegisterByNumber($this->instr['is_word'], $tmpFromIndex);
 
         $this->instr['rm_o'] = $tmpRm;
 
@@ -2540,6 +2549,14 @@ class Cpu implements CpuInterface, DebugAwareInterface
         } else {
             $this->instr['to'] = $tmpRm;
         }
+
+        // if ($this->instr['dir']) {
+        //     $tmp = $tmpFrom;
+        //     $tmpFrom = $tmpRm;
+        //     $tmpTo = $tmp;
+        // }
+        // $this->instr['from'] = $tmpFrom;
+        // $this->instr['to'] = $tmpTo;
     }
 
     private function interrupt(int $code)
@@ -2595,6 +2612,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
     {
         if ($isWord) {
             return $this->registers[$registerId];
+            // $reg= $this->registers[$registerId];
+
+            // $registerId2=$registerId<<1;
+            // $reg2= $this->registers[$registerId2];
+            // return $reg2;
         }
         if ($fnLoop >= 2) {
             throw new \RuntimeException('Unhandled recursive call detected.');
@@ -2605,6 +2627,16 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
         $isHigh = $registerId & 4; // 1xx
         return $register->getChildRegister($isHigh);
+    }
+
+    private function getRegIndex(bool $isWord, int $registerId): int
+    {
+        if ($this->instr['is_word']) {
+            return $registerId < 1;
+        }
+        // $x= ($registerId < 1) + ($registerId >> 2) & 7;
+        $x = (($registerId << 1) + ($registerId >> 2)) & 7;
+        return $x;
     }
 
     private function getSegmentRegisterByNumber(int $regId): Register
