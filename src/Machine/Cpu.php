@@ -1353,7 +1353,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     } elseif (!$this->instr['dir']) {
                         // LEA
                         // $this->instr['reg'] += 8;
-                        $this->debugOp(sprintf('LEA w=%d reg=%d',$this->instr['is_word'],$this->instr['reg']));
+                        $this->debugOp(sprintf('LEA w=%d reg=%d', $this->instr['is_word'], $this->instr['reg']));
 
                         $tmpFrom = $this->instr['from'];
                         $tmpTo = $this->instr['to'];
