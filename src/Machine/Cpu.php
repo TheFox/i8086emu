@@ -2569,24 +2569,32 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf(' -> Interrupt %02x', $code));
 
         // Push Flags.
-        $this->output->writeln(sprintf(' -> PUSH %s', $this->flags));
-        $this->pushDataToStack($this->flags->getData(), $this->flags->getSize());
+        $tmpFlags = DataHelper::arrayToInt($this->flags->getStandardizedData());
+        $this->output->writeln(sprintf(' -> PUSH %s (%x)', $this->flags, $tmpFlags));
+        // $this->pushDataToStack($this->flags->getData(), $this->flags->getSize());
+        $this->pushDataToStack($this->flags->getStandardizedData(), $this->flags->getSize());
 
         // Push Registers.
-        $this->output->writeln(sprintf(' -> PUSH %s', $this->cs));
+        // $this->output->writeln(sprintf(' -> PUSH %s', $this->cs));
         $this->pushRegisterToStack($this->cs);
-        $this->output->writeln(sprintf(' -> PUSH %s', $this->ip));
+        // $this->output->writeln(sprintf(' -> PUSH %s', $this->ip));
         $this->pushRegisterToStack($this->ip);
+
+        $this->output->writeln(sprintf(' -> %s', $this->ss));
+        $this->output->writeln(sprintf(' -> %s', $this->sp));
 
         // Write CS Register.
         $offset = ($code << 2) + 2;
-        $this->output->writeln(sprintf(' -> CS Offset %d/%x', $offset, $offset));
-        $this->ram->write($this->cs->getData(), $offset, $this->cs->getSize());
+        // $this->output->writeln(sprintf(' -> CS Offset %d/%x', $offset, $offset));
+        // $this->ram->write($this->cs->getData(), $offset, $this->cs->getSize());
+        $data = $this->ram->read($offset,$this->cs->getSize());
+        $this->cs->setData($data);
+        $this->output->writeln(sprintf(' -> %s', $this->cs));
 
         // Set IP Register.
         $offset = $code << 2;
         $data = $this->ram->read($offset, $this->ip->getSize());
-        $this->output->writeln(sprintf(' -> %s Offset %d/%x', $this->ip, $offset, $offset));
+        // $this->output->writeln(sprintf(' -> %s Offset %d/%x', $this->ip, $offset, $offset));
         $this->ip->setData($data);
         $this->output->writeln(sprintf(' -> %s', $this->ip));
 

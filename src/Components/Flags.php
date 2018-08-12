@@ -160,6 +160,14 @@ class Flags implements FlagsInterface
         return $data;
     }
 
+    public function getStandardizedData(): \SplFixedArray
+    {
+        $data = $this->getData();
+        $data[1] |= 0xF0;
+        $data[0] |= 0x2;
+        return $data;
+    }
+
     public function toInt(): int
     {
         $i = 0;
