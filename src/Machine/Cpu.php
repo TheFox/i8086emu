@@ -506,7 +506,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
-        // $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug2.log", "w");
+        // $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug.log", "w");
 
         while ($this->instr['raw'] = $this->getOpcode()) {
             $this->initInstruction();
@@ -580,9 +580,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 $this->decodeRegisterMemory();
 
-                $this->output->writeln(sprintf(' -> <info>FROM %s</info>', $this->instr['from']));
-                $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $this->instr['to']));
-                $this->output->writeln(sprintf(' -> <info>RM   %s (%d)</info>', $this->instr['rm_o'], $this->instr['rm_i']));
+                // $this->output->writeln(sprintf(' -> <info>FROM %s</info>', $this->instr['from']));
+                // $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $this->instr['to']));
+                // $this->output->writeln(sprintf(' -> <info>RM   %s (%d)</info>', $this->instr['rm_o'], $this->instr['rm_i']));
             }
 
             // fwrite(STDERR, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
