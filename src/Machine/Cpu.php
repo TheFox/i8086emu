@@ -1601,7 +1601,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                             $this->ip->setData(0);
 
-                            $data = $this->instr['data_b'][2];
+                            $data = $this->instr['data_w'][2];
 
                             $this->output->writeln(sprintf(' -> %s', $this->cs));
                             $this->cs->setData($data);
