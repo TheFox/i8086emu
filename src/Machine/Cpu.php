@@ -2420,8 +2420,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // KEYBOARD_DRIVER read(0, mem + 0x4A6, 1) && (int8_asap = (mem[0x4A6] == 0x1B), pc_interrupt(7))
                 $char = $this->tty->getChar();
-                $this->ram->write($char, 0x4A6, 1);
+
                 if ($char) {
+                    $this->ram->write($char, 0x4A6, 1);
                     $this->int8 = 0x1B === $char;
                     $this->interrupt(7);
                 }
