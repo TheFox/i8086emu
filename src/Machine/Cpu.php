@@ -525,12 +525,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
             ]);
 
             $this->debugInfo(sprintf(
-                '[%s] run %d %04x:%04x -> OP x%02x %d [%08b] -> XLAT x%02x %d',
+                '[%s] run %d %04x:%04x -> OP %02x %d -> XLAT %02x %d',
                 'CPU',
                 $this->runLoop,
                 $this->cs->toInt(),
                 $this->ip->toInt(),
-                $this->instr['raw'],
                 $this->instr['raw'],
                 $this->instr['raw'],
                 $this->instr['xlat'],
@@ -934,6 +933,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m
                 // OpCodes: 00 01 02 03 08 09 0a 0b 10 11 12 13 18 19 1a 1b 20 21 22 23 28 29 2a 2b 30 31 32 33 38 39 3a 3b 88 89 8a 8b
                 case 9:
+                    $this->debugOp(sprintf('CMP[9] reg, r/m'));
                     switch ($this->instr['extra']) {
                         // ADD
                         case 0:
