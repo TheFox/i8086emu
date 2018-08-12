@@ -1347,16 +1347,38 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         }
                     } elseif (!$this->instr['dir']) {
                         // LEA
+                        $this->debugOp(sprintf('LEA'));
+
+                        $tmpFrom = $this->instr['from'];
+                        $tmpTo = $this->instr['to'];
+                        $this->output->writeln(sprintf(' -> %s', $tmpFrom));
+                        $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
                         $this->segOverrideEn = 1;
                         $this->segOverrideReg = 12; // Zero-Register
 
                         // Since the direction in this case is always false we have to swap FROM/TO.
                         $this->decodeRegisterMemory();
 
-                        $this->debugOp(sprintf('LEA to=%s from=%s rm=%s', $this->instr['to'], $this->instr['from'], $this->instr['rm_o']));
+                        $tmpFrom = $this->instr['to'];
+                        $tmpTo = $this->instr['from'];
 
-                        $this->instr['to']->setData($this->instr['from']->toInt());
-                        // $this->output->writeln(sprintf(' -> to=%s', $this->instr['to']));
+                        $this->output->writeln(sprintf(' -> %s', $tmpFrom));
+                        $this->output->writeln(sprintf(' -> %s', $tmpTo));
+
+                        if ($tmpFrom instanceof AbsoluteAddress && $tmpTo instanceof Register) {
+                            // FROM  Absolute Address
+                            //   TO  Register
+
+                            $data = $tmpFrom->toInt();
+                            // $offset = $tmpTo->toInt();
+                            $tmpTo->setData($data);
+                        } else {
+                            throw new UnknownTypeException();
+                        }
+
+                        // Debug
+                        $this->output->writeln(sprintf(' -> %s', $tmpTo));
                     } else {
                         // POP
                         $this->debugOp(sprintf('POP'));
