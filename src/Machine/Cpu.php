@@ -32,7 +32,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 {
     public const SIZE_BYTE = 2;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
-    public const GRAPHICS_UPDATE_DELAY = 3600; // Original 360000
+    public const GRAPHICS_UPDATE_DELAY = 50000; // Original 360000
     // Lookup tables in the BIOS binary.
     public const TABLE_XLAT_OPCODE = 8;
     public const TABLE_XLAT_SUBFUNCTION = 9;
@@ -882,7 +882,57 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                         // DIV
                         case 6:
-                            throw new NotImplementedException('DIV');
+                            // Divisor
+                            /** @var Register $divisor */
+                            $divisor = $this->instr['rm_o'];
+                            $divisorInt = $divisor->toInt();
+
+                            // Dividend
+                            $dividendLow = $this->ax->toInt();
+
+                            if ($this->instr['is_word']) {
+                                $dividendHigh = $this->dx->toInt() << 16;
+                            } else {
+                                $dividendHigh = 0;
+                            }
+
+                            $dividend = $dividendHigh | $dividendLow;
+                            $this->output->writeln(sprintf(' -> dividend %d %x', $dividend, $dividend));
+
+                            // Debug
+                            $this->debugOp(sprintf('DIV %x / %s', $dividend, $divisor));
+
+                            // Quotient
+                            $quotient = intval($dividend / $divisorInt);
+                            $this->output->writeln(sprintf(' -> quotient %d %x', $quotient, $quotient));
+
+                            // Unsigned Short Quotient
+                            $usQuotient = $quotient & 0xFFFF;
+                            $this->output->writeln(sprintf(' -> us quotient %d %x', $usQuotient, $usQuotient));
+
+                            // Diff
+                            $tmpDiff = $quotient - $usQuotient;
+                            $this->output->writeln(sprintf(' -> diff %d %x', $tmpDiff, $tmpDiff));
+
+                            if ($divisorInt && !$tmpDiff) {
+                                $this->ax->setData($quotient);
+
+                                // Remainder
+                                $remainder = $dividend - $divisorInt * $this->ax->toInt();
+
+                                if ($this->instr['is_word']) {
+                                    $this->dx->setData($remainder);
+                                } else {
+                                    $this->cx->setData($remainder);
+                                }
+                            } else {
+                                $this->output->writeln(sprintf(' -> int0'));
+                                $this->interrupt(0);
+                            }
+
+                            $this->output->writeln(sprintf(' -> %s', $this->ax));
+                            $this->output->writeln(sprintf(' -> %s', $this->cx));
+                            $this->output->writeln(sprintf(' -> %s', $this->dx));
                             break;
 
                         // IDIV
@@ -2319,7 +2369,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     ));
             } // switch $this->instr['xlat']
 
-            $this->output->writeln(sprintf(' -> %s', $this->flags));
+            // $this->output->writeln(sprintf(' -> %s', $this->flags));
 
             // Debug
             // $tmpData = $this->ram->read(0x7c00, 1);
@@ -2587,7 +2637,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $offset = ($code << 2) + 2;
         // $this->output->writeln(sprintf(' -> CS Offset %d/%x', $offset, $offset));
         // $this->ram->write($this->cs->getData(), $offset, $this->cs->getSize());
-        $data = $this->ram->read($offset,$this->cs->getSize());
+        $data = $this->ram->read($offset, $this->cs->getSize());
         $this->cs->setData($data);
         $this->output->writeln(sprintf(' -> %s', $this->cs));
 

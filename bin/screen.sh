@@ -14,4 +14,3 @@ status=$?
 echo "status: ${status}"
 
 exit ${status}
-df

@@ -68,10 +68,6 @@ mem_top	db	0xea, 0, 0x01, 0, 0xf0, '03/08/14', 0, 0xfe, 0
 
 bios_entry:
 
-	;mov ax, 0x200
-	;cmp ax, 18
-	;hlt
-
 	; Set up initial stack to F000:F000
 	mov	sp, 0xf000
 	mov	ss, sp
@@ -80,15 +76,6 @@ bios_entry:
 	pop		es
 
 	push	ax
-
-	;mov di, 21
-	;mov word [es:vmem_offset-bios_data], 7
-
-	;sub	di, [es:vmem_offset-bios_data]
-	;sub di, 1
-
-	;mov ax, 2
-	;sub di, ax
 
 	; The emulator requires a few control registers in memory to always be zero for correct
 	; instruction decoding (in particular, register look-up operations). These are the
