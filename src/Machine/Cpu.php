@@ -84,6 +84,13 @@ class Cpu implements CpuInterface, DebugAwareInterface
     private $tty;
 
     /**
+     * IO Ports
+     *
+     * @var array
+     */
+    private $io;
+
+    /**
      * @var Register
      */
     private $ax;
@@ -292,6 +299,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
         $this->trapFlag = false;
         $this->int8 = false;
+
+        // IO Ports
+        $this->io = new \SplFixedArray(0x10000);
 
         $this->setupRegisters();
         $this->setupFlags();
@@ -1967,13 +1977,63 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // MOV r/m, immed - OpCodes: c6 c7
                 case 20:
-                    $data = $this->instr['is_word'] ? $this->instr['data_w'][2] : $this->instr['data_b'][2];
+                    if ($this->instr['is_word']) {
+                        $data = $this->instr['data_w'][2];
+                    } else {
+                        $data = $this->instr['data_b'][2];
+                    }
 
                     // $this->instr['dir'] is always true (1100011x) so take FROM here.
                     $this->debugOp(sprintf('MOV %s %x', $this->instr['from'], $data));
 
                     $offset = $this->instr['from']->toInt();
                     $this->ram->write($data, $offset, $this->instr['size']);
+                    break;
+
+                // IN AL/AX, DX/imm8
+                case 21:
+                    $this->debugOp(sprintf('IN AL/AX, DX/imm8'));
+
+                    // PIC EOI
+                    $this->io[0x20] = 0;
+
+                    // PIT channel 0/2 read placeholder
+                    if (!array_key_exists(0x40, $this->io)) {
+                        $this->io[0x40] = 0;
+                    }
+                    --$this->io[0x40];
+                    $this->io[0x42] = $this->io[0x40];
+
+                    // CGA refresh
+                    $this->io[0x3DA] ^= 9;
+
+                    if ($this->instr['extra']) {
+                        $data = $this->dx->toInt();
+                    } else {
+                        $data = $this->instr['data_b'];
+                    }
+
+                    // Scancode read flag.
+                    if (0x60 === $data) {
+                        $this->io[0x64] = 0;
+                    }
+
+                    // CRT cursor position
+                    if (0x3D5 === $data && (7 === intval($this->io[0x3D4]) >> 1)) {
+                        if ($this->io[0x3D4] & 1) {
+                            $bitsShift = 0;
+                            $bitsAnd = 0xFF;
+                        } else {
+                            $bitsShift = 8;
+                            $bitsAnd = 0xFF00;
+                        }
+
+                        $this->io[0x3D5] = 0; // @todo
+                    }
+
+                    // @todo set AL here
+
+                    throw new NotImplementedException();
                     break;
 
                 // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
