@@ -707,19 +707,22 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $tmpOf = $this->setOverflowFlagArith2($this->op['dst'], $this->instr['size'], $this->instr['dir']);
 
                             // Debug
-                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d AF=%d OF=%d RES=0x%x',
+                            $this->debugOp(sprintf('%s reg=%d d=%x d0=%08b w=%d RES=0x%x',
                                 $this->instr['dir'] ? 'DEC' : 'INC',
                                 $this->instr['reg'],
                                 $this->instr['dir'],
                                 $this->instr['data_b'][0],
                                 $this->instr['is_word'],
-                                $tmpAf, $tmpOf,
                                 $this->op['res']));
+
+                            $this->debugOp(sprintf(' -> AF %d', $tmpAf));
+                            $this->debugOp(sprintf(' -> OF %d', $tmpOf));
 
                             // Decode like ADC.
                             // We need that later.
                             $this->instr['raw'] = 0x10; // needed
                             $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
+                            $this->instr['set_flags_type'] = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
                             break;
 
                         default:
