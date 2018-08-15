@@ -1689,11 +1689,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         $add = $this->instr['data_w'][0];
                     }
 
-                    $this->debugCsIpRegister();
+                    // $this->debugCsIpRegister();
                     if ($add) {
                         $this->ip->add($add);
                     }
-                    $this->debugCsIpRegister($add);
+                    // $this->debugCsIpRegister($add);
                     break;
 
                 // TEST reg, r/m - OpCodes: 84 85
@@ -2182,9 +2182,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 case 40:
                     $this->debugOp(sprintf('INTO'));
 
-                    $this->debugCsIpRegister();
+                    // $this->debugCsIpRegister();
                     $this->ip->add(1);
-                    $this->debugCsIpRegister();
+                    // $this->debugCsIpRegister();
 
                     if ($this->flags->get(Flags::FLAG_OF)) {
                         $this->interrupt(4);
@@ -2438,6 +2438,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     ));
             } // switch $this->instr['xlat']
 
+            // $tmp=$this->ram->read(0xf09a0-1,2);
+            // if (null===$tmp[0]||0===$tmp[0])
+            //     exit(0);
+
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
             $baseInstrSize = $this->biosDataTables[self::TABLE_BASE_INST_SIZE][$this->instr['raw']];
@@ -2463,32 +2467,32 @@ class Cpu implements CpuInterface, DebugAwareInterface
             // If instruction needs to update SF, ZF and PF, set them as appropriate.
             // $this->output->writeln(sprintf(' -> Set Flags Type: %d', $this->instr['set_flags_type']));
             if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_SZP) {
-                if (null === $this->op['res']) {
-                    throw new NotImplementedException('op result has not been set, but maybe it needs to be.'); // @todo remove
-                }
+                // if (null === $this->op['res']) {
+                //     throw new NotImplementedException('op result has not been set, but maybe it needs to be.'); // @todo remove
+                // }
 
                 // unsigned int. For example, int -42 = unsigned char 214
                 // Since we deal with Integer values < 256 we only need a 0xFF-mask.
                 $ucOpResult = $this->op['res'] & 0xFF;
 
-                if ($ucOpResult < 0 || $ucOpResult > 255) {
-                    throw new ValueExceededException(sprintf('ucOpResult is %d (%x, res=%d/%x). Must be >=0 and < 256.', $ucOpResult, $ucOpResult, $this->op['res'], $this->op['res'])); // @todo remove
-                }
+                // if ($ucOpResult < 0 || $ucOpResult > 255) {
+                //     throw new ValueExceededException(sprintf('ucOpResult is %d (%x, res=%d/%x). Must be >=0 and < 256.', $ucOpResult, $ucOpResult, $this->op['res'], $this->op['res'])); // @todo remove
+                // }
 
                 // Sign Flag
                 $tmpSign = $this->op['res'] < 0;
                 $this->flags->set(Flags::FLAG_SF, $tmpSign);
-                $this->output->writeln(sprintf(' -> SF %d', $this->flags->get(Flags::FLAG_SF)));
+                // $this->output->writeln(sprintf(' -> SF %d', $this->flags->get(Flags::FLAG_SF)));
 
                 // Zero Flag
                 $tmpZero = $this->op['res'] == 0;
                 $this->flags->set(Flags::FLAG_ZF, $tmpZero);
-                $this->output->writeln(sprintf(' -> ZF %d', $this->flags->get(Flags::FLAG_ZF)));
+                // $this->output->writeln(sprintf(' -> ZF %d', $this->flags->get(Flags::FLAG_ZF)));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
                 $this->flags->setByName('PF', $tmpParity);
-                $this->output->writeln(sprintf(' -> PF %d', $this->flags->get(Flags::FLAG_PF)));
+                // $this->output->writeln(sprintf(' -> PF %d', $this->flags->get(Flags::FLAG_PF)));
 
                 if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
@@ -2505,7 +2509,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
             // Debug
             if (self::DEBUG_LOG) {
-                fwrite($fh, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
+                fwrite($fh, sprintf("OP %d %04x:%04x\n", $this->instr['xlat'], $this->cs->toInt(), $this->ip->toInt()));
                 fwrite($fh, sprintf("%s\n", $this->flags));
             }
             // $this->output->writeln(sprintf(' -> %s', $this->flags));
@@ -2669,28 +2673,28 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf(' -> Interrupt %02x', $code));
 
         // Push Flags.
-        $tmpFlags = DataHelper::arrayToInt($this->flags->getStandardizedData());
-        $this->output->writeln(sprintf(' -> PUSH %s (%x)', $this->flags, $tmpFlags));
+        // $tmpFlags = DataHelper::arrayToInt($this->flags->getStandardizedData());
+        // $this->output->writeln(sprintf(' -> PUSH %s (%x)', $this->flags, $tmpFlags));
         $this->pushDataToStack($this->flags->getStandardizedData(), $this->flags->getSize());
 
         // Push Registers.
         $this->pushRegisterToStack($this->cs);
         $this->pushRegisterToStack($this->ip);
 
-        $this->output->writeln(sprintf(' -> %s', $this->ss));
-        $this->output->writeln(sprintf(' -> %s', $this->sp));
+        // $this->output->writeln(sprintf(' -> %s', $this->ss));
+        // $this->output->writeln(sprintf(' -> %s', $this->sp));
 
         // Write CS Register.
         $offset = ($code << 2) + 2;
         $data = $this->ram->read($offset, $this->cs->getSize());
         $this->cs->setData($data);
-        $this->output->writeln(sprintf(' -> %s', $this->cs));
+        // $this->output->writeln(sprintf(' -> %s', $this->cs));
 
         // Set IP Register.
         $offset = $code << 2;
         $data = $this->ram->read($offset, $this->ip->getSize());
         $this->ip->setData($data);
-        $this->output->writeln(sprintf(' -> %s', $this->ip));
+        // $this->output->writeln(sprintf(' -> %s', $this->ip));
 
         // Set Flags.
         $this->flags->setByName('TF', false);
@@ -2848,23 +2852,22 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
     private function pushDataToStack(iterable $data, int $size)
     {
-        $this->debugSsSpRegister();
+        // $this->debugSsSpRegister();
 
         $this->sp->add(-$size);
 
         $address = $this->getEffectiveStackPointerAddress();
         $offset = $address->toInt();
         $this->ram->write($data, $offset, $size);
-
-        $this->debugSsSpRegister();
+        // $this->debugSsSpRegister();
     }
 
     private function pushRegisterToStack(Register $register)
     {
         $size = $register->getSize();
-        if (self::SIZE_BYTE !== $size) {
-            throw new \RangeException(sprintf('Wrong size. Register is %d bytes, data is %d bytes.', $register->getSize(), self::SIZE_BYTE));
-        }
+        // if (self::SIZE_BYTE !== $size) {
+        //     throw new \RangeException(sprintf('Wrong size. Register is %d bytes, data is %d bytes.', $register->getSize(), self::SIZE_BYTE));
+        // }
 
         $this->pushDataToStack($register->getData(), $size);
     }
@@ -2934,7 +2937,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $offset = $address->toInt();
         $data = $this->ram->read($offset, self::SIZE_BYTE);
 
-        $this->output->writeln(sprintf(' -> %s %s -> %04x [%020b] -> 0=%02x 1=%02x', $this->ss, $this->sp, $offset, $offset, $data[0], $data[1]));
+        $this->output->writeln(sprintf(' -> %s %s', $this->ss, $this->sp));
     }
 
     private function debugCsIpRegister(int $add = 0)

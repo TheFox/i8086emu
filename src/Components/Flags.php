@@ -110,7 +110,8 @@ class Flags implements FlagsInterface
             $val = true;
         }
         if (12 === $flagId) {
-            throw new \RuntimeException('Since we use FLAG 12 as Always-Zero FLAG we cannot override it.');
+            exit(1);
+        //     throw new \RuntimeException('Since we use FLAG 12 as Always-Zero FLAG we cannot override it.');
         }
         $this->data[$flagId] = $val;
     }
