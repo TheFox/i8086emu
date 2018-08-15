@@ -376,29 +376,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
     public function setRam(RamInterface $ram)
     {
         $this->ram = $ram;
-
-        // Debug int1e SPT
-        // $fn = function (array $eventData) {
-        //     // $this->output->writeln(sprintf(' -> EVENT_CALLBACK'));
-        //     [
-        //         'offset' => $offset,
-        //         'length' => $length,
-        //     ] = $eventData;
-        //     // $this->output->writeln(sprintf(' -> offset %x', $offset));
-        //     // $this->output->writeln(sprintf(' -> length %d', $length));
-        //
-        //     $sptAddr = 0xf1039; // Prod
-        //     // $sptAddr = 0xf1044; // Dev
-        //     $end = $offset + $length;
-        //     if ($sptAddr >= $offset && $sptAddr <= $end) {
-        //         $this->output->writeln(sprintf(' -> EVENT_CALLBACK OK'));
-        //     }
-        // };
-        // $event = new Event(DebugRam::EVENT_WRITE_POST, $fn);
-        // $this->ram->addEvent($event);
-        //
-        // $event = new Event(DebugRam::EVENT_READ_PRE, $fn);
-        // $this->ram->addEvent($event);
     }
 
     /**
@@ -594,12 +571,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 // $this->output->writeln(sprintf(' -> <info>TO   %s</info>', $this->instr['to']));
                 // $this->output->writeln(sprintf(' -> <info>RM   %s (%d)</info>', $this->instr['rm_o'], $this->instr['rm_i']));
             }
-
-            // fwrite(STDERR, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
-
-            // if ($this->runLoop >= 65753) {
-            //     exit(0);
-            // }
 
             switch ($this->instr['xlat']) {
                 // JMP Conditional jump (JAE, JNAE, etc.) - OpCodes: 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f f1
@@ -2449,18 +2420,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     ));
             } // switch $this->instr['xlat']
 
-            // $this->output->writeln(sprintf(' -> %s', $this->flags));
-
-            // Debug
-            // $tmpData = $this->ram->read(0x7c00, 1);
-            // if (null !== $tmpData[0]) {
-            //     $this->output->writeln(sprintf(' -> 0x7c00 OK'));
-            // }
-            // $tmpData = $this->ram->read(0x8100, 1);
-            // if (null !== $tmpData[0]) {
-            //     $this->output->writeln(sprintf(' -> 0x8100 OK'));
-            // }
-
             // Increment instruction pointer by computed instruction length.
             // Tables in the BIOS binary help us here.
             $baseInstrSize = $this->biosDataTables[self::TABLE_BASE_INST_SIZE][$this->instr['raw']];
@@ -2656,10 +2615,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
             case 3:
                 // if mod = 11 then r/m is treated as a REG field
                 $tmpRm = $this->getRegisterByNumber($this->instr['is_word'], $this->instr['rm_i']);
-
-                // $regIndex = $this->getRegIndex($this->instr['is_word'], $this->instr['rm_i']);
-                // $tmpRm = $this->getRegisterByNumber($this->instr['is_word'], $regIndex);
-                // $tmpTo = $tmpRm;
                 break;
 
             default:
@@ -2669,9 +2624,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         if (!isset($tmpRm)) {
             throw new \RuntimeException(sprintf('rm variable has not been set yet. mod=%d', $this->instr['mode']));
         }
-
-        // $tmpFromIndex = $this->getRegIndex($this->instr['is_word'], $this->instr['reg']);
-        // $tmpFrom = $this->getRegisterByNumber($this->instr['is_word'], $tmpFromIndex);
 
         $this->instr['rm_o'] = $tmpRm;
 
@@ -2684,14 +2636,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         } else {
             $this->instr['to'] = $tmpRm;
         }
-
-        // if ($this->instr['dir']) {
-        //     $tmp = $tmpFrom;
-        //     $tmpFrom = $tmpRm;
-        //     $tmpTo = $tmp;
-        // }
-        // $this->instr['from'] = $tmpFrom;
-        // $this->instr['to'] = $tmpTo;
     }
 
     private function interrupt(int $code)
@@ -2701,13 +2645,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
         // Push Flags.
         $tmpFlags = DataHelper::arrayToInt($this->flags->getStandardizedData());
         $this->output->writeln(sprintf(' -> PUSH %s (%x)', $this->flags, $tmpFlags));
-        // $this->pushDataToStack($this->flags->getData(), $this->flags->getSize());
         $this->pushDataToStack($this->flags->getStandardizedData(), $this->flags->getSize());
 
         // Push Registers.
-        // $this->output->writeln(sprintf(' -> PUSH %s', $this->cs));
         $this->pushRegisterToStack($this->cs);
-        // $this->output->writeln(sprintf(' -> PUSH %s', $this->ip));
         $this->pushRegisterToStack($this->ip);
 
         $this->output->writeln(sprintf(' -> %s', $this->ss));
@@ -2715,8 +2656,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
         // Write CS Register.
         $offset = ($code << 2) + 2;
-        // $this->output->writeln(sprintf(' -> CS Offset %d/%x', $offset, $offset));
-        // $this->ram->write($this->cs->getData(), $offset, $this->cs->getSize());
         $data = $this->ram->read($offset, $this->cs->getSize());
         $this->cs->setData($data);
         $this->output->writeln(sprintf(' -> %s', $this->cs));
@@ -2724,7 +2663,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         // Set IP Register.
         $offset = $code << 2;
         $data = $this->ram->read($offset, $this->ip->getSize());
-        // $this->output->writeln(sprintf(' -> %s Offset %d/%x', $this->ip, $offset, $offset));
         $this->ip->setData($data);
         $this->output->writeln(sprintf(' -> %s', $this->ip));
 
@@ -2755,11 +2693,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
     {
         if ($isWord) {
             return $this->registers[$registerId];
-            // $reg= $this->registers[$registerId];
-
-            // $registerId2=$registerId<<1;
-            // $reg2= $this->registers[$registerId2];
-            // return $reg2;
         }
         if ($fnLoop >= 2) {
             throw new \RuntimeException('Unhandled recursive call detected.');
@@ -2777,7 +2710,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
         if ($this->instr['is_word']) {
             return $registerId < 1;
         }
-        // $x= ($registerId < 1) + ($registerId >> 2) & 7;
         $x = (($registerId << 1) + ($registerId >> 2)) & 7;
         return $x;
     }
@@ -3004,14 +2936,10 @@ class Cpu implements CpuInterface, DebugAwareInterface
     {
         $this->output->writeln(sprintf(' -> %s %s %s %s', $this->ax, $this->cx, $this->bx, $this->dx));
 
-        //$this->output->writeln(sprintf(' -> %s',  $this->bp));
         $this->output->writeln(sprintf(' -> %s %s', $this->ss, $this->sp));
         $this->output->writeln(sprintf(' -> %s %s', $this->si, $this->di));
 
         $this->output->writeln(sprintf(' -> %s %s', $this->cs, $this->ip));
-        //$this->output->writeln(sprintf(' -> %s', $this->es));
-        //$this->output->writeln(sprintf(' -> %s', ));
-        //$this->output->writeln(sprintf(' -> %s', $this->ds));
 
         $this->output->writeln(sprintf(' -> %s', $this->flags));
 
