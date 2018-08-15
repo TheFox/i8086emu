@@ -2005,13 +2005,17 @@ class Cpu implements CpuInterface, DebugAwareInterface
                     $this->io[0x42] = $this->io[0x40];
 
                     // CGA refresh
-                    $this->io[0x3DA] ^= 9;
+                    if (array_key_exists(0x3DA, $this->io)) {
+                        $this->io[0x3DA] = intval($this->io[0x3DA]) ^ 9;
+                    }
 
                     if ($this->instr['extra']) {
                         $data = $this->dx->toInt();
                     } else {
-                        $data = $this->instr['data_b'];
+                        $data = $this->instr['data_b'][0];
                     }
+
+                    $this->output->writeln(sprintf(' -> data %x', $data));
 
                     // Scancode read flag.
                     if (0x60 === $data) {
@@ -2028,12 +2032,28 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $bitsAnd = 0xFF00;
                         }
 
-                        $this->io[0x3D5] = 0; // @todo
+                        $ram49de = $this->ram->read(0x49E, 2);
+                        $ram49d = $ram49de[0];
+                        $ram49e = $ram49de[1];
+                        $ram4ad = $this->ram->read(0x4ad, 1);
+                        $this->io[0x3D5] = (($ram49e * 80 + $ram49d + $ram4ad) & $bitsAnd) >> $bitsShift;
                     }
 
-                    // @todo set AL here
+                    $al = $this->ax->getChildRegister();
+                    $this->output->writeln(sprintf(' -> %s', $al));
 
-                    throw new NotImplementedException();
+                    if (array_key_exists($data, $this->io)) {
+                        $this->op['src'] = intval($this->io[$data]);
+                        $this->op['dst'] = $al->toInt();
+                        $this->op['res'] = $this->op['src'];
+
+                        $al->setData($this->op['res']);
+                    }
+
+                    $this->output->writeln(sprintf(' -> src %x', $this->op['src']));
+                    $this->output->writeln(sprintf(' -> dst %x', $this->op['dst']));
+                    $this->output->writeln(sprintf(' -> res %x', $this->op['res']));
+                    $this->output->writeln(sprintf(' -> %s', $al));
                     break;
 
                 // OUT DX/imm8, AL/AX - OpCodes: e6 e7 ee ef
