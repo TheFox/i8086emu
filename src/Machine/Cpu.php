@@ -30,6 +30,7 @@ use TheFox\I8086emu\Helper\NumberHelper;
 
 class Cpu implements CpuInterface, DebugAwareInterface
 {
+    private const DEBUG_LOG = true;
     public const SIZE_BYTE = 2;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
     public const GRAPHICS_UPDATE_DELAY = 50000; // Original 360000
@@ -493,7 +494,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf('CS: %04x', $this->cs->toInt()));
         $this->output->writeln(sprintf('IP: %04x', $this->ip->toInt()));
 
-        // $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug.log", "w");
+        if (self::DEBUG_LOG) {
+            $fh = fopen("/Users/thefox/work/dev/i8086emu/log/i8086emu_debug.log", "w");
+        }
 
         while ($this->instr['raw'] = $this->getOpcode()) {
             $this->initInstruction();
@@ -2486,8 +2489,11 @@ class Cpu implements CpuInterface, DebugAwareInterface
             }
 
             // Debug
-            // fwrite($fh, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
-            // fwrite($fh, sprintf("%s\n", $this->flags));
+            if (self::DEBUG_LOG) {
+                fwrite($fh, sprintf("OP %d: %d\n", $this->runLoop, $this->instr['xlat']));
+                fwrite($fh, sprintf("%s\n", $this->flags));
+            }
+            // $this->output->writeln(sprintf(' -> %s', $this->flags));
 
             // Update Instruction counter.
             ++$this->runLoop;
