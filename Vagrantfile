@@ -7,6 +7,7 @@ Vagrant.configure("2") do |config|
 
   #config.vm.network "forwarded_port", guest: 3000, host: 3001
 
+  config.vm.hostname = 'i8086emu'
   # config.vm.network "private_network", ip: "192.168.33.10"
   config.vm.synced_folder ".", "/app"
 
@@ -31,7 +32,7 @@ Vagrant.configure("2") do |config|
 
       apt-get update -yqq
       apt-get upgrade -y
-      apt-get install -y man rsync ack git gawk htop tig net-tools zlib1g-dev nasm socat php${PHP_VERSION}-dev php${PHP_VERSION}-cli php${PHP_VERSION}-zip composer
+      apt-get install -y man rsync ack git gawk htop tig net-tools zlib1g-dev nasm socat php${PHP_VERSION}-dev php${PHP_VERSION}-cli php${PHP_VERSION}-zip php${PHP_VERSION}-mbstring composer
 
       netstat -rn | grep "^0.0.0.0 " | cut -d " " -f10 > /tmp/host_ip.txt
       host_ip=$(cat /tmp/host_ip.txt)
