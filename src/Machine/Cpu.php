@@ -1224,6 +1224,12 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                                 $this->op['src'] = $tmpFrom->toInt();
                                 $this->op['dst'] = $tmpTo->toInt();
+                            } elseif (is_numeric($tmpFrom) && $tmpTo instanceof Register) {
+                                // FROM  number
+                                //   TO  Register
+
+                                $this->op['src'] = $tmpFrom;
+                                $this->op['dst'] = $tmpTo->toInt();
                             } else {
                                 throw new UnknownTypeException();
                             }
@@ -1235,7 +1241,9 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->output->writeln(sprintf(' -> %s', $tmpTo));
 
                             // Write back to RAM.
-                            // if ($tmpTo instanceof AbsoluteAddress)$this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);
+                            // if ($tmpTo instanceof AbsoluteAddress) {
+                            //     $this->writeAbsoluteAddressToRam($tmpTo, $this->instr['size']);
+                            // }
                             break;
 
                         // CMP reg, imm
