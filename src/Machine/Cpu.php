@@ -30,7 +30,7 @@ use TheFox\I8086emu\Helper\NumberHelper;
 
 class Cpu implements CpuInterface, DebugAwareInterface
 {
-    private const DEBUG_LOG = true;
+    private const DEBUG_LOG = false;
     public const SIZE_BYTE = 2;
     public const KEYBOARD_TIMER_UPDATE_DELAY = 20000;
     public const GRAPHICS_UPDATE_DELAY = 50000; // Original 360000
@@ -721,8 +721,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // Decode like ADC.
                             // We need that later.
                             $this->instr['raw'] = 0x10; // needed
-                            $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
-                            $this->instr['set_flags_type'] = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
+                            $this->decodeInstruction();
                             break;
 
                         default:
@@ -755,9 +754,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         case 0:
                             // Decode like AND.
                             $this->instr['raw'] = 0x20;
-                            $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
-                            //$this->$this->instr['extra'] = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$this->instr['raw']];
-                            $this->instr['has_modregrm'] = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$this->instr['raw']];
+                            $this->decodeInstruction();
 
                             $add = 1;
                             if ($this->instr['is_word']) {
@@ -800,7 +797,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('NEG %s', $tmpTo));
 
                             $this->instr['raw'] = 0x28; // Decode like SUB
-                            $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
+                            $this->decodeInstruction();
 
                             if ($tmpTo instanceof Register) {
                                 $this->op['src'] = $tmpTo->toInt();
@@ -828,7 +825,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             $this->debugOp(sprintf('MUL %s (%d)', $tmpTo, $this->instr['reg']));
 
                             $this->instr['raw'] = 0x10;
-                            $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
+                            $this->decodeInstruction();
 
                             if ($this->instr['is_word']) {
                                 $multiplicand = $this->ax;
@@ -839,7 +836,6 @@ class Cpu implements CpuInterface, DebugAwareInterface
                             // $this->output->writeln(sprintf(' -> %s', $multiplicand));
 
                             if ($tmpTo instanceof Register) {
-
                                 $this->op['src'] = $tmpTo->toInt();
                                 $this->op['res'] = $this->op['src'] * $multiplicand->toInt();
 
@@ -967,9 +963,7 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                     // Decode
                     $this->instr['raw'] = $this->instr['reg'] << 3;
-                    $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
-                    $this->instr['extra'] = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$this->instr['raw']];
-                    $this->instr['set_flags_type'] = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
+                    $this->decodeInstruction();
                 // no break
 
                 // ADD|OR|ADC|SBB|AND|SUB|XOR|CMP|MOV reg, r/m
@@ -1522,8 +1516,8 @@ class Cpu implements CpuInterface, DebugAwareInterface
                         if ($ireg > 3) {
                             // Decode like ADC.
                             // We need that later.
-                            $this->instr['raw'] = 0x10; // needed
-                            $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
+                            $this->instr['raw'] = 0x10;
+                            $this->decodeInstruction();
                         }
 
                         // SHR or SAR
@@ -2177,14 +2171,24 @@ class Cpu implements CpuInterface, DebugAwareInterface
                 case 39:
                     // Decode like INT
                     $this->instr['raw'] = 0xCD;
-                    $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
-                    //$this->$this->instr['extra'] = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$this->instr['raw']];
-                    $this->instr['has_modregrm'] = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$this->instr['raw']];
+                    $this->decodeInstruction();
 
                     $this->debugOp(sprintf('INT %x', $this->instr['data_b'][0]));
                     $this->ip->add(2);
                     // $this->output->writeln(sprintf(' -> %s', $this->ip));
                     $this->interrupt($this->instr['data_b'][0]);
+                    break;
+
+                case 40:
+                    $this->debugOp(sprintf('INTO'));
+
+                    $this->debugCsIpRegister();
+                    $this->ip->add(1);
+                    $this->debugCsIpRegister();
+
+                    if ($this->flags->get(Flags::FLAG_OF)) {
+                        $this->interrupt(4);
+                    }
                     break;
 
                 // AAM
@@ -2473,18 +2477,18 @@ class Cpu implements CpuInterface, DebugAwareInterface
 
                 // Sign Flag
                 $tmpSign = $this->op['res'] < 0;
-                $this->flags->setByName('SF', $tmpSign);
-                // $this->output->writeln(sprintf(' -> SF %d', $this->flags->getByName('SF')));
+                $this->flags->set(Flags::FLAG_SF, $tmpSign);
+                $this->output->writeln(sprintf(' -> SF %d', $this->flags->get(Flags::FLAG_SF)));
 
                 // Zero Flag
                 $tmpZero = $this->op['res'] == 0;
-                $this->flags->setByName('ZF', $tmpZero);
-                // $this->output->writeln(sprintf(' -> ZF %d', $this->flags->getByName('ZF')));
+                $this->flags->set(Flags::FLAG_ZF, $tmpZero);
+                $this->output->writeln(sprintf(' -> ZF %d', $this->flags->get(Flags::FLAG_ZF)));
 
                 // Parity Flag
                 $tmpParity = $this->biosDataTables[self::TABLE_PARITY_FLAG][$ucOpResult];
                 $this->flags->setByName('PF', $tmpParity);
-                $this->output->writeln(sprintf(' -> PF %d', $this->flags->getByName('PF')));
+                $this->output->writeln(sprintf(' -> PF %d', $this->flags->get(Flags::FLAG_PF)));
 
                 if ($this->instr['set_flags_type'] & self::FLAGS_UPDATE_AO_ARITH) {
                     $this->setAuxiliaryFlagArith($this->op['src'], $this->op['dst'], $this->op['res']);
@@ -2544,13 +2548,18 @@ class Cpu implements CpuInterface, DebugAwareInterface
         $this->output->writeln(sprintf('Run loop end: %d', $this->instr['raw']));
     } // run()
 
-    private function initInstruction()
+    private function decodeInstruction()
     {
-        // Decode
         $this->instr['xlat'] = $this->biosDataTables[self::TABLE_XLAT_OPCODE][$this->instr['raw']];
         $this->instr['extra'] = $this->biosDataTables[self::TABLE_XLAT_SUBFUNCTION][$this->instr['raw']];
         $this->instr['has_modregrm'] = $this->biosDataTables[self::TABLE_I_MOD_SIZE][$this->instr['raw']];
         $this->instr['set_flags_type'] = $this->biosDataTables[self::TABLE_STD_FLAGS][$this->instr['raw']];
+    }
+
+    private function initInstruction()
+    {
+        // Decode
+        $this->decodeInstruction();
 
         // 0-7 number of the 8-bit Registers.
         $this->instr['raw_low3'] = $this->instr['raw'] & 7; // xxxx111

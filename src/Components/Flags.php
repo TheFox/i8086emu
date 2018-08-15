@@ -11,7 +11,11 @@ use TheFox\I8086emu\Blueprint\FlagsInterface;
 
 class Flags implements FlagsInterface
 {
+    public const FLAG_PF = 2;
+    public const FLAG_ZF = 6;
+    public const FLAG_SF = 7;
     public const FLAG_I = 9;
+    public const FLAG_OF = 11;
 
     private const SIZE = 2;
     public const NAMES = [
@@ -19,14 +23,17 @@ class Flags implements FlagsInterface
         'R1' => 1, // 1 reserved
         'PF' => 2, // parity flag
         'R3' => 3, // 3 reserved
+
         'AF' => 4, // auxiliary carry flag
         'R5' => 5, // 5 reserved
         'ZF' => 6, // zero flag
         'SF' => 7, // sign flag
+
         'TF' => 8, // trap flag
         'IF' => 9, // interrupt enable flag
         'DF' => 10, // direction flag
         'OF' => 11, // overflow flag
+
         'XF' => 12, // 12 reserved
         'R13' => 13, // 13 reserved
         'R14' => 14, // 14 reserved
