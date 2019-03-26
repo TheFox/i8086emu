@@ -7,6 +7,7 @@ An Intel 8086 CPU Emulator written in pure PHP.
 The project outlines as described in my blog post about [Open Source Software Collaboration](https://blog.fox21.at/2019/02/21/open-source-software-collaboration.html).
 
 - The main purpose of this software is to emulate the Intel 8086 CPU using pure PHP.
+- The features should not go beyond Intel's features and functions. So the features of this software are limited to those of the Intel 8086 CPU.
 - This list is open. Feel free to request features.
 
 ## Compile the BIOS
